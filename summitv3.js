@@ -1,22 +1,73 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  Activity, 
-  BookOpen, 
-  CheckSquare, 
-  Calendar, 
-  Plus, 
-  Trash2, 
-  TrendingUp, 
-  ChevronRight, 
-  Utensils, 
-  Clock, 
-  ShoppingBag, 
-  Check, 
-  Dumbbell, 
-  Sparkles,
-  Save,
-  XCircle
+import {
+  Activity,
+  BookOpen,
+  CheckSquare,
+  Calendar,
+  Plus,
+  Trash2,
+  Utensils,
+  ShoppingBag,
+  Dumbbell,
+  Loader2,
+  AlertTriangle
 } from 'lucide-react';
+
+// ---------------------------------------------------------------------------
+// STORAGE LAYER
+// Artifacts can't use localStorage/sessionStorage, so everything goes through
+// window.storage (async key/value store). We load all keys once on mount and
+// write through on every change. Each write is fire-and-forget but errors are
+// surfaced via a small toast so data loss is visible instead of silent.
+// ---------------------------------------------------------------------------
+
+const STORAGE_KEYS = {
+  tasks: 'summit_tasks',
+  recipes: 'summit_recipes',
+  mealPlan: 'summit_meal_plan',
+  strengthLogs: 'summit_strength_logs',
+  cardioLogs: 'summit_cardio_logs',
+  workoutTemplates: 'summit_workout_templates',
+  weeklyWorkoutPlan: 'summit_weekly_workout_plan'
+};
+
+const DEFAULT_RECIPES = [
+  {
+    id: 1,
+    name: 'Protein Oats Complex',
+    category: 'Breakfast',
+    ingredients: ['Oats (50g)', 'Whey Protein (30g)', 'Blueberries (50g)', 'Almond Milk (150ml)'],
+    instructions: 'Mix oats and almond milk. Microwave for 90s. Stir in protein powder, top with berries.'
+  },
+  {
+    id: 2,
+    name: 'Lean Chicken Rice Matrix',
+    category: 'Meal',
+    ingredients: ['Chicken Breast (200g)', 'Basmati Rice (75g)', 'Broccoli Florets (100g)', 'Olive Oil (10g)'],
+    instructions: 'Grill chicken with spices. Boil rice. Steam broccoli. Combine and drizzle with oil.'
+  }
+];
+
+const DEFAULT_MEAL_PLAN = {
+  'Monday_Breakfast': 'Protein Oats Complex',
+  'Monday_Meal 1': 'Lean Chicken Rice Matrix',
+  'Wednesday_Meal 1': 'Lean Chicken Rice Matrix'
+};
+
+const DEFAULT_WORKOUT_TEMPLATES = [
+  { id: 1, name: 'Lower Deck Alpha', exercises: ['Squat', 'Leg Press', 'Calf Raise'] },
+  { id: 2, name: 'Upper Deck Prime', exercises: ['Bench Press', 'Lat Pulldown', 'Shoulder Press', 'Bicep Curl'] }
+];
+
+const DEFAULT_WEEKLY_WORKOUT_PLAN = {
+  Monday: 'Lower Deck Alpha', Tuesday: 'Rest Day', Wednesday: 'Upper Deck Prime',
+  Thursday: 'Rest Day', Friday: 'Lower Deck Alpha', Saturday: 'Rest Day', Sunday: 'Rest Day'
+};
+
+const REST_WEEK = {
+  Monday: 'Rest Day', Tuesday: 'Rest Day', Wednesday: 'Rest Day',
+  Thursday: 'Rest Day', Friday: 'Rest Day', Saturday: 'Rest Day', Sunday: 'Rest Day'
+};
 
 export default function App() {
   // Global State Engine
@@ -27,70 +78,92 @@ export default function App() {
   const [strengthLogs, setStrengthLogs] = useState([]);
   const [cardioLogs, setCardioLogs] = useState([]);
   const [workoutTemplates, setWorkoutTemplates] = useState([]);
-  const [weeklyWorkoutPlan, setWeeklyWorkoutPlan] = useState({
-    Monday: 'Rest Day', Tuesday: 'Rest Day', Wednesday: 'Rest Day',
-    Thursday: 'Rest Day', Friday: 'Rest Day', Saturday: 'Rest Day', Sunday: 'Rest Day'
-  });
+  const [weeklyWorkoutPlan, setWeeklyWorkoutPlan] = useState(REST_WEEK);
+
+  const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState(null);
+  const [toast, setToast] = useState(null);
 
   // Calendar Utility Definitions
-  const daysOfWeek = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
-  const mealSlots = ["Breakfast", "Meal 1", "Meal 2", "Snack 1", "Snack 2"];
+  const daysOfWeek = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+  const mealSlots = ['Breakfast', 'Meal 1', 'Meal 2', 'Snack 1', 'Snack 2'];
   const todayDayName = new Date().toLocaleDateString('en-US', { weekday: 'long' });
 
-  // Load database structures on startup
+  const showToast = (message, isError = false) => {
+    setToast({ message, isError });
+    setTimeout(() => setToast(null), 3000);
+  };
+
+  // -------------------------------------------------------------------------
+  // Load all data from persistent storage on startup
+  // -------------------------------------------------------------------------
   useEffect(() => {
-    const loadData = (key, fallback) => {
-      const val = localStorage.getItem(key);
-      return val ? JSON.parse(val) : fallback;
+    const loadAll = async () => {
+      const safeGet = async (key, fallback) => {
+        try {
+          const result = await window.storage.get(key);
+          if (!result || result.value === undefined || result.value === null) return fallback;
+          return JSON.parse(result.value);
+        } catch {
+          // Missing key throws rather than returning null — that's expected
+          // for first-time users, so fall back quietly.
+          return fallback;
+        }
+      };
+
+      try {
+        const [
+          loadedTasks,
+          loadedRecipes,
+          loadedMealPlan,
+          loadedStrengthLogs,
+          loadedCardioLogs,
+          loadedWorkoutTemplates,
+          loadedWeeklyWorkoutPlan
+        ] = await Promise.all([
+          safeGet(STORAGE_KEYS.tasks, []),
+          safeGet(STORAGE_KEYS.recipes, DEFAULT_RECIPES),
+          safeGet(STORAGE_KEYS.mealPlan, DEFAULT_MEAL_PLAN),
+          safeGet(STORAGE_KEYS.strengthLogs, []),
+          safeGet(STORAGE_KEYS.cardioLogs, []),
+          safeGet(STORAGE_KEYS.workoutTemplates, DEFAULT_WORKOUT_TEMPLATES),
+          safeGet(STORAGE_KEYS.weeklyWorkoutPlan, DEFAULT_WEEKLY_WORKOUT_PLAN)
+        ]);
+
+        setTasks(loadedTasks);
+        setRecipes(loadedRecipes);
+        setMealPlan(loadedMealPlan);
+        setStrengthLogs(loadedStrengthLogs);
+        setCardioLogs(loadedCardioLogs);
+        setWorkoutTemplates(loadedWorkoutTemplates);
+        setWeeklyWorkoutPlan(loadedWeeklyWorkoutPlan);
+      } catch (err) {
+        setLoadError('Could not load saved data. Starting with a clean slate — anything you add will still try to save.');
+      } finally {
+        setIsLoading(false);
+      }
     };
 
-    setTasks(loadData('summit_tasks', []));
-    setRecipes(loadData('summit_recipes', [
-      {
-        id: 1,
-        name: "Protein Oats Complex",
-        category: "Breakfast",
-        ingredients: ["Oats (50g)", "Whey Protein (30g)", "Blueberries (50g)", "Almond Milk (150ml)"],
-        instructions: "Mix oats and almond milk. Microwave for 90s. Stir in protein powder, top with berries."
-      },
-      {
-        id: 2,
-        name: "Lean Chicken Rice Matrix",
-        category: "Meal",
-        ingredients: ["Chicken Breast (200g)", "Basmati Rice (75g)", "Broccoli Florets (100g)", "Olive Oil (10g)"],
-        instructions: "Grill chicken with spices. Boil rice. Steam broccoli. Combine and drizzle with oil."
-      }
-    ]));
-    setMealPlan(loadData('summit_meal_plan', {
-      'Monday_Breakfast': 'Protein Oats Complex',
-      'Monday_Meal 1': 'Lean Chicken Rice Matrix',
-      'Wednesday_Meal 1': 'Lean Chicken Rice Matrix'
-    }));
-    setStrengthLogs(loadData('summit_strength_logs', []));
-    setCardioLogs(loadData('summit_cardio_logs', []));
-    setWorkoutTemplates(loadData('summit_workout_templates', [
-      { id: 1, name: "Lower Deck Alpha", exercises: ["Squat", "Leg Press", "Calf Raise"] },
-      { id: 2, name: "Upper Deck Prime", exercises: ["Bench Press", "Lat Pulldown", "Shoulder Press", "Bicep Curl"] }
-    ]));
-    setWeeklyWorkoutPlan(loadData('summit_weekly_workout_plan', {
-      Monday: 'Lower Deck Alpha', Tuesday: 'Rest Day', Wednesday: 'Upper Deck Prime',
-      Thursday: 'Rest Day', Friday: 'Lower Deck Alpha', Saturday: 'Rest Day', Sunday: 'Rest Day'
-    }));
+    loadAll();
   }, []);
 
-  // Sync Helper to persist database changes
-  const saveToStorage = (key, data) => {
-    localStorage.setItem(key, JSON.stringify(data));
+  // Write-through helper: updates React state immediately, persists in the background
+  const saveToStorage = async (key, data) => {
+    try {
+      const result = await window.storage.set(key, JSON.stringify(data));
+      if (!result) showToast('Save failed — your change is visible but may not persist.', true);
+    } catch {
+      showToast('Save failed — your change is visible but may not persist.', true);
+    }
   };
 
   // ---------------------------------------------------------------------------
   // TASK ENGINE ACTIONS
   // ---------------------------------------------------------------------------
   const [taskForm, setTaskForm] = useState({ name: '', dueDate: '', targetDate: '', notes: '', checklistText: '' });
-  
-  const handleCreateTask = (e) => {
-    e.preventDefault();
-    if (!taskForm.name || !taskForm.targetDate) return;
+
+  const handleCreateTask = () => {
+    if (!taskForm.name.trim() || !taskForm.targetDate) return;
 
     const newTaskId = Date.now();
     const newChecklistItems = taskForm.checklistText
@@ -104,7 +177,7 @@ export default function App() {
 
     const newTask = {
       id: newTaskId,
-      name: taskForm.name,
+      name: taskForm.name.trim(),
       dueDate: taskForm.dueDate,
       targetDate: taskForm.targetDate,
       notes: taskForm.notes,
@@ -114,7 +187,7 @@ export default function App() {
 
     const updated = [...tasks, newTask];
     setTasks(updated);
-    saveToStorage('summit_tasks', updated);
+    saveToStorage(STORAGE_KEYS.tasks, updated);
     setTaskForm({ name: '', dueDate: '', targetDate: '', notes: '', checklistText: '' });
   };
 
@@ -123,7 +196,7 @@ export default function App() {
       if (t.id === taskId) {
         return {
           ...t,
-          checklist: t.checklist.map(item => 
+          checklist: t.checklist.map(item =>
             item.id === itemId ? { ...item, isCompleted: !item.isCompleted } : item
           )
         };
@@ -131,7 +204,7 @@ export default function App() {
       return t;
     });
     setTasks(updated);
-    saveToStorage('summit_tasks', updated);
+    saveToStorage(STORAGE_KEYS.tasks, updated);
   };
 
   const handleCompleteTask = (taskId) => {
@@ -146,43 +219,60 @@ export default function App() {
       return t;
     });
     setTasks(updated);
-    saveToStorage('summit_tasks', updated);
+    saveToStorage(STORAGE_KEYS.tasks, updated);
   };
 
   const handleDeleteTask = (taskId) => {
     const updated = tasks.filter(t => t.id !== taskId);
     setTasks(updated);
-    saveToStorage('summit_tasks', updated);
+    saveToStorage(STORAGE_KEYS.tasks, updated);
   };
 
-  // Calculate task tracking metrics
+  // Historical completion rate across all checklist items ever created.
+  // Returns null (not 0 or 1) when there's no data yet, so the UI can show
+  // "no data" instead of a misleading 100%.
   const getHistoricalVelocity = () => {
     const allItems = tasks.flatMap(t => t.checklist);
-    if (allItems.length === 0) return 1.0;
+    if (allItems.length === 0) return null;
     const completed = allItems.filter(item => item.isCompleted).length;
-    return (completed / allItems.length);
+    return completed / allItems.length;
   };
 
+  // Estimated workload "weight" landing on a given date, spread across each
+  // task's remaining days until its target date.
   const getDistributedMilestonesCount = (targetDateStr) => {
     let count = 0;
     const today = new Date();
-    today.setHours(0,0,0,0);
+    today.setHours(0, 0, 0, 0);
     const checkDate = new Date(targetDateStr);
-    checkDate.setHours(0,0,0,0);
+    checkDate.setHours(0, 0, 0, 0);
 
     tasks.forEach(t => {
       if (t.isCompleted) return;
       const target = new Date(t.targetDate);
-      target.setHours(0,0,0,0);
-      
+      target.setHours(0, 0, 0, 0);
+
       if (today <= checkDate && checkDate <= target) {
         const daysRemaining = Math.max(1, Math.ceil((target - today) / (1000 * 60 * 60 * 24)) + 1);
         const incompleteChecklist = t.checklist.filter(item => !item.isCompleted).length;
         const remainingMilestones = incompleteChecklist === 0 ? 1 : incompleteChecklist;
-        count += Number((remainingMilestones / daysRemaining).toFixed(1));
+        count += remainingMilestones / daysRemaining;
       }
     });
     return Math.round(count * 10) / 10;
+  };
+
+  // Tasks whose hard deadline has passed but aren't marked done — surfaced
+  // separately since `dueDate` was previously collected but never used.
+  const getOverdueTasks = () => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    return tasks.filter(t => {
+      if (t.isCompleted || !t.dueDate) return false;
+      const due = new Date(t.dueDate);
+      due.setHours(0, 0, 0, 0);
+      return due < today;
+    });
   };
 
   // ---------------------------------------------------------------------------
@@ -191,36 +281,41 @@ export default function App() {
   const [recipeForm, setRecipeForm] = useState({ name: '', category: 'Meal', ingredientsText: '', instructions: '' });
   const [selectedRecipeFilter, setSelectedRecipeFilter] = useState('');
 
-  const handleCreateRecipe = (e) => {
-    e.preventDefault();
-    if (!recipeForm.name || !recipeForm.instructions) return;
+  const handleCreateRecipe = () => {
+    if (!recipeForm.name.trim() || !recipeForm.instructions.trim()) return;
 
     const newRecipe = {
       id: Date.now(),
-      name: recipeForm.name,
+      name: recipeForm.name.trim(),
       category: recipeForm.category,
       ingredients: recipeForm.ingredientsText.split('\n').filter(i => i.trim()),
-      instructions: recipeForm.instructions
+      instructions: recipeForm.instructions.trim()
     };
 
     const updated = [...recipes, newRecipe];
     setRecipes(updated);
-    saveToStorage('summit_recipes', updated);
+    saveToStorage(STORAGE_KEYS.recipes, updated);
     setRecipeForm({ name: '', category: 'Meal', ingredientsText: '', instructions: '' });
     setCurrentPage('View Cookbook');
+  };
+
+  const handleDeleteRecipe = (id) => {
+    const updated = recipes.filter(r => r.id !== id);
+    setRecipes(updated);
+    saveToStorage(STORAGE_KEYS.recipes, updated);
   };
 
   const handleSaveMealPlan = (day, slot, recipeName) => {
     const updated = { ...mealPlan, [`${day}_${slot}`]: recipeName };
     setMealPlan(updated);
-    saveToStorage('summit_meal_plan', updated);
+    saveToStorage(STORAGE_KEYS.mealPlan, updated);
   };
 
-  // Generate dynamic shopping list based on the active weekly schedule meals
+  // Shopping list aggregated from every meal currently scheduled this week
   const getAutoGeneratedShoppingList = () => {
-    const neededRecipes = Object.entries(mealPlan)
-      .filter(([_, recipeName]) => recipeName && recipeName !== 'None' && recipeName !== 'Flight')
-      .map(([_, recipeName]) => recipeName);
+    const neededRecipes = Object.values(mealPlan).filter(
+      name => name && name !== 'None' && name !== 'Flight'
+    );
 
     const frequencyMap = {};
     neededRecipes.forEach(name => {
@@ -241,10 +336,10 @@ export default function App() {
   const [workoutTemplateForm, setWorkoutTemplateForm] = useState({ name: '', exercisesText: '' });
   const [cardioForm, setCardioForm] = useState({ activity: 'Running', duration: 30, distance: 5 });
   const [strengthLogInputs, setStrengthLogInputs] = useState({});
+  const [justLogged, setJustLogged] = useState({});
 
-  const handleCreateWorkoutTemplate = (e) => {
-    e.preventDefault();
-    if (!workoutTemplateForm.name || !workoutTemplateForm.exercisesText) return;
+  const handleCreateWorkoutTemplate = () => {
+    if (!workoutTemplateForm.name.trim() || !workoutTemplateForm.exercisesText.trim()) return;
 
     const newTemplate = {
       id: Date.now(),
@@ -254,79 +349,81 @@ export default function App() {
 
     const updated = [...workoutTemplates, newTemplate];
     setWorkoutTemplates(updated);
-    saveToStorage('summit_workout_templates', updated);
+    saveToStorage(STORAGE_KEYS.workoutTemplates, updated);
     setWorkoutTemplateForm({ name: '', exercisesText: '' });
   };
 
   const handleDeleteTemplate = (id) => {
     const updated = workoutTemplates.filter(t => t.id !== id);
     setWorkoutTemplates(updated);
-    saveToStorage('summit_workout_templates', updated);
+    saveToStorage(STORAGE_KEYS.workoutTemplates, updated);
   };
 
   const handleUpdateWeeklyWorkout = (day, templateName) => {
     const updated = { ...weeklyWorkoutPlan, [day]: templateName };
     setWeeklyWorkoutPlan(updated);
-    saveToStorage('summit_weekly_workout_plan', updated);
+    saveToStorage(STORAGE_KEYS.weeklyWorkoutPlan, updated);
   };
 
-  const handleLogManualCardio = (e) => {
-    e.preventDefault();
+  const handleLogManualCardio = () => {
+    const duration = Number(cardioForm.duration);
+    const distance = Number(cardioForm.distance);
+    if (!duration || duration <= 0) return;
+
     const newLog = {
       id: Date.now(),
       date: new Date().toISOString().split('T')[0],
       activity: cardioForm.activity,
-      duration: Number(cardioForm.duration),
-      distance: Number(cardioForm.distance)
+      duration,
+      distance
     };
     const updated = [...cardioLogs, newLog];
     setCardioLogs(updated);
-    saveToStorage('summit_cardio_logs', updated);
+    saveToStorage(STORAGE_KEYS.cardioLogs, updated);
+    showToast('Cardio session logged.');
   };
 
-  const handleLogStrengthFromHub = (e, exerciseName) => {
-    e.preventDefault();
-    const inputs = strengthLogInputs[exerciseName] || { weight: 40, sets: 3, reps: 8 };
+  // Strength logging is keyed by `${templateName}::${exercise}` rather than
+  // just the exercise name, so two templates sharing an exercise (e.g. both
+  // having "Squat") don't share the same input state or "locked" flash.
+  const strengthKey = (templateName, exercise) => `${templateName}::${exercise}`;
+
+  const handleLogStrengthFromHub = (templateName, exercise) => {
+    const key = strengthKey(templateName, exercise);
+    const inputs = strengthLogInputs[key] || { weight: 40, sets: 3, reps: 8 };
     const newLog = {
       id: Date.now() + Math.random(),
       date: new Date().toISOString().split('T')[0],
-      exercise: exerciseName,
+      exercise,
       weight: Number(inputs.weight),
       sets: Number(inputs.sets),
       reps: Number(inputs.reps)
     };
     const updated = [...strengthLogs, newLog];
     setStrengthLogs(updated);
-    saveToStorage('summit_strength_logs', updated);
-    
-    // Feedback effect
-    const btn = e.target.querySelector('button');
-    if (btn) {
-      const originalText = btn.innerHTML;
-      btn.innerHTML = 'DATA PACKET LOCKED';
-      btn.style.borderColor = '#d946ef';
-      setTimeout(() => {
-        btn.innerHTML = originalText;
-        btn.style.borderColor = 'rgba(255, 0, 160, 0.3)';
-      }, 1500);
-    }
+    saveToStorage(STORAGE_KEYS.strengthLogs, updated);
+
+    // Brief "locked" confirmation driven by state, not direct DOM mutation
+    setJustLogged(prev => ({ ...prev, [key]: true }));
+    setTimeout(() => {
+      setJustLogged(prev => ({ ...prev, [key]: false }));
+    }, 1500);
   };
 
   const handleDeleteStrengthLog = (id) => {
     const updated = strengthLogs.filter(log => log.id !== id);
     setStrengthLogs(updated);
-    saveToStorage('summit_strength_logs', updated);
+    saveToStorage(STORAGE_KEYS.strengthLogs, updated);
   };
 
   const handleDeleteCardioLog = (id) => {
     const updated = cardioLogs.filter(log => log.id !== id);
     setCardioLogs(updated);
-    saveToStorage('summit_cardio_logs', updated);
+    saveToStorage(STORAGE_KEYS.cardioLogs, updated);
   };
 
-  // Analytical Calculators
   const getTotalKineticVolume = () => {
-    return strengthLogs.reduce((acc, log) => acc + (log.weight * log.sets * log.reps), 0);
+    return strengthLogs.reduce((acc, log) => acc + log.weight * log.sets * log.reps, 0);
   };
 
   const getTotalCardioMinutes = () => {
@@ -335,19 +432,57 @@ export default function App() {
 
   // Swiss Date Formatting Utility (DD.MM.YYYY)
   const formatToSwissDate = (dateStr) => {
-    if (!dateStr) return '';
+    if (!dateStr) return '—';
     const parts = dateStr.split('-');
     if (parts.length === 3) return `${parts[2]}.${parts[1]}.${parts[0]}`;
     return dateStr;
   };
+
+  // ---------------------------------------------------------------------------
+  // LOADING / ERROR STATES
+  // ---------------------------------------------------------------------------
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-[#060309] flex items-center justify-center">
+        <div className="flex flex-col items-center gap-3 text-[#ff00a0]">
+          <Loader2 className="w-8 h-8 animate-spin" />
+          <span className="text-xs font-mono uppercase tracking-widest">Bringing systems online…</span>
+        </div>
+      </div>
+    );
+  }
+
+  const velocity = getHistoricalVelocity();
+  const overdueTasks = getOverdueTasks();
 
   return (
     <div className="min-h-screen bg-[#060309] text-[#a3a8cc] font-sans antialiased pb-20 selection:bg-[#ff00a0] selection:text-black">
       {/* GLOWING SYSTEM RADIAL OVERLAYS */}
       <div className="fixed inset-0 bg-[radial-gradient(circle_at_50%_10%,#160a1d_0%,#060309_100%)] pointer-events-none z-0"></div>
 
+      {/* TOAST */}
+      {toast && (
+        <div
+          className={`fixed top-4 right-4 z-50 px-4 py-3 rounded-xl border text-xs font-mono uppercase tracking-wide shadow-xl flex items-center gap-2 ${
+            toast.isError
+              ? 'bg-red-950/90 border-red-500/40 text-red-300'
+              : 'bg-[#120b1c]/95 border-[#ff00a0]/40 text-[#ff00a0]'
+          }`}
+        >
+          {toast.isError && <AlertTriangle className="w-4 h-4" />}
+          {toast.message}
+        </div>
+      )}
+
       <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8">
-        
+
+        {loadError && (
+          <div className="mb-6 bg-red-950/40 border border-red-500/30 rounded-xl p-4 flex items-start gap-3 text-xs text-red-300">
+            <AlertTriangle className="w-4 h-4 mt-0.5 flex-shrink-0" />
+            <span>{loadError}</span>
+          </div>
+        )}
+
         {/* CYBERNETIC INTEGRATION HERO TITLE HEADER */}
         <header className="mb-8 border-l-4 border-[#ff00a0] pl-4 py-2 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           <div>
@@ -355,7 +490,7 @@ export default function App() {
               Summit Command Center
             </h1>
             <p className="text-xs font-mono text-[#7b7f9e] uppercase tracking-widest mt-1">
-              SYSTEM LEVEL v3.0 // CYBERNETIC BIO-HUD ONLINE
+              SYSTEM LEVEL v3.1 // CYBERNETIC BIO-HUD ONLINE
             </p>
           </div>
           <div className="flex gap-2 bg-[#120b1c] border border-[#ff00a0]/20 rounded-lg px-3 py-1.5 text-xs font-mono">
@@ -366,50 +501,25 @@ export default function App() {
 
         {/* CORE TELEPORT NAVIGATION DESK */}
         <nav className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-8">
-          <button 
-            onClick={() => setCurrentPage('Main Hub')}
-            className={`flex items-center justify-center gap-2 font-mono py-3 rounded-full border text-xs font-bold uppercase tracking-wider transition-all duration-300 ${
-              currentPage === 'Main Hub' 
-                ? 'bg-[#ff00a0] text-[#060309] border-[#ff00a0] shadow-[0_0_20px_rgba(255,0,160,0.4)]' 
-                : 'bg-[#1f0b2a]/40 text-[#ff00a0] border-[#ff00a0]/30 hover:bg-[#ff00a0] hover:text-[#060309] hover:border-[#ff00a0]'
-            }`}
-          >
-            <Activity className="w-4 h-4" />
-            Main Hub
-          </button>
-          <button 
-            onClick={() => setCurrentPage('Task Dashboard')}
-            className={`flex items-center justify-center gap-2 font-mono py-3 rounded-full border text-xs font-bold uppercase tracking-wider transition-all duration-300 ${
-              currentPage === 'Task Dashboard' 
-                ? 'bg-[#ff00a0] text-[#060309] border-[#ff00a0] shadow-[0_0_20px_rgba(255,0,160,0.4)]' 
-                : 'bg-[#1f0b2a]/40 text-[#ff00a0] border-[#ff00a0]/30 hover:bg-[#ff00a0] hover:text-[#060309] hover:border-[#ff00a0]'
-            }`}
-          >
-            <CheckSquare className="w-4 h-4" />
-            Task Distributor
-          </button>
-          <button 
-            onClick={() => setCurrentPage('Recipe Dashboard')}
-            className={`flex items-center justify-center gap-2 font-mono py-3 rounded-full border text-xs font-bold uppercase tracking-wider transition-all duration-300 ${
-              currentPage.includes('Recipe') || currentPage.includes('Cookbook') || currentPage.includes('Planner')
-                ? 'bg-[#ff00a0] text-[#060309] border-[#ff00a0] shadow-[0_0_20px_rgba(255,0,160,0.4)]' 
-                : 'bg-[#1f0b2a]/40 text-[#ff00a0] border-[#ff00a0]/30 hover:bg-[#ff00a0] hover:text-[#060309] hover:border-[#ff00a0]'
-            }`}
-          >
-            <Utensils className="w-4 h-4" />
-            Nutrition Planner
-          </button>
-          <button 
-            onClick={() => setCurrentPage('Fitness Dashboard')}
-            className={`flex items-center justify-center gap-2 font-mono py-3 rounded-full border text-xs font-bold uppercase tracking-wider transition-all duration-300 ${
-              currentPage === 'Fitness Dashboard' 
-                ? 'bg-[#ff00a0] text-[#060309] border-[#ff00a0] shadow-[0_0_20px_rgba(255,0,160,0.4)]' 
-                : 'bg-[#1f0b2a]/40 text-[#ff00a0] border-[#ff00a0]/30 hover:bg-[#ff00a0] hover:text-[#060309] hover:border-[#ff00a0]'
-            }`}
-          >
-            <Dumbbell className="w-4 h-4" />
-            Fitness Deck
-          </button>
+          {[
+            { id: 'Main Hub', label: 'Main Hub', icon: Activity, match: (p) => p === 'Main Hub' },
+            { id: 'Task Dashboard', label: 'Task Distributor', icon: CheckSquare, match: (p) => p === 'Task Dashboard' },
+            { id: 'Recipe Dashboard', label: 'Nutrition Planner', icon: Utensils, match: (p) => p.includes('Recipe') || p.includes('Cookbook') || p.includes('Planner') },
+            { id: 'Fitness Dashboard', label: 'Fitness Deck', icon: Dumbbell, match: (p) => p === 'Fitness Dashboard' }
+          ].map(({ id, label, icon: Icon, match }) => (
+            <button
+              key={id}
+              onClick={() => setCurrentPage(id)}
+              className={`flex items-center justify-center gap-2 font-mono py-3 rounded-full border text-xs font-bold uppercase tracking-wider transition-all duration-300 ${
+                match(currentPage)
+                  ? 'bg-[#ff00a0] text-[#060309] border-[#ff00a0] shadow-[0_0_20px_rgba(255,0,160,0.4)]'
+                  : 'bg-[#1f0b2a]/40 text-[#ff00a0] border-[#ff00a0]/30 hover:bg-[#ff00a0] hover:text-[#060309] hover:border-[#ff00a0]'
+              }`}
+            >
+              <Icon className="w-4 h-4" />
+              {label}
+            </button>
+          ))}
         </nav>
 
         {/* =====================================================================
@@ -417,11 +527,9 @@ export default function App() {
             ===================================================================== */}
         {currentPage === 'Main Hub' && (
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            
-            {/* COLUMN 1 & 2: OPERATIONS CONTEXT MATRIX */}
+
             <div className="lg:col-span-2 space-y-6">
-              
-              {/* Daily Header Sub-line */}
+
               <div className="bg-[#120b1c]/80 border border-[#d946ef]/20 rounded-2xl p-6 shadow-xl backdrop-blur-md">
                 <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                   <div>
@@ -439,10 +547,24 @@ export default function App() {
                 </div>
               </div>
 
+              {overdueTasks.length > 0 && (
+                <div className="bg-red-950/30 border border-red-500/30 rounded-2xl p-5 flex items-start gap-3">
+                  <AlertTriangle className="w-5 h-5 text-red-400 flex-shrink-0 mt-0.5" />
+                  <div>
+                    <h3 className="text-sm font-bold text-red-400 uppercase tracking-wide">
+                      {overdueTasks.length} Task{overdueTasks.length > 1 ? 's' : ''} Past Hard Deadline
+                    </h3>
+                    <p className="text-xs text-red-300/80 mt-1 font-mono">
+                      {overdueTasks.map(t => t.name).join(', ')}
+                    </p>
+                  </div>
+                </div>
+              )}
+
               {/* Nutrition Allocator */}
               <div className="bg-[#120b1c]/80 border border-[#d946ef]/20 hover:border-[#d946ef]/50 transition-all duration-300 rounded-2xl p-6 shadow-xl backdrop-blur-md">
                 <h3 className="text-md font-bold text-[#ff00a0] uppercase tracking-wide mb-4 flex items-center gap-2">
-                  <Utensils className="w-5 h-5 text-[#ff00a0]" /> 
+                  <Utensils className="w-5 h-5 text-[#ff00a0]" />
                   Fuel Map Deployed Today
                 </h3>
                 <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
@@ -468,92 +590,17 @@ export default function App() {
                   <Dumbbell className="w-5 h-5 text-[#ff00a0]" />
                   Today's Training Load
                 </h3>
-                
-                {(() => {
-                  const todaysRoutine = weeklyWorkoutPlan[todayDayName];
-                  if (!todaysRoutine || todaysRoutine === 'None' || todaysRoutine === 'Rest Day') {
-                    return (
-                      <div className="text-center py-6">
-                        <span className="text-sm font-mono text-[#7b7f9e] uppercase tracking-wider block">REST SEQUENCE ACTIVE</span>
-                        <span className="text-xs text-[#4a4d66] mt-1 block">Muscle protein synthesis optimized. Reagents absorbing.</span>
-                      </div>
-                    );
-                  }
 
-                  const activeTemplate = workoutTemplates.find(t => t.name === todaysRoutine);
-                  if (!activeTemplate || !activeTemplate.exercises.length) {
-                    return (
-                      <div className="text-center py-4 text-xs text-[#7b7f9e]">
-                        No active exercises found inside custom blueprint: "{todaysRoutine}"
-                      </div>
-                    );
-                  }
-
-                  return (
-                    <div className="space-y-4">
-                      <div className="bg-[#ff00a0]/10 border border-[#ff00a0]/30 rounded-xl p-3 flex justify-between items-center">
-                        <span className="text-xs font-mono font-bold text-white uppercase tracking-wider">ACTIVE WORKOUT MATRIX: {todaysRoutine.toUpperCase()}</span>
-                        <span className="bg-[#ff00a0] text-black text-[10px] font-bold px-2 py-0.5 rounded-full font-mono uppercase">LIVE RECORDING</span>
-                      </div>
-
-                      <div className="space-y-3">
-                        {activeTemplate.exercises.map((exercise, index) => {
-                          const userInputs = strengthLogInputs[exercise] || { weight: 40, sets: 3, reps: 8 };
-                          return (
-                            <form key={index} onSubmit={(e) => handleLogStrengthFromHub(e, exercise)} className="bg-[#0c0712] border border-[#ff00a0]/10 rounded-xl p-4 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-                              <span className="text-xs font-bold text-[#d946ef] min-w-[150px]">{exercise.toUpperCase()}</span>
-                              <div className="flex gap-2 w-full md:w-auto">
-                                <div className="flex-1 md:flex-initial">
-                                  <span className="text-[9px] uppercase font-mono text-[#7b7f9e] block mb-1">Weight KG</span>
-                                  <input 
-                                    type="number" 
-                                    className="bg-[#120b1c] border border-[#ff00a0]/25 text-[#ff00a0] rounded-lg px-2 py-1 text-xs font-mono w-full md:w-20"
-                                    value={userInputs.weight}
-                                    onChange={(e) => setStrengthLogInputs({
-                                      ...strengthLogInputs,
-                                      [exercise]: { ...userInputs, weight: e.target.value }
-                                    })}
-                                    min="0"
-                                    step="0.5"
-                                  />
-                                </div>
-                                <div className="flex-1 md:flex-initial">
-                                  <span className="text-[9px] uppercase font-mono text-[#7b7f9e] block mb-1">Sets</span>
-                                  <input 
-                                    type="number" 
-                                    className="bg-[#120b1c] border border-[#ff00a0]/25 text-[#ff00a0] rounded-lg px-2 py-1 text-xs font-mono w-full md:w-16"
-                                    value={userInputs.sets}
-                                    onChange={(e) => setStrengthLogInputs({
-                                      ...strengthLogInputs,
-                                      [exercise]: { ...userInputs, sets: e.target.value }
-                                    })}
-                                    min="1"
-                                  />
-                                </div>
-                                <div className="flex-1 md:flex-initial">
-                                  <span className="text-[9px] uppercase font-mono text-[#7b7f9e] block mb-1">Reps</span>
-                                  <input 
-                                    type="number" 
-                                    className="bg-[#120b1c] border border-[#ff00a0]/25 text-[#ff00a0] rounded-lg px-2 py-1 text-xs font-mono w-full md:w-16"
-                                    value={userInputs.reps}
-                                    onChange={(e) => setStrengthLogInputs({
-                                      ...strengthLogInputs,
-                                      [exercise]: { ...userInputs, reps: e.target.value }
-                                    })}
-                                    min="1"
-                                  />
-                                </div>
-                              </div>
-                              <button type="submit" className="w-full md:w-auto bg-gradient-to-r from-[#1f0b2a] to-[#0b0410] text-[#ff00a0] border border-[#ff00a0]/30 hover:bg-[#ff00a0] hover:text-[#060309] hover:border-[#ff00a0] transition-all duration-300 text-[10px] font-bold font-mono py-2 px-4 rounded-full uppercase tracking-wider">
-                                LOCK DATA SET
-                              </button>
-                            </form>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  );
-                })()}
+                <TodaysWorkoutPanel
+                  weeklyWorkoutPlan={weeklyWorkoutPlan}
+                  workoutTemplates={workoutTemplates}
+                  todayDayName={todayDayName}
+                  strengthLogInputs={strengthLogInputs}
+                  setStrengthLogInputs={setStrengthLogInputs}
+                  justLogged={justLogged}
+                  strengthKey={strengthKey}
+                  onLog={handleLogStrengthFromHub}
+                />
               </div>
 
               {/* Dynamic Task Allocator Checkpoints */}
@@ -568,8 +615,8 @@ export default function App() {
                 ) : (
                   <div className="space-y-4">
                     {tasks.filter(t => !t.isCompleted).map(task => {
-                      const progressPct = task.checklist.length > 0 
-                        ? Math.round((task.checklist.filter(item => item.isCompleted).length / task.checklist.length) * 100) 
+                      const progressPct = task.checklist.length > 0
+                        ? Math.round((task.checklist.filter(item => item.isCompleted).length / task.checklist.length) * 100)
                         : 0;
                       return (
                         <div key={task.id} className="bg-[#0c0712] border border-[#ff00a0]/15 p-4 rounded-xl">
@@ -590,7 +637,7 @@ export default function App() {
                           {task.checklist.length === 0 ? (
                             <div className="flex justify-between items-center pt-2">
                               <span className="text-xs italic text-[#7b7f9e]">Mark task completed directly on completion</span>
-                              <button 
+                              <button
                                 onClick={() => handleCompleteTask(task.id)}
                                 className="bg-[#ff00a0]/10 hover:bg-[#ff00a0] text-[#ff00a0] hover:text-[#060309] border border-[#ff00a0]/30 text-[10px] font-mono font-bold uppercase tracking-wider py-1.5 px-3 rounded-full transition-all"
                               >
@@ -601,10 +648,10 @@ export default function App() {
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-2 mt-2">
                               {task.checklist.map(item => (
                                 <label key={item.id} className="flex items-center gap-3 bg-[#120b1c]/60 p-2 rounded-lg border border-[#ff00a0]/10 hover:border-[#ff00a0]/35 cursor-pointer transition-all">
-                                  <input 
-                                    type="checkbox" 
-                                    className="accent-[#ff00a0]" 
-                                    checked={item.isCompleted} 
+                                  <input
+                                    type="checkbox"
+                                    className="accent-[#ff00a0]"
+                                    checked={item.isCompleted}
                                     onChange={() => handleToggleSubtask(task.id, item.id)}
                                   />
                                   <span className={`text-xs ${item.isCompleted ? 'line-through text-[#4a4d66]' : 'text-[#a3a8cc]'}`}>
@@ -625,13 +672,13 @@ export default function App() {
 
             {/* COLUMN 3: SYSTEM SIDE PANEL FORECASTS */}
             <div className="space-y-6">
-              
+
               <div className="bg-[#120b1c]/80 border border-[#d946ef]/20 rounded-2xl p-6 shadow-xl backdrop-blur-md">
                 <h3 className="text-md font-bold text-[#ff00a0] uppercase tracking-wide mb-4 flex items-center gap-2">
                   <Calendar className="w-5 h-5 text-[#ff00a0]" />
                   Chronological Horizon
                 </h3>
-                
+
                 <div className="space-y-4">
                   {[1, 2, 3].map(offset => {
                     const nextDateObj = new Date();
@@ -653,7 +700,7 @@ export default function App() {
                           <span className="text-xs font-bold text-[#d946ef] uppercase font-mono">{nextDayName.toUpperCase()}</span>
                           <span className="text-[10px] font-mono text-[#7b7f9e]">{formatToSwissDate(nextDateStr)}</span>
                         </div>
-                        
+
                         <div className="space-y-1 text-xs">
                           <div className="flex justify-between">
                             <span className="text-[#7b7f9e]">Lifting Routine:</span>
@@ -712,15 +759,17 @@ export default function App() {
             ===================================================================== */}
         {currentPage === 'Task Dashboard' && (
           <div className="space-y-8">
-            
+
             {/* Predictive Analytical Dashboard Row */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               <div className="bg-[#120b1c]/80 border border-[#d946ef]/20 rounded-2xl p-5 shadow-xl backdrop-blur-md text-center">
                 <span className="text-xs uppercase font-mono text-[#a3a8cc] tracking-wider block">Historical Completion Velocity</span>
                 <span className="text-3xl font-extrabold text-white block my-2">
-                  {Math.round(getHistoricalVelocity() * 100)}%
+                  {velocity === null ? '—' : `${Math.round(velocity * 100)}%`}
                 </span>
-                <span className="text-[10px] text-[#ff00a0] font-mono uppercase">System Engine Running Secure</span>
+                <span className="text-[10px] text-[#ff00a0] font-mono uppercase">
+                  {velocity === null ? 'No checklist data yet' : 'System Engine Running Secure'}
+                </span>
               </div>
 
               <div className="bg-[#120b1c]/80 border border-[#d946ef]/20 rounded-2xl p-5 shadow-xl backdrop-blur-md text-center">
@@ -736,56 +785,56 @@ export default function App() {
                 <span className="text-3xl font-extrabold text-white block my-2">
                   {tasks.filter(t => !t.isCompleted).length} Tasks
                 </span>
-                <span className="text-[10px] text-[#d946ef] font-mono uppercase">System Buffer Active</span>
+                <span className="text-[10px] text-[#d946ef] font-mono uppercase">
+                  {overdueTasks.length > 0 ? `${overdueTasks.length} overdue` : 'System Buffer Active'}
+                </span>
               </div>
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-              
+
               {/* Task Matrix Creator */}
               <div className="bg-[#120b1c]/80 border border-[#d946ef]/20 rounded-2xl p-6 shadow-xl backdrop-blur-md">
                 <h3 className="text-md font-bold text-[#ff00a0] uppercase tracking-wide mb-6">
                   Initialize Project Vector
                 </h3>
-                
-                <form onSubmit={handleCreateTask} className="space-y-4 text-xs">
+
+                <div className="space-y-4 text-xs">
                   <div>
                     <label className="block text-[#a3a8cc] uppercase font-mono mb-1">Operational ID / Name</label>
-                    <input 
-                      type="text" 
+                    <input
+                      type="text"
                       className="w-full bg-[#0c0712] border border-[#ff00a0]/25 text-white rounded-xl p-3 focus:outline-none focus:border-[#ff00a0] transition-colors"
                       value={taskForm.name}
                       onChange={(e) => setTaskForm({ ...taskForm, name: e.target.value })}
                       placeholder="e.g. Master's Thesis Sprint"
-                      required
                     />
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-[#a3a8cc] uppercase font-mono mb-1">Hard Target Deadline</label>
-                      <input 
-                        type="date" 
+                      <label className="block text-[#a3a8cc] uppercase font-mono mb-1">Hard Deadline (optional)</label>
+                      <input
+                        type="date"
                         className="w-full bg-[#0c0712] border border-[#ff00a0]/25 text-white rounded-xl p-3 focus:outline-none focus:border-[#ff00a0] transition-colors"
                         value={taskForm.dueDate}
                         onChange={(e) => setTaskForm({ ...taskForm, dueDate: e.target.value })}
                       />
                     </div>
                     <div>
-                      <label className="block text-[#a3a8cc] uppercase font-mono mb-1">Soft Target Deadline</label>
-                      <input 
-                        type="date" 
+                      <label className="block text-[#a3a8cc] uppercase font-mono mb-1">Target Date (required)</label>
+                      <input
+                        type="date"
                         className="w-full bg-[#0c0712] border border-[#ff00a0]/25 text-white rounded-xl p-3 focus:outline-none focus:border-[#ff00a0] transition-colors"
                         value={taskForm.targetDate}
                         onChange={(e) => setTaskForm({ ...taskForm, targetDate: e.target.value })}
-                        required
                       />
                     </div>
                   </div>
 
                   <div>
                     <label className="block text-[#a3a8cc] uppercase font-mono mb-1">Functional Specifications</label>
-                    <textarea 
+                    <textarea
                       className="w-full bg-[#0c0712] border border-[#ff00a0]/25 text-white rounded-xl p-3 focus:outline-none focus:border-[#ff00a0] transition-colors h-24"
                       value={taskForm.notes}
                       onChange={(e) => setTaskForm({ ...taskForm, notes: e.target.value })}
@@ -795,18 +844,23 @@ export default function App() {
 
                   <div>
                     <label className="block text-[#a3a8cc] uppercase font-mono mb-1">Inject Checklist (One per line)</label>
-                    <textarea 
+                    <textarea
                       className="w-full bg-[#0c0712] border border-[#ff00a0]/25 text-white rounded-xl p-3 focus:outline-none focus:border-[#ff00a0] transition-colors h-28 font-mono"
                       value={taskForm.checklistText}
                       onChange={(e) => setTaskForm({ ...taskForm, checklistText: e.target.value })}
-                      placeholder="Draft chapter 1&#10;Process literature base&#10;Synthesize results"
+                      placeholder={'Draft chapter 1\nProcess literature base\nSynthesize results'}
                     ></textarea>
                   </div>
 
-                  <button type="submit" className="w-full bg-gradient-to-r from-[#1f0b2a] to-[#0b0410] text-[#ff00a0] border border-[#ff00a0]/30 hover:bg-[#ff00a0] hover:text-[#060309] hover:border-[#ff00a0] transition-all duration-300 font-bold uppercase py-3 rounded-xl font-mono tracking-wider">
+                  <button
+                    type="button"
+                    disabled={!taskForm.name.trim() || !taskForm.targetDate}
+                    onClick={handleCreateTask}
+                    className="w-full bg-gradient-to-r from-[#1f0b2a] to-[#0b0410] text-[#ff00a0] border border-[#ff00a0]/30 hover:bg-[#ff00a0] hover:text-[#060309] hover:border-[#ff00a0] transition-all duration-300 font-bold uppercase py-3 rounded-xl font-mono tracking-wider disabled:opacity-40 disabled:hover:bg-transparent disabled:hover:text-[#ff00a0] disabled:cursor-not-allowed"
+                  >
                     Add To Queue
                   </button>
-                </form>
+                </div>
               </div>
 
               {/* Backlog Systems Output list */}
@@ -823,26 +877,30 @@ export default function App() {
                       const completedCount = t.checklist.filter(item => item.isCompleted).length;
                       const totalCount = t.checklist.length;
                       const progressPct = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0;
+                      const isOverdue = overdueTasks.some(ot => ot.id === t.id);
 
                       return (
-                        <div key={t.id} className={`bg-[#0c0712] border rounded-xl p-5 relative transition-all duration-300 ${t.isCompleted ? 'border-white/5 opacity-60' : 'border-[#ff00a0]/15 hover:border-[#ff00a0]/40'}`}>
+                        <div key={t.id} className={`bg-[#0c0712] border rounded-xl p-5 relative transition-all duration-300 ${
+                          t.isCompleted ? 'border-white/5 opacity-60' : isOverdue ? 'border-red-500/40' : 'border-[#ff00a0]/15 hover:border-[#ff00a0]/40'
+                        }`}>
                           <div className="flex justify-between items-start mb-2 gap-4">
                             <div>
                               <h4 className="text-sm font-extrabold text-white uppercase tracking-wide">{t.name}</h4>
-                              <p className="text-[10px] font-mono text-[#7b7f9e] mt-0.5">
-                                Deadline: {formatToSwissDate(t.dueDate)} | Target Buffer: {formatToSwissDate(t.targetDate)}
+                              <p className={`text-[10px] font-mono mt-0.5 ${isOverdue ? 'text-red-400' : 'text-[#7b7f9e]'}`}>
+                                Hard Deadline: {formatToSwissDate(t.dueDate)} | Target: {formatToSwissDate(t.targetDate)}
+                                {isOverdue && ' — OVERDUE'}
                               </p>
                             </div>
                             <div className="flex gap-1.5">
                               {!t.isCompleted && (
-                                <button 
+                                <button
                                   onClick={() => handleCompleteTask(t.id)}
                                   className="text-xs text-[#d946ef] bg-[#d946ef]/10 border border-[#d946ef]/20 rounded-full px-2.5 py-1 uppercase font-mono font-bold hover:bg-[#d946ef] hover:text-black transition-all"
                                 >
                                   Complete
                                 </button>
                               )}
-                              <button 
+                              <button
                                 onClick={() => handleDeleteTask(t.id)}
                                 className="text-xs text-red-500 bg-red-500/10 border border-red-500/20 rounded-full p-1.5 uppercase font-mono hover:bg-red-500 hover:text-white transition-all"
                               >
@@ -866,10 +924,10 @@ export default function App() {
                               <div className="grid grid-cols-1 md:grid-cols-2 gap-2 pt-2">
                                 {t.checklist.map(item => (
                                   <label key={item.id} className="flex items-center gap-2 bg-[#120b1c]/40 p-2 rounded-lg border border-white/5 cursor-pointer">
-                                    <input 
-                                      type="checkbox" 
-                                      className="accent-[#ff00a0]" 
-                                      checked={item.isCompleted} 
+                                    <input
+                                      type="checkbox"
+                                      className="accent-[#ff00a0]"
+                                      checked={item.isCompleted}
                                       onChange={() => handleToggleSubtask(t.id, item.id)}
                                       disabled={t.isCompleted}
                                     />
@@ -895,15 +953,14 @@ export default function App() {
               <h3 className="text-md font-bold text-[#ff00a0] uppercase tracking-wide mb-6">
                 Milestone Capacity Loading Curve (14-Day Horizon)
               </h3>
-              
+
               <div className="grid grid-cols-2 sm:grid-cols-7 lg:grid-cols-14 gap-3">
                 {Array.from({ length: 14 }).map((_, idx) => {
                   const targetDateObj = new Date();
                   targetDateObj.setDate(targetDateObj.getDate() + idx);
                   const formattedDateStr = targetDateObj.toISOString().split('T')[0];
                   const milestonesValue = getDistributedMilestonesCount(formattedDateStr);
-                  
-                  // Scale logic height limits
+
                   const fillHeight = Math.min(100, (milestonesValue / 5) * 100);
 
                   return (
@@ -911,10 +968,10 @@ export default function App() {
                       <span className="text-[10px] font-mono text-[#7b7f9e]">
                         {targetDateObj.toLocaleDateString('en-US', { weekday: 'short' })}
                       </span>
-                      
+
                       <div className="w-4 bg-[#1a0f26] h-24 rounded-full my-2 relative overflow-hidden border border-[#ff00a0]/5 flex items-end">
-                        <div 
-                          className="w-full bg-gradient-to-t from-[#d946ef] to-[#ff00a0] rounded-full transition-all duration-500" 
+                        <div
+                          className="w-full bg-gradient-to-t from-[#d946ef] to-[#ff00a0] rounded-full transition-all duration-500"
                           style={{ height: `${fillHeight || 10}%` }}
                         ></div>
                       </div>
@@ -945,7 +1002,7 @@ export default function App() {
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-4">
-                <button 
+                <button
                   onClick={() => setCurrentPage('View Cookbook')}
                   className="bg-[#0c0712] border border-[#ff00a0]/30 hover:border-[#ff00a0] text-white p-4 rounded-xl flex flex-col items-center gap-2 hover:shadow-[0_0_15px_rgba(255,0,160,0.2)] transition-all"
                 >
@@ -953,7 +1010,7 @@ export default function App() {
                   <span className="text-xs uppercase font-mono font-bold tracking-wide">My Recipes</span>
                 </button>
 
-                <button 
+                <button
                   onClick={() => setCurrentPage('Add Recipe')}
                   className="bg-[#0c0712] border border-[#ff00a0]/30 hover:border-[#ff00a0] text-white p-4 rounded-xl flex flex-col items-center gap-2 hover:shadow-[0_0_15px_rgba(255,0,160,0.2)] transition-all"
                 >
@@ -961,7 +1018,7 @@ export default function App() {
                   <span className="text-xs uppercase font-mono font-bold tracking-wide">Add Blueprint</span>
                 </button>
 
-                <button 
+                <button
                   onClick={() => setCurrentPage('Weekly Meal Planner')}
                   className="bg-[#0c0712] border border-[#ff00a0]/30 hover:border-[#ff00a0] text-white p-4 rounded-xl flex flex-col items-center gap-2 hover:shadow-[0_0_15px_rgba(255,0,160,0.2)] transition-all"
                 >
@@ -981,22 +1038,21 @@ export default function App() {
               <button onClick={() => setCurrentPage('Recipe Dashboard')} className="text-xs font-mono text-[#7b7f9e] hover:text-white uppercase">Cancel</button>
             </div>
 
-            <form onSubmit={handleCreateRecipe} className="space-y-4 text-xs">
+            <div className="space-y-4 text-xs">
               <div>
                 <label className="block text-[#a3a8cc] uppercase font-mono mb-1">Designation ID (Name)</label>
-                <input 
-                  type="text" 
+                <input
+                  type="text"
                   className="w-full bg-[#0c0712] border border-[#ff00a0]/25 text-white rounded-xl p-3 focus:outline-none focus:border-[#ff00a0] transition-colors"
                   value={recipeForm.name}
                   onChange={(e) => setRecipeForm({ ...recipeForm, name: e.target.value })}
                   placeholder="e.g. Anabolic Rice Bowl"
-                  required
                 />
               </div>
 
               <div>
                 <label className="block text-[#a3a8cc] uppercase font-mono mb-1">Matrix Vector Classification</label>
-                <select 
+                <select
                   className="w-full bg-[#0c0712] border border-[#ff00a0]/25 text-[#ff00a0] rounded-xl p-3 focus:outline-none focus:border-[#ff00a0] transition-colors font-mono"
                   value={recipeForm.category}
                   onChange={(e) => setRecipeForm({ ...recipeForm, category: e.target.value })}
@@ -1010,30 +1066,33 @@ export default function App() {
 
               <div>
                 <label className="block text-[#a3a8cc] uppercase font-mono mb-1">Reagent Inventory Checklist (One per line)</label>
-                <textarea 
+                <textarea
                   className="w-full bg-[#0c0712] border border-[#ff00a0]/25 text-white rounded-xl p-3 focus:outline-none focus:border-[#ff00a0] transition-colors h-28 font-mono"
                   value={recipeForm.ingredientsText}
                   onChange={(e) => setRecipeForm({ ...recipeForm, ingredientsText: e.target.value })}
-                  placeholder="200g Lean Ground Beef&#10;100g Rice Jasmine&#10;50g Avocado"
-                  required
+                  placeholder={'200g Lean Ground Beef\n100g Rice Jasmine\n50g Avocado'}
                 ></textarea>
               </div>
 
               <div>
                 <label className="block text-[#a3a8cc] uppercase font-mono mb-1">Synthesizing Protocol (Instructions)</label>
-                <textarea 
+                <textarea
                   className="w-full bg-[#0c0712] border border-[#ff00a0]/25 text-white rounded-xl p-3 focus:outline-none focus:border-[#ff00a0] transition-colors h-32"
                   value={recipeForm.instructions}
                   onChange={(e) => setRecipeForm({ ...recipeForm, instructions: e.target.value })}
                   placeholder="Boil rice. Grill ground beef with spices. Top with sliced avocado."
-                  required
                 ></textarea>
               </div>
 
-              <button type="submit" className="w-full bg-gradient-to-r from-[#1f0b2a] to-[#0b0410] text-[#ff00a0] border border-[#ff00a0]/30 hover:bg-[#ff00a0] hover:text-[#060309] hover:border-[#ff00a0] transition-all duration-300 font-bold uppercase py-3 rounded-xl font-mono tracking-wider">
+              <button
+                type="button"
+                disabled={!recipeForm.name.trim() || !recipeForm.instructions.trim()}
+                onClick={handleCreateRecipe}
+                className="w-full bg-gradient-to-r from-[#1f0b2a] to-[#0b0410] text-[#ff00a0] border border-[#ff00a0]/30 hover:bg-[#ff00a0] hover:text-[#060309] hover:border-[#ff00a0] transition-all duration-300 font-bold uppercase py-3 rounded-xl font-mono tracking-wider disabled:opacity-40 disabled:hover:bg-transparent disabled:hover:text-[#ff00a0] disabled:cursor-not-allowed"
+              >
                 Write To Cookbook Registry
               </button>
-            </form>
+            </div>
           </div>
         )}
 
@@ -1048,14 +1107,14 @@ export default function App() {
               </div>
             </div>
 
-            <div className="flex gap-2 border-b border-white/5 pb-4">
+            <div className="flex gap-2 border-b border-white/5 pb-4 flex-wrap">
               {['', 'Breakfast', 'Meal', 'Snack', 'Dessert'].map(cat => (
-                <button 
-                  key={cat}
+                <button
+                  key={cat || 'all'}
                   onClick={() => setSelectedRecipeFilter(cat)}
                   className={`text-xs font-mono font-bold uppercase px-3 py-1.5 rounded-full border transition-all ${
-                    selectedRecipeFilter === cat 
-                      ? 'bg-[#d946ef] text-black border-[#d946ef]' 
+                    selectedRecipeFilter === cat
+                      ? 'bg-[#d946ef] text-black border-[#d946ef]'
                       : 'bg-[#120b1c]/60 text-[#a3a8cc] border-white/5 hover:border-[#ff00a0]/30'
                   }`}
                 >
@@ -1079,12 +1138,8 @@ export default function App() {
                             {recipe.category}
                           </span>
                         </div>
-                        <button 
-                          onClick={() => {
-                            const updated = recipes.filter(r => r.id !== recipe.id);
-                            setRecipes(updated);
-                            saveToStorage('summit_recipes', updated);
-                          }}
+                        <button
+                          onClick={() => handleDeleteRecipe(recipe.id)}
                           className="text-red-500 bg-red-500/5 border border-red-500/20 hover:bg-red-500 hover:text-white rounded-full p-2 transition-all"
                         >
                           <Trash2 className="w-4 h-4" />
@@ -1118,7 +1173,6 @@ export default function App() {
               <button onClick={() => setCurrentPage('Recipe Dashboard')} className="bg-[#1f0b2a]/40 text-[#ff00a0] border border-[#ff00a0]/30 hover:bg-[#ff00a0] hover:text-black hover:border-[#ff00a0] transition-all text-xs font-bold font-mono uppercase px-4 py-2 rounded-full">Menu</button>
             </div>
 
-            {/* Weekly Planner Setup Grid */}
             <div className="space-y-6">
               {daysOfWeek.map(day => (
                 <div key={day} className="bg-[#120b1c]/80 border border-[#d946ef]/15 rounded-2xl p-5 shadow-xl">
@@ -1129,7 +1183,7 @@ export default function App() {
                       return (
                         <div key={slot} className="space-y-1 text-xs">
                           <label className="block text-[10px] uppercase font-mono text-[#7b7f9e]">{slot}</label>
-                          <select 
+                          <select
                             className="w-full bg-[#0c0712] border border-[#ff00a0]/20 text-white rounded-lg p-2 focus:outline-none focus:border-[#ff00a0]"
                             value={value}
                             onChange={(e) => handleSaveMealPlan(day, slot, e.target.value)}
@@ -1179,8 +1233,7 @@ export default function App() {
             ===================================================================== */}
         {currentPage === 'Fitness Dashboard' && (
           <div className="space-y-8">
-            
-            {/* Live Performance Telemetry Grid Header */}
+
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               <div className="bg-[#120b1c]/80 border border-[#d946ef]/20 rounded-2xl p-5 shadow-xl backdrop-blur-md text-center">
                 <span className="text-xs uppercase font-mono text-[#a3a8cc] tracking-wider block">Cumulative Lifts Volume</span>
@@ -1208,56 +1261,62 @@ export default function App() {
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-              
-              {/* Creator Matrix & Tools */}
+
               <div className="space-y-6">
-                
+
                 {/* Physical Template Builder Panel */}
                 <div className="bg-[#120b1c]/80 border border-[#d946ef]/20 rounded-2xl p-6 shadow-xl">
                   <h3 className="text-md font-bold text-[#ff00a0] uppercase tracking-wide mb-4">
                     Workout Blueprint Constructor
                   </h3>
-                  
-                  <form onSubmit={handleCreateWorkoutTemplate} className="space-y-4 text-xs">
+
+                  <div className="space-y-4 text-xs">
                     <div>
                       <label className="block text-[#a3a8cc] uppercase font-mono mb-1">Routine Designation ID (Name)</label>
-                      <input 
-                        type="text" 
+                      <input
+                        type="text"
                         className="w-full bg-[#0c0712] border border-[#ff00a0]/25 text-white rounded-xl p-3 focus:outline-none focus:border-[#ff00a0]"
                         value={workoutTemplateForm.name}
                         onChange={(e) => setWorkoutTemplateForm({ ...workoutTemplateForm, name: e.target.value })}
                         placeholder="e.g. Back and Biceps Destructor"
-                        required
                       />
                     </div>
                     <div>
                       <label className="block text-[#a3a8cc] uppercase font-mono mb-1">Log Exercises (One per line)</label>
-                      <textarea 
+                      <textarea
                         className="w-full bg-[#0c0712] border border-[#ff00a0]/25 text-white rounded-xl p-3 focus:outline-none focus:border-[#ff00a0] h-24 font-mono"
                         value={workoutTemplateForm.exercisesText}
                         onChange={(e) => setWorkoutTemplateForm({ ...workoutTemplateForm, exercisesText: e.target.value })}
-                        placeholder="Weighted pullups&#10;Barbell Rows&#10;Incline Dumbbell Curls"
-                        required
+                        placeholder={'Weighted pullups\nBarbell Rows\nIncline Dumbbell Curls'}
                       ></textarea>
                     </div>
-                    <button type="submit" className="w-full bg-gradient-to-r from-[#1f0b2a] to-[#0b0410] text-[#ff00a0] border border-[#ff00a0]/30 hover:bg-[#ff00a0] hover:text-[#060309] hover:border-[#ff00a0] transition-all duration-300 font-bold uppercase py-2.5 rounded-xl font-mono tracking-wider">
+                    <button
+                      type="button"
+                      disabled={!workoutTemplateForm.name.trim() || !workoutTemplateForm.exercisesText.trim()}
+                      onClick={handleCreateWorkoutTemplate}
+                      className="w-full bg-gradient-to-r from-[#1f0b2a] to-[#0b0410] text-[#ff00a0] border border-[#ff00a0]/30 hover:bg-[#ff00a0] hover:text-[#060309] hover:border-[#ff00a0] transition-all duration-300 font-bold uppercase py-2.5 rounded-xl font-mono tracking-wider disabled:opacity-40 disabled:hover:bg-transparent disabled:hover:text-[#ff00a0] disabled:cursor-not-allowed"
+                    >
                       Write Blueprint Frame
                     </button>
-                  </form>
+                  </div>
 
                   <div className="mt-6 space-y-3">
                     <span className="text-[10px] uppercase font-mono text-[#7b7f9e] block">Stored Blueprints</span>
-                    {workoutTemplates.map(t => (
-                      <div key={t.id} className="bg-[#0c0712] border border-white/5 p-3 rounded-xl flex justify-between items-center">
-                        <div>
-                          <strong className="text-xs text-white uppercase block">{t.name}</strong>
-                          <span className="text-[10px] font-mono text-[#7b7f9e]">{t.exercises.join(', ')}</span>
+                    {workoutTemplates.length === 0 ? (
+                      <span className="text-[10px] italic font-mono text-[#4a4d66]">No blueprints created yet</span>
+                    ) : (
+                      workoutTemplates.map(t => (
+                        <div key={t.id} className="bg-[#0c0712] border border-white/5 p-3 rounded-xl flex justify-between items-center">
+                          <div>
+                            <strong className="text-xs text-white uppercase block">{t.name}</strong>
+                            <span className="text-[10px] font-mono text-[#7b7f9e]">{t.exercises.join(', ')}</span>
+                          </div>
+                          <button onClick={() => handleDeleteTemplate(t.id)} className="text-red-500 hover:bg-red-500/10 p-1.5 rounded-full transition-all">
+                            <Trash2 className="w-4 h-4" />
+                          </button>
                         </div>
-                        <button onClick={() => handleDeleteTemplate(t.id)} className="text-red-500 hover:bg-red-500/10 p-1.5 rounded-full transition-all">
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      </div>
-                    ))}
+                      ))
+                    )}
                   </div>
                 </div>
 
@@ -1270,7 +1329,7 @@ export default function App() {
                     {daysOfWeek.map(day => (
                       <div key={day} className="flex justify-between items-center bg-[#0c0712] border border-[#ff00a0]/10 p-2.5 rounded-xl">
                         <span className="font-mono text-white text-[11px] font-bold uppercase">{day}</span>
-                        <select 
+                        <select
                           className="bg-[#120b1c] border border-[#ff00a0]/20 text-[#ff00a0] rounded px-2 py-1 text-xs focus:outline-none"
                           value={weeklyWorkoutPlan[day] || 'Rest Day'}
                           onChange={(e) => handleUpdateWeeklyWorkout(day, e.target.value)}
@@ -1287,17 +1346,17 @@ export default function App() {
 
               {/* Logging Systems output panels */}
               <div className="space-y-6">
-                
+
                 {/* Manual Aerobic Intake Entry */}
                 <div className="bg-[#120b1c]/80 border border-[#d946ef]/20 rounded-2xl p-6 shadow-xl">
                   <h3 className="text-md font-bold text-[#ff00a0] uppercase tracking-wide mb-4">
                     Log Aerobic Session
                   </h3>
-                  <form onSubmit={handleLogManualCardio} className="space-y-4 text-xs">
+                  <div className="space-y-4 text-xs">
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                       <div>
                         <label className="block text-[#a3a8cc] uppercase font-mono mb-1">Module type</label>
-                        <select 
+                        <select
                           className="w-full bg-[#0c0712] border border-[#ff00a0]/25 text-[#ff00a0] rounded-xl p-2.5 focus:outline-none"
                           value={cardioForm.activity}
                           onChange={(e) => setCardioForm({ ...cardioForm, activity: e.target.value })}
@@ -1310,8 +1369,8 @@ export default function App() {
                       </div>
                       <div>
                         <label className="block text-[#a3a8cc] uppercase font-mono mb-1">Duration (Min)</label>
-                        <input 
-                          type="number" 
+                        <input
+                          type="number"
                           className="w-full bg-[#0c0712] border border-[#ff00a0]/25 text-white rounded-xl p-2.5 focus:outline-none"
                           value={cardioForm.duration}
                           onChange={(e) => setCardioForm({ ...cardioForm, duration: e.target.value })}
@@ -1320,8 +1379,8 @@ export default function App() {
                       </div>
                       <div>
                         <label className="block text-[#a3a8cc] uppercase font-mono mb-1">Distance (KM)</label>
-                        <input 
-                          type="number" 
+                        <input
+                          type="number"
                           step="0.1"
                           className="w-full bg-[#0c0712] border border-[#ff00a0]/25 text-white rounded-xl p-2.5 focus:outline-none"
                           value={cardioForm.distance}
@@ -1330,10 +1389,15 @@ export default function App() {
                         />
                       </div>
                     </div>
-                    <button type="submit" className="w-full bg-gradient-to-r from-[#1f0b2a] to-[#0b0410] text-[#ff00a0] border border-[#ff00a0]/30 hover:bg-[#ff00a0] hover:text-[#060309] hover:border-[#ff00a0] transition-all duration-300 font-bold uppercase py-2.5 rounded-xl font-mono tracking-wider">
+                    <button
+                      type="button"
+                      onClick={handleLogManualCardio}
+                      disabled={!cardioForm.duration || Number(cardioForm.duration) <= 0}
+                      className="w-full bg-gradient-to-r from-[#1f0b2a] to-[#0b0410] text-[#ff00a0] border border-[#ff00a0]/30 hover:bg-[#ff00a0] hover:text-[#060309] hover:border-[#ff00a0] transition-all duration-300 font-bold uppercase py-2.5 rounded-xl font-mono tracking-wider disabled:opacity-40 disabled:hover:bg-transparent disabled:hover:text-[#ff00a0] disabled:cursor-not-allowed"
+                    >
                       Write Cardio Telemetry
                     </button>
-                  </form>
+                  </div>
                 </div>
 
                 {/* Training Chronological Databases */}
@@ -1395,6 +1459,116 @@ export default function App() {
           </div>
         )}
 
+      </div>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Extracted subcomponent: today's workout panel.
+// Pulled out mainly because it previously contained an IIFE buried in JSX
+// plus a direct DOM-mutation hack for the "locked" button feedback. Now it's
+// a normal component driven entirely by props/state.
+// ---------------------------------------------------------------------------
+function TodaysWorkoutPanel({
+  weeklyWorkoutPlan,
+  workoutTemplates,
+  todayDayName,
+  strengthLogInputs,
+  setStrengthLogInputs,
+  justLogged,
+  strengthKey,
+  onLog
+}) {
+  const todaysRoutine = weeklyWorkoutPlan[todayDayName];
+
+  if (!todaysRoutine || todaysRoutine === 'None' || todaysRoutine === 'Rest Day') {
+    return (
+      <div className="text-center py-6">
+        <span className="text-sm font-mono text-[#7b7f9e] uppercase tracking-wider block">REST SEQUENCE ACTIVE</span>
+        <span className="text-xs text-[#4a4d66] mt-1 block">Muscle protein synthesis optimized. Reagents absorbing.</span>
+      </div>
+    );
+  }
+
+  const activeTemplate = workoutTemplates.find(t => t.name === todaysRoutine);
+  if (!activeTemplate || !activeTemplate.exercises.length) {
+    return (
+      <div className="text-center py-4 text-xs text-[#7b7f9e]">
+        No active exercises found inside custom blueprint: "{todaysRoutine}"
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-4">
+      <div className="bg-[#ff00a0]/10 border border-[#ff00a0]/30 rounded-xl p-3 flex justify-between items-center">
+        <span className="text-xs font-mono font-bold text-white uppercase tracking-wider">ACTIVE WORKOUT MATRIX: {todaysRoutine.toUpperCase()}</span>
+        <span className="bg-[#ff00a0] text-black text-[10px] font-bold px-2 py-0.5 rounded-full font-mono uppercase">LIVE RECORDING</span>
+      </div>
+
+      <div className="space-y-3">
+        {activeTemplate.exercises.map((exercise, index) => {
+          const key = strengthKey(todaysRoutine, exercise);
+          const userInputs = strengthLogInputs[key] || { weight: 40, sets: 3, reps: 8 };
+          const isLocked = justLogged[key];
+
+          return (
+            <div key={index} className="bg-[#0c0712] border border-[#ff00a0]/10 rounded-xl p-4 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+              <span className="text-xs font-bold text-[#d946ef] min-w-[150px]">{exercise.toUpperCase()}</span>
+              <div className="flex gap-2 w-full md:w-auto">
+                <div className="flex-1 md:flex-initial">
+                  <span className="text-[9px] uppercase font-mono text-[#7b7f9e] block mb-1">Weight KG</span>
+                  <input
+                    type="number"
+                    className="bg-[#120b1c] border border-[#ff00a0]/25 text-[#ff00a0] rounded-lg px-2 py-1 text-xs font-mono w-full md:w-20"
+                    value={userInputs.weight}
+                    onChange={(e) => setStrengthLogInputs(prev => ({
+                      ...prev,
+                      [key]: { ...userInputs, weight: e.target.value }
+                    }))}
+                    min="0"
+                    step="0.5"
+                  />
+                </div>
+                <div className="flex-1 md:flex-initial">
+                  <span className="text-[9px] uppercase font-mono text-[#7b7f9e] block mb-1">Sets</span>
+                  <input
+                    type="number"
+                    className="bg-[#120b1c] border border-[#ff00a0]/25 text-[#ff00a0] rounded-lg px-2 py-1 text-xs font-mono w-full md:w-16"
+                    value={userInputs.sets}
+                    onChange={(e) => setStrengthLogInputs(prev => ({
+                      ...prev,
+                      [key]: { ...userInputs, sets: e.target.value }
+                    }))}
+                    min="1"
+                  />
+                </div>
+                <div className="flex-1 md:flex-initial">
+                  <span className="text-[9px] uppercase font-mono text-[#7b7f9e] block mb-1">Reps</span>
+                  <input
+                    type="number"
+                    className="bg-[#120b1c] border border-[#ff00a0]/25 text-[#ff00a0] rounded-lg px-2 py-1 text-xs font-mono w-full md:w-16"
+                    value={userInputs.reps}
+                    onChange={(e) => setStrengthLogInputs(prev => ({
+                      ...prev,
+                      [key]: { ...userInputs, reps: e.target.value }
+                    }))}
+                    min="1"
+                  />
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => onLog(todaysRoutine, exercise)}
+                style={{ borderColor: isLocked ? '#d946ef' : 'rgba(255, 0, 160, 0.3)' }}
+                className="w-full md:w-auto bg-gradient-to-r from-[#1f0b2a] to-[#0b0410] text-[#ff00a0] border hover:bg-[#ff00a0] hover:text-[#060309] hover:border-[#ff00a0] transition-all duration-300 text-[10px] font-bold font-mono py-2 px-4 rounded-full uppercase tracking-wider"
+              >
+                {isLocked ? 'DATA PACKET LOCKED' : 'LOCK DATA SET'}
+              </button>
+            </div>
+          );
+        })}
       </div>
     </div>
   );
