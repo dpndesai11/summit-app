@@ -1,0 +1,89 @@
+/* Core Dark Theme Settings */
+body {
+  margin: 0;
+  background: radial-gradient(circle at 50% 10%, #160a1d 0%, #060309 100%) !important;
+  color: #a3a8cc !important;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  padding: 24px;
+}
+
+/* Cyber Neon Headers */
+h1 {
+  color: #ff00a0 !important;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  text-shadow: 0 0 15px rgba(255, 0, 160, 0.45);
+}
+
+h3, h4 {
+  color: #d946ef !important;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+/* Grid Layout Structures */
+.grid {
+  display: grid;
+  gap: 20px;
+}
+@media (min-width: 768px) {
+  .grid-cols-4 { grid-template-columns: repeat(4, 1fr); }
+  .grid-cols-3 { grid-template-columns: repeat(3, 1fr); }
+  .grid-cols-2 { grid-template-columns: repeat(2, 1fr); }
+}
+
+/* Cybernetic HUD Containers & Control Blocks */
+div[class*="bg-[#120b1c]"], div[class*="bg-black"], .bg-black\/30 {
+  background-color: #120b1c !important;
+  border: 1px solid rgba(217, 70, 239, 0.25) !important;
+  border-radius: 12px;
+  padding: 20px;
+  margin-bottom: 15px;
+}
+
+/* Glowing Interactive Command Keys */
+button {
+  background: #1f0b2a !important;
+  color: #ff00a0 !important;
+  border: 1px solid rgba(255, 0, 160, 0.3) !important;
+  padding: 12px 20px;
+  border-radius: 8px;
+  font-weight: bold;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+button:hover {
+  background: #ff00a0 !important;
+  color: #000000 !important;
+  box-shadow: 0 0 15px rgba(255, 0, 160, 0.6);
+}
+
+/* Matrix Terminal Inputs */
+input, textarea, select {
+  background-color: #0c0712 !important;
+  border: 1px solid rgba(255, 0, 160, 0.25) !important;
+  color: #ff00a0 !important;
+  padding: 10px;
+  border-radius: 6px;
+  width: 100%;
+  box-sizing: border-box;
+  margin-top: 4px;
+  margin-bottom: 12px;
+}
+
+input:focus, textarea:focus, select:focus {
+  outline: none;
+  border-color: #ff00a0 !important;
+  box-shadow: 0 0 8px rgba(255, 0, 160, 0.4);
+}
+
+/* Form layouts */
+label {
+  font-size: 11px;
+  text-transform: uppercase;
+  color: #7b7f9e;
+  letter-spacing: 1px;
+}
