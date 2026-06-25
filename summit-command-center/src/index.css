@@ -64,7 +64,7 @@ button:hover {
 }
 
 /* Matrix Terminal Inputs */
-input, textarea, select {
+input:not([type="checkbox"]):not([type="radio"]), textarea, select {
   background-color: #0c0712 !important;
   border: 1px solid rgba(255, 0, 160, 0.25) !important;
   color: #ff00a0 !important;
@@ -74,6 +74,14 @@ input, textarea, select {
   box-sizing: border-box;
   margin-top: 4px;
   margin-bottom: 12px;
+}
+
+input[type="checkbox"], input[type="radio"] {
+  width: auto;
+  padding: 0;
+  margin: 0;
+  background-color: transparent !important;
+  border: none !important;
 }
 
 input:focus, textarea:focus, select:focus {
