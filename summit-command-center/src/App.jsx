@@ -10,7 +10,9 @@ import {
   ShoppingBag,
   Dumbbell,
   Loader2,
-  AlertTriangle
+  AlertTriangle,
+  Sun,
+  Moon
 } from 'lucide-react';
 import { dbGet, dbSet } from './lib/db';
 
@@ -88,6 +90,13 @@ export default function App() {
   const [isAuthed, setIsAuthed] = useState(() => sessionStorage.getItem('summit_authed') === '1');
   const [passwordInput, setPasswordInput] = useState('');
   const [passwordError, setPasswordError] = useState(false);
+
+  const [lightMode, setLightMode] = useState(() => localStorage.getItem('summit_light_mode') === 'true');
+
+  useEffect(() => {
+    localStorage.setItem('summit_light_mode', lightMode);
+    document.body.classList.toggle('light-mode', lightMode);
+  }, [lightMode]);
 
   // Calendar Utility Definitions
   const daysOfWeek = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
@@ -488,9 +497,9 @@ export default function App() {
   const overdueTasks = getOverdueTasks();
 
   return (
-    <div className="min-h-screen bg-[#060309] text-[#a3a8cc] font-sans antialiased pb-20 selection:bg-[#ff00a0] selection:text-black">
+    <div className={`min-h-screen ${lightMode ? '' : 'bg-[#060309]'} text-[#a3a8cc] font-sans antialiased pb-20 selection:bg-[#ff00a0] selection:text-black`}>
       {/* GLOWING SYSTEM RADIAL OVERLAYS */}
-      <div className="fixed inset-0 bg-[radial-gradient(circle_at_50%_10%,#160a1d_0%,#060309_100%)] pointer-events-none z-0"></div>
+      {!lightMode && <div className="fixed inset-0 bg-[radial-gradient(circle_at_50%_10%,#160a1d_0%,#060309_100%)] pointer-events-none z-0"></div>}
 
       {/* TOAST */}
       {toast && (
@@ -525,9 +534,24 @@ export default function App() {
               SYSTEM LEVEL v3.1 // CYBERNETIC BIO-HUD ONLINE
             </p>
           </div>
-          <div className="flex gap-2 bg-[#120b1c] border border-[#ff00a0]/20 rounded-lg px-3 py-1.5 text-xs font-mono">
-            <span className="text-[#ff00a0] animate-pulse">●</span>
-            <span>SAT SCAN ACTIVE // CHRONO-MATRIX ONLINE</span>
+          <div className="flex items-center gap-3">
+            <button
+              className="mode-toggle flex items-center gap-2 px-3 py-1.5 rounded-full border border-[#ff00a0]/30 hover:border-[#ff00a0] transition-all"
+              onClick={() => setLightMode(m => !m)}
+              title={lightMode ? 'Switch to Dark Mode' : 'Switch to Light Mode'}
+            >
+              <Sun className={`w-3.5 h-3.5 ${lightMode ? 'text-[#ff00a0]' : 'text-[#7b7f9e]'}`} />
+              <div className="relative w-8 h-4">
+                <div className={`absolute inset-0 rounded-full transition-colors duration-300 ${lightMode ? 'bg-[#ff00a0]/20' : 'bg-[#1a0f26]'}`}></div>
+                <div className={`absolute top-0.5 w-3 h-3 rounded-full bg-[#ff00a0] shadow transition-all duration-300 ${lightMode ? 'left-[18px]' : 'left-0.5'}`}></div>
+              </div>
+              <Moon className={`w-3.5 h-3.5 ${!lightMode ? 'text-[#ff00a0]' : 'text-[#7b7f9e]'}`} />
+            </button>
+
+            <div className="flex gap-2 bg-[#120b1c] border border-[#ff00a0]/20 rounded-lg px-3 py-1.5 text-xs font-mono">
+              <span className="text-[#ff00a0] animate-pulse">●</span>
+              <span>SAT SCAN ACTIVE // CHRONO-MATRIX ONLINE</span>
+            </div>
           </div>
         </header>
 

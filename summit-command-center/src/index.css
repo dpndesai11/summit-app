@@ -97,3 +97,105 @@ label {
   color: #7b7f9e;
   letter-spacing: 1px;
 }
+
+/* Mode toggle — override global button styles */
+.mode-toggle {
+  background: transparent !important;
+  border: 1px solid rgba(255, 0, 160, 0.3) !important;
+  padding: 6px 12px !important;
+  color: inherit !important;
+  border-radius: 9999px !important;
+  letter-spacing: 0 !important;
+  text-transform: none !important;
+}
+.mode-toggle:hover {
+  background: transparent !important;
+  color: inherit !important;
+  box-shadow: 0 0 10px rgba(255, 0, 160, 0.25) !important;
+}
+
+/* ===================================================================
+   LIGHT MODE
+   =================================================================== */
+body.light-mode {
+  background: radial-gradient(circle at 50% 10%, #e8d8ff 0%, #f5f0fa 100%) !important;
+  color: #1a0a2e !important;
+}
+
+/* Page root div */
+body.light-mode .bg-\[\#060309\] {
+  background-color: transparent !important;
+}
+
+/* Card / panel backgrounds */
+body.light-mode div[class*="bg-[#120b1c]"] {
+  background-color: #ffffff !important;
+  border: 1px solid rgba(180, 100, 220, 0.2) !important;
+}
+body.light-mode .bg-\[\#120b1c\]\/40,
+body.light-mode .bg-\[\#120b1c\]\/60,
+body.light-mode .bg-\[\#120b1c\]\/80,
+body.light-mode .bg-\[\#120b1c\]\/95 {
+  background-color: #ffffff !important;
+}
+
+/* Dark input / inner-card backgrounds */
+body.light-mode .bg-\[\#0c0712\] {
+  background-color: #f2ebff !important;
+}
+
+/* Progress-bar tracks and subtle dark fills */
+body.light-mode .bg-\[\#1a0f26\] {
+  background-color: #e4d5f5 !important;
+}
+
+/* Button base and panel backgrounds */
+body.light-mode .bg-\[\#1f0b2a\],
+body.light-mode .bg-\[\#1f0b2a\]\/40 {
+  background-color: #ede4ff !important;
+}
+
+/* Text colours */
+body.light-mode .text-\[\#a3a8cc\] { color: #3a3060 !important; }
+body.light-mode .text-\[\#7b7f9e\] { color: #5a5080 !important; }
+body.light-mode .text-\[\#4a4d66\] { color: #9090bb !important; }
+body.light-mode .text-white         { color: #1a0a2e !important; }
+
+/* Borders */
+body.light-mode .border-white\/5 { border-color: rgba(100, 80, 160, 0.12) !important; }
+
+/* Global button overrides for light mode */
+body.light-mode button:not(.mode-toggle) {
+  background: #ede4ff !important;
+  color: #cc0080 !important;
+  border: 1px solid rgba(204, 0, 128, 0.3) !important;
+}
+body.light-mode button:not(.mode-toggle):hover {
+  background: #ff00a0 !important;
+  color: #ffffff !important;
+}
+
+/* Inputs in light mode */
+body.light-mode input:not([type="checkbox"]):not([type="radio"]),
+body.light-mode textarea,
+body.light-mode select {
+  background-color: #f2ebff !important;
+  color: #1a0a2e !important;
+  border: 1px solid rgba(180, 50, 180, 0.3) !important;
+}
+
+/* Labels in light mode */
+body.light-mode label {
+  color: #5a5080;
+}
+
+/* Header status chip */
+body.light-mode .bg-\[\#120b1c\].border {
+  background-color: #f0e8ff !important;
+}
+
+/* Toast in light mode */
+body.light-mode .bg-\[\#120b1c\]\/95 {
+  background-color: rgba(255, 255, 255, 0.97) !important;
+  color: #cc0080 !important;
+}
