@@ -140,7 +140,7 @@ export default function App() {
   }, []);
 
   const saveToStorage = (key, data) => {
-    dbSet(key, data).catch(() => {
+    dbSet(key, data).catch((err) => { console.error("Save error:", err.message);
       showToast('Save failed — your change is visible but may not persist.', true);
     });
   };
