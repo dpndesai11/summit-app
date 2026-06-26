@@ -58,8 +58,13 @@ const DEFAULT_MEAL_PLAN = {
 };
 
 const DEFAULT_WORKOUT_TEMPLATES = [
-  { id: 1, name: 'Lower Deck Alpha', exercises: ['Squat', 'Leg Press', 'Calf Raise'] },
-  { id: 2, name: 'Upper Deck Prime', exercises: ['Bench Press', 'Lat Pulldown', 'Shoulder Press', 'Bicep Curl'] }
+  { id: 1, name: 'Lower Deck Alpha', exercises: [
+    { name: 'Squat', type: 'gym' }, { name: 'Leg Press', type: 'gym' }, { name: 'Calf Raise', type: 'gym' }
+  ]},
+  { id: 2, name: 'Upper Deck Prime', exercises: [
+    { name: 'Bench Press', type: 'gym' }, { name: 'Lat Pulldown', type: 'gym' },
+    { name: 'Shoulder Press', type: 'gym' }, { name: 'Bicep Curl', type: 'gym' }
+  ]}
 ];
 
 const DEFAULT_WEEKLY_WORKOUT_PLAN = {
@@ -72,20 +77,6 @@ const REST_WEEK = {
   Thursday: 'Rest Day', Friday: 'Rest Day', Saturday: 'Rest Day', Sunday: 'Rest Day'
 };
 
-const RUN_WEEK = {
-  Monday: 'Run Day', Tuesday: 'Run Day', Wednesday: 'Run Day',
-  Thursday: 'Run Day', Friday: 'Run Day', Saturday: 'Run Day', Sunday: 'Run Day'
-};
-
-const SWIM_WEEK = {
-  Monday: 'Swim Day', Tuesday: 'Swim Day', Wednesday: 'Swim Day',
-  Thursday: 'Swim Day', Friday: 'Swim Day', Saturday: 'Swim Day', Sunday: 'Swim Day'
-};
-
-const BIKE_WEEK = {
-  Monday: 'Bike Day', Tuesday: 'Bike Day', Wednesday: 'Bike Day',
-  Thursday: 'Bike Day', Friday: 'Bike Day', Saturday: 'Bike Day', Sunday: 'Bike Day'
-};
 
 export default function App() {
   // Global State Engine
@@ -345,24 +336,41 @@ export default function App() {
   // ---------------------------------------------------------------------------
   // FITNESS ENGINE ACTIONS
   // ---------------------------------------------------------------------------
-  const [workoutTemplateForm, setWorkoutTemplateForm] = useState({ name: '', exercisesText: '' });
+  const [workoutTemplateForm, setWorkoutTemplateForm] = useState({ name: '', exercises: [], draftName: '', draftType: 'gym' });
   const [cardioForm, setCardioForm] = useState({ activity: 'Running', duration: 30, distance: 5 });
   const [strengthLogInputs, setStrengthLogInputs] = useState({});
+  const [cardioLogInputs, setCardioLogInputs] = useState({});
   const [justLogged, setJustLogged] = useState({});
+  const [justLoggedCardio, setJustLoggedCardio] = useState({});
+
+  const handleAddExerciseToDraft = () => {
+    if (!workoutTemplateForm.draftName.trim()) return;
+    setWorkoutTemplateForm(prev => ({
+      ...prev,
+      exercises: [...prev.exercises, { name: prev.draftName.trim(), type: prev.draftType }],
+      draftName: '',
+      draftType: 'gym'
+    }));
+  };
+
+  const handleRemoveDraftExercise = (idx) => {
+    setWorkoutTemplateForm(prev => ({
+      ...prev,
+      exercises: prev.exercises.filter((_, i) => i !== idx)
+    }));
+  };
 
   const handleCreateWorkoutTemplate = () => {
-    if (!workoutTemplateForm.name.trim() || !workoutTemplateForm.exercisesText.trim()) return;
-
+    if (!workoutTemplateForm.name.trim() || workoutTemplateForm.exercises.length === 0) return;
     const newTemplate = {
       id: Date.now(),
       name: workoutTemplateForm.name.trim(),
-      exercises: workoutTemplateForm.exercisesText.split('\n').filter(line => line.trim())
+      exercises: workoutTemplateForm.exercises
     };
-
     const updated = [...workoutTemplates, newTemplate];
     setWorkoutTemplates(updated);
     saveToStorage(STORAGE_KEYS.workoutTemplates, updated);
-    setWorkoutTemplateForm({ name: '', exercisesText: '' });
+    setWorkoutTemplateForm({ name: '', exercises: [], draftName: '', draftType: 'gym' });
   };
 
   const handleDeleteTemplate = (id) => {
@@ -425,6 +433,25 @@ export default function App() {
     setTimeout(() => {
       setJustLogged(prev => ({ ...prev, [key]: false }));
     }, 1500);
+  };
+
+  const handleLogCardioFromHub = (templateName, exerciseName) => {
+    const key = strengthKey(templateName, exerciseName);
+    const mins = Number(cardioLogInputs[key]?.minutes ?? 30);
+    if (!mins || mins <= 0) return;
+    const newLog = {
+      id: Date.now() + Math.random(),
+      date: new Date().toISOString().split('T')[0],
+      activity: exerciseName,
+      duration: mins,
+      distance: 0
+    };
+    const updated = [...cardioLogs, newLog];
+    setCardioLogs(updated);
+    saveToStorage(STORAGE_KEYS.cardioLogs, updated);
+    setJustLoggedCardio(prev => ({ ...prev, [key]: true }));
+    setTimeout(() => setJustLoggedCardio(prev => ({ ...prev, [key]: false })), 1500);
+    showToast(`${exerciseName} session logged.`);
   };
 
   const handleDeleteStrengthLog = (id) => {
@@ -673,9 +700,13 @@ export default function App() {
                   todayDayName={todayDayName}
                   strengthLogInputs={strengthLogInputs}
                   setStrengthLogInputs={setStrengthLogInputs}
+                  cardioLogInputs={cardioLogInputs}
+                  setCardioLogInputs={setCardioLogInputs}
                   justLogged={justLogged}
+                  justLoggedCardio={justLoggedCardio}
                   strengthKey={strengthKey}
                   onLog={handleLogStrengthFromHub}
+                  onLogCardio={handleLogCardioFromHub}
                 />
               </div>
 
@@ -1348,7 +1379,7 @@ export default function App() {
 
                   <div className="space-y-4 text-xs">
                     <div>
-                      <label className="block text-[#a3a8cc] uppercase font-mono mb-1">Routine Designation ID (Name)</label>
+                      <label className="block text-[#a3a8cc] uppercase font-mono mb-1">Routine Name</label>
                       <input
                         type="text"
                         className="w-full bg-[#0c0712] border border-[#c2547e]/25 text-white rounded-xl p-3 focus:outline-none focus:border-[#c2547e]"
@@ -1357,18 +1388,54 @@ export default function App() {
                         placeholder="e.g. Back and Biceps Destructor"
                       />
                     </div>
+
                     <div>
-                      <label className="block text-[#a3a8cc] uppercase font-mono mb-1">Log Exercises (One per line)</label>
-                      <textarea
-                        className="w-full bg-[#0c0712] border border-[#c2547e]/25 text-white rounded-xl p-3 focus:outline-none focus:border-[#c2547e] h-24 font-mono"
-                        value={workoutTemplateForm.exercisesText}
-                        onChange={(e) => setWorkoutTemplateForm({ ...workoutTemplateForm, exercisesText: e.target.value })}
-                        placeholder={'Weighted pullups\nBarbell Rows\nIncline Dumbbell Curls'}
-                      ></textarea>
+                      <label className="block text-[#a3a8cc] uppercase font-mono mb-2">Add Drills</label>
+                      <div className="flex gap-2">
+                        <input
+                          type="text"
+                          className="flex-1 bg-[#0c0712] border border-[#c2547e]/25 text-white rounded-xl p-2.5 focus:outline-none focus:border-[#c2547e]"
+                          value={workoutTemplateForm.draftName}
+                          onChange={(e) => setWorkoutTemplateForm({ ...workoutTemplateForm, draftName: e.target.value })}
+                          onKeyDown={(e) => e.key === 'Enter' && handleAddExerciseToDraft()}
+                          placeholder="e.g. Squat / Run / Swim"
+                        />
+                        <select
+                          className="bg-[#0c0712] border border-[#c2547e]/25 text-[#c2547e] rounded-xl px-2 focus:outline-none"
+                          value={workoutTemplateForm.draftType}
+                          onChange={(e) => setWorkoutTemplateForm({ ...workoutTemplateForm, draftType: e.target.value })}
+                        >
+                          <option value="gym">Gym</option>
+                          <option value="run">Run</option>
+                          <option value="swim">Swim</option>
+                          <option value="bike">Bike</option>
+                        </select>
+                        <button type="button" onClick={handleAddExerciseToDraft} className="px-3 py-2 rounded-xl border border-[#c2547e]/30 text-[#c2547e] hover:bg-[#c2547e] hover:text-white transition-all font-bold">
+                          +
+                        </button>
+                      </div>
                     </div>
+
+                    {workoutTemplateForm.exercises.length > 0 && (
+                      <div className="space-y-1.5">
+                        {workoutTemplateForm.exercises.map((ex, idx) => {
+                          const typeColour = ex.type === 'gym' ? '#d946ef' : '#c2547e';
+                          return (
+                            <div key={idx} className="flex items-center justify-between bg-[#0c0712] border border-white/5 px-3 py-2 rounded-lg">
+                              <div className="flex items-center gap-2">
+                                <span className="text-[10px] font-mono font-bold uppercase px-1.5 py-0.5 rounded" style={{ color: typeColour, border: `1px solid ${typeColour}40` }}>{ex.type}</span>
+                                <span className="text-white font-mono">{ex.name}</span>
+                              </div>
+                              <button type="button" onClick={() => handleRemoveDraftExercise(idx)} className="text-red-500 hover:text-red-400 text-xs font-bold px-1">✕</button>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+
                     <button
                       type="button"
-                      disabled={!workoutTemplateForm.name.trim() || !workoutTemplateForm.exercisesText.trim()}
+                      disabled={!workoutTemplateForm.name.trim() || workoutTemplateForm.exercises.length === 0}
                       onClick={handleCreateWorkoutTemplate}
                       className="w-full bg-gradient-to-r from-[#1f0b2a] to-[#0b0410] text-[#c2547e] border border-[#c2547e]/30 hover:bg-[#c2547e] hover:text-[#060309] hover:border-[#c2547e] transition-all duration-300 font-bold uppercase py-2.5 rounded-xl font-mono tracking-wider disabled:opacity-40 disabled:hover:bg-transparent disabled:hover:text-[#c2547e] disabled:cursor-not-allowed"
                     >
@@ -1381,17 +1448,26 @@ export default function App() {
                     {workoutTemplates.length === 0 ? (
                       <span className="text-[10px] italic font-mono text-[#4a4d66]">No blueprints created yet</span>
                     ) : (
-                      workoutTemplates.map(t => (
-                        <div key={t.id} className="bg-[#0c0712] border border-white/5 p-3 rounded-xl flex justify-between items-center">
-                          <div>
-                            <strong className="text-xs text-white uppercase block">{t.name}</strong>
-                            <span className="text-[10px] font-mono text-[#7b7f9e]">{t.exercises.join(', ')}</span>
+                      workoutTemplates.map(t => {
+                        const normEx = t.exercises.map(e => typeof e === 'string' ? { name: e, type: 'gym' } : e);
+                        return (
+                          <div key={t.id} className="bg-[#0c0712] border border-white/5 p-3 rounded-xl flex justify-between items-start">
+                            <div>
+                              <strong className="text-xs text-white uppercase block mb-1">{t.name}</strong>
+                              <div className="flex flex-wrap gap-1">
+                                {normEx.map((ex, i) => (
+                                  <span key={i} className="text-[10px] font-mono px-1.5 py-0.5 rounded" style={{ color: ex.type === 'gym' ? '#d946ef' : '#c2547e', border: `1px solid ${ex.type === 'gym' ? '#d946ef' : '#c2547e'}30` }}>
+                                    {ex.name} <span className="opacity-60">({ex.type})</span>
+                                  </span>
+                                ))}
+                              </div>
+                            </div>
+                            <button onClick={() => handleDeleteTemplate(t.id)} className="text-red-500 hover:bg-red-500/10 p-1.5 rounded-full transition-all flex-shrink-0">
+                              <Trash2 className="w-4 h-4" />
+                            </button>
                           </div>
-                          <button onClick={() => handleDeleteTemplate(t.id)} className="text-red-500 hover:bg-red-500/10 p-1.5 rounded-full transition-all">
-                            <Trash2 className="w-4 h-4" />
-                          </button>
-                        </div>
-                      ))
+                        );
+                      })
                     )}
                   </div>
                 </div>
@@ -1402,32 +1478,12 @@ export default function App() {
                     <h3 className="text-md font-bold text-[#c2547e] uppercase tracking-wide">
                       Weekly Rotational Training Plan
                     </h3>
-                    <div className="flex flex-wrap gap-2">
-                      <button
-                        onClick={() => handleApplyWeekPreset(RUN_WEEK)}
-                        className="text-[10px] font-mono font-bold uppercase px-3 py-1.5 rounded-full border border-[#c2547e]/40 text-[#c2547e] hover:bg-[#c2547e] hover:text-white transition-all"
-                      >
-                        Run Week
-                      </button>
-                      <button
-                        onClick={() => handleApplyWeekPreset(SWIM_WEEK)}
-                        className="text-[10px] font-mono font-bold uppercase px-3 py-1.5 rounded-full border border-[#c2547e]/40 text-[#c2547e] hover:bg-[#c2547e] hover:text-white transition-all"
-                      >
-                        Swim Week
-                      </button>
-                      <button
-                        onClick={() => handleApplyWeekPreset(BIKE_WEEK)}
-                        className="text-[10px] font-mono font-bold uppercase px-3 py-1.5 rounded-full border border-[#c2547e]/40 text-[#c2547e] hover:bg-[#c2547e] hover:text-white transition-all"
-                      >
-                        Bike Week
-                      </button>
-                      <button
-                        onClick={() => handleApplyWeekPreset(REST_WEEK)}
-                        className="text-[10px] font-mono font-bold uppercase px-3 py-1.5 rounded-full border border-[#d946ef]/40 text-[#d946ef] hover:bg-[#d946ef] hover:text-white transition-all"
-                      >
-                        Rest Week
-                      </button>
-                    </div>
+                    <button
+                      onClick={() => handleApplyWeekPreset(REST_WEEK)}
+                      className="text-[10px] font-mono font-bold uppercase px-3 py-1.5 rounded-full border border-[#d946ef]/40 text-[#d946ef] hover:bg-[#d946ef] hover:text-white transition-all"
+                    >
+                      Rest Week
+                    </button>
                   </div>
                   <div className="space-y-3 text-xs">
                     {daysOfWeek.map(day => (
@@ -1439,9 +1495,6 @@ export default function App() {
                           onChange={(e) => handleUpdateWeeklyWorkout(day, e.target.value)}
                         >
                           <option value="Rest Day">Rest Day</option>
-                          <option value="Run Day">Run Day</option>
-                          <option value="Swim Day">Swim Day</option>
-                          <option value="Bike Day">Bike Day</option>
                           {workoutTemplates.map(tmpl => <option key={tmpl.id} value={tmpl.name}>{tmpl.name}</option>)}
                         </select>
                       </div>
@@ -1583,9 +1636,13 @@ function TodaysWorkoutPanel({
   todayDayName,
   strengthLogInputs,
   setStrengthLogInputs,
+  cardioLogInputs,
+  setCardioLogInputs,
   justLogged,
+  justLoggedCardio,
   strengthKey,
-  onLog
+  onLog,
+  onLogCardio
 }) {
   const todaysRoutine = weeklyWorkoutPlan[todayDayName];
 
@@ -1607,22 +1664,59 @@ function TodaysWorkoutPanel({
     );
   }
 
+  const normalizeEx = (ex) => typeof ex === 'string' ? { name: ex, type: 'gym' } : ex;
+  const isCardio = (type) => ['run', 'swim', 'bike'].includes(type);
+
   return (
     <div className="space-y-4">
       <div className="bg-[#c2547e]/10 border border-[#c2547e]/30 rounded-xl p-3 flex justify-between items-center">
-        <span className="text-xs font-mono font-bold text-white uppercase tracking-wider">ACTIVE WORKOUT MATRIX: {todaysRoutine.toUpperCase()}</span>
-        <span className="bg-[#c2547e] text-black text-[10px] font-bold px-2 py-0.5 rounded-full font-mono uppercase">LIVE RECORDING</span>
+        <span className="text-xs font-mono font-bold text-white uppercase tracking-wider">ACTIVE: {todaysRoutine.toUpperCase()}</span>
+        <span className="bg-[#c2547e] text-white text-[10px] font-bold px-2 py-0.5 rounded-full font-mono uppercase">LIVE</span>
       </div>
 
       <div className="space-y-3">
-        {activeTemplate.exercises.map((exercise, index) => {
-          const key = strengthKey(todaysRoutine, exercise);
+        {activeTemplate.exercises.map((rawEx, index) => {
+          const ex = normalizeEx(rawEx);
+          const key = strengthKey(todaysRoutine, ex.name);
+
+          if (isCardio(ex.type)) {
+            const mins = cardioLogInputs[key]?.minutes ?? 30;
+            const isLocked = justLoggedCardio[key];
+            return (
+              <div key={index} className="bg-[#0c0712] border border-[#c2547e]/10 rounded-xl p-4 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] font-mono font-bold uppercase px-1.5 py-0.5 rounded border border-[#c2547e]/40 text-[#c2547e]">{ex.type}</span>
+                  <span className="text-xs font-bold text-[#c2547e]">{ex.name.toUpperCase()}</span>
+                </div>
+                <div className="flex items-center gap-3">
+                  <div>
+                    <span className="text-[9px] uppercase font-mono text-[#7b7f9e] block mb-1">Minutes</span>
+                    <input
+                      type="number"
+                      className="bg-[#120b1c] border border-[#c2547e]/25 text-[#c2547e] rounded-lg px-2 py-1 text-xs font-mono w-20"
+                      value={mins}
+                      onChange={(e) => setCardioLogInputs(prev => ({ ...prev, [key]: { minutes: e.target.value } }))}
+                      min="1"
+                    />
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => onLogCardio(todaysRoutine, ex.name)}
+                    className="mt-4 w-full md:w-auto text-[#c2547e] border border-[#c2547e]/30 hover:bg-[#c2547e] hover:text-white transition-all duration-300 text-[10px] font-bold font-mono py-2 px-4 rounded-full uppercase tracking-wider"
+                    style={{ borderColor: isLocked ? '#d946ef' : undefined }}
+                  >
+                    {isLocked ? 'LOGGED' : 'LOG SESSION'}
+                  </button>
+                </div>
+              </div>
+            );
+          }
+
           const userInputs = strengthLogInputs[key] || { weight: 40, sets: 3, reps: 8 };
           const isLocked = justLogged[key];
-
           return (
             <div key={index} className="bg-[#0c0712] border border-[#c2547e]/10 rounded-xl p-4 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-              <span className="text-xs font-bold text-[#d946ef] min-w-[150px]">{exercise.toUpperCase()}</span>
+              <span className="text-xs font-bold text-[#d946ef] min-w-[150px]">{ex.name.toUpperCase()}</span>
               <div className="flex gap-2 w-full md:w-auto">
                 <div className="flex-1 md:flex-initial">
                   <span className="text-[9px] uppercase font-mono text-[#7b7f9e] block mb-1">Weight KG</span>
@@ -1630,12 +1724,8 @@ function TodaysWorkoutPanel({
                     type="number"
                     className="bg-[#120b1c] border border-[#c2547e]/25 text-[#c2547e] rounded-lg px-2 py-1 text-xs font-mono w-full md:w-20"
                     value={userInputs.weight}
-                    onChange={(e) => setStrengthLogInputs(prev => ({
-                      ...prev,
-                      [key]: { ...userInputs, weight: e.target.value }
-                    }))}
-                    min="0"
-                    step="0.5"
+                    onChange={(e) => setStrengthLogInputs(prev => ({ ...prev, [key]: { ...userInputs, weight: e.target.value } }))}
+                    min="0" step="0.5"
                   />
                 </div>
                 <div className="flex-1 md:flex-initial">
@@ -1644,10 +1734,7 @@ function TodaysWorkoutPanel({
                     type="number"
                     className="bg-[#120b1c] border border-[#c2547e]/25 text-[#c2547e] rounded-lg px-2 py-1 text-xs font-mono w-full md:w-16"
                     value={userInputs.sets}
-                    onChange={(e) => setStrengthLogInputs(prev => ({
-                      ...prev,
-                      [key]: { ...userInputs, sets: e.target.value }
-                    }))}
+                    onChange={(e) => setStrengthLogInputs(prev => ({ ...prev, [key]: { ...userInputs, sets: e.target.value } }))}
                     min="1"
                   />
                 </div>
@@ -1657,21 +1744,18 @@ function TodaysWorkoutPanel({
                     type="number"
                     className="bg-[#120b1c] border border-[#c2547e]/25 text-[#c2547e] rounded-lg px-2 py-1 text-xs font-mono w-full md:w-16"
                     value={userInputs.reps}
-                    onChange={(e) => setStrengthLogInputs(prev => ({
-                      ...prev,
-                      [key]: { ...userInputs, reps: e.target.value }
-                    }))}
+                    onChange={(e) => setStrengthLogInputs(prev => ({ ...prev, [key]: { ...userInputs, reps: e.target.value } }))}
                     min="1"
                   />
                 </div>
               </div>
               <button
                 type="button"
-                onClick={() => onLog(todaysRoutine, exercise)}
-                style={{ borderColor: isLocked ? '#d946ef' : 'rgba(255, 0, 160, 0.3)' }}
-                className="w-full md:w-auto bg-gradient-to-r from-[#1f0b2a] to-[#0b0410] text-[#c2547e] border hover:bg-[#c2547e] hover:text-[#060309] hover:border-[#c2547e] transition-all duration-300 text-[10px] font-bold font-mono py-2 px-4 rounded-full uppercase tracking-wider"
+                onClick={() => onLog(todaysRoutine, ex.name)}
+                style={{ borderColor: isLocked ? '#d946ef' : 'rgba(194, 84, 126, 0.3)' }}
+                className="w-full md:w-auto text-[#c2547e] border hover:bg-[#c2547e] hover:text-white transition-all duration-300 text-[10px] font-bold font-mono py-2 px-4 rounded-full uppercase tracking-wider"
               >
-                {isLocked ? 'DATA PACKET LOCKED' : 'LOCK DATA SET'}
+                {isLocked ? 'LOCKED' : 'LOG SET'}
               </button>
             </div>
           );
