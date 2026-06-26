@@ -72,6 +72,11 @@ const REST_WEEK = {
   Thursday: 'Rest Day', Friday: 'Rest Day', Saturday: 'Rest Day', Sunday: 'Rest Day'
 };
 
+const RUN_WEEK = {
+  Monday: 'Run Day', Tuesday: 'Run Day', Wednesday: 'Run Day',
+  Thursday: 'Run Day', Friday: 'Run Day', Saturday: 'Run Day', Sunday: 'Run Day'
+};
+
 export default function App() {
   // Global State Engine
   const [currentPage, setCurrentPage] = useState('Main Hub');
@@ -360,6 +365,11 @@ export default function App() {
     const updated = { ...weeklyWorkoutPlan, [day]: templateName };
     setWeeklyWorkoutPlan(updated);
     saveToStorage(STORAGE_KEYS.weeklyWorkoutPlan, updated);
+  };
+
+  const handleApplyWeekPreset = (preset) => {
+    setWeeklyWorkoutPlan(preset);
+    saveToStorage(STORAGE_KEYS.weeklyWorkoutPlan, preset);
   };
 
   const handleLogManualCardio = () => {
@@ -1378,9 +1388,25 @@ export default function App() {
 
                 {/* Training Rotational Scheduler */}
                 <div className="bg-[#120b1c]/80 border border-[#d946ef]/20 rounded-2xl p-6 shadow-xl">
-                  <h3 className="text-md font-bold text-[#c2547e] uppercase tracking-wide mb-4">
-                    Weekly Rotational Training Plan
-                  </h3>
+                  <div className="flex justify-between items-center mb-4">
+                    <h3 className="text-md font-bold text-[#c2547e] uppercase tracking-wide">
+                      Weekly Rotational Training Plan
+                    </h3>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => handleApplyWeekPreset(RUN_WEEK)}
+                        className="text-[10px] font-mono font-bold uppercase px-3 py-1.5 rounded-full border border-[#c2547e]/40 text-[#c2547e] hover:bg-[#c2547e] hover:text-white transition-all"
+                      >
+                        Run Week
+                      </button>
+                      <button
+                        onClick={() => handleApplyWeekPreset(REST_WEEK)}
+                        className="text-[10px] font-mono font-bold uppercase px-3 py-1.5 rounded-full border border-[#d946ef]/40 text-[#d946ef] hover:bg-[#d946ef] hover:text-white transition-all"
+                      >
+                        Rest Week
+                      </button>
+                    </div>
+                  </div>
                   <div className="space-y-3 text-xs">
                     {daysOfWeek.map(day => (
                       <div key={day} className="flex justify-between items-center bg-[#0c0712] border border-[#c2547e]/10 p-2.5 rounded-xl">
@@ -1391,6 +1417,7 @@ export default function App() {
                           onChange={(e) => handleUpdateWeeklyWorkout(day, e.target.value)}
                         >
                           <option value="Rest Day">Rest Day</option>
+                          <option value="Run Day">Run Day</option>
                           {workoutTemplates.map(tmpl => <option key={tmpl.id} value={tmpl.name}>{tmpl.name}</option>)}
                         </select>
                       </div>
