@@ -77,6 +77,16 @@ const RUN_WEEK = {
   Thursday: 'Run Day', Friday: 'Run Day', Saturday: 'Run Day', Sunday: 'Run Day'
 };
 
+const SWIM_WEEK = {
+  Monday: 'Swim Day', Tuesday: 'Swim Day', Wednesday: 'Swim Day',
+  Thursday: 'Swim Day', Friday: 'Swim Day', Saturday: 'Swim Day', Sunday: 'Swim Day'
+};
+
+const BIKE_WEEK = {
+  Monday: 'Bike Day', Tuesday: 'Bike Day', Wednesday: 'Bike Day',
+  Thursday: 'Bike Day', Friday: 'Bike Day', Saturday: 'Bike Day', Sunday: 'Bike Day'
+};
+
 export default function App() {
   // Global State Engine
   const [currentPage, setCurrentPage] = useState('Main Hub');
@@ -1392,12 +1402,24 @@ export default function App() {
                     <h3 className="text-md font-bold text-[#c2547e] uppercase tracking-wide">
                       Weekly Rotational Training Plan
                     </h3>
-                    <div className="flex gap-2">
+                    <div className="flex flex-wrap gap-2">
                       <button
                         onClick={() => handleApplyWeekPreset(RUN_WEEK)}
                         className="text-[10px] font-mono font-bold uppercase px-3 py-1.5 rounded-full border border-[#c2547e]/40 text-[#c2547e] hover:bg-[#c2547e] hover:text-white transition-all"
                       >
                         Run Week
+                      </button>
+                      <button
+                        onClick={() => handleApplyWeekPreset(SWIM_WEEK)}
+                        className="text-[10px] font-mono font-bold uppercase px-3 py-1.5 rounded-full border border-[#c2547e]/40 text-[#c2547e] hover:bg-[#c2547e] hover:text-white transition-all"
+                      >
+                        Swim Week
+                      </button>
+                      <button
+                        onClick={() => handleApplyWeekPreset(BIKE_WEEK)}
+                        className="text-[10px] font-mono font-bold uppercase px-3 py-1.5 rounded-full border border-[#c2547e]/40 text-[#c2547e] hover:bg-[#c2547e] hover:text-white transition-all"
+                      >
+                        Bike Week
                       </button>
                       <button
                         onClick={() => handleApplyWeekPreset(REST_WEEK)}
@@ -1418,6 +1440,8 @@ export default function App() {
                         >
                           <option value="Rest Day">Rest Day</option>
                           <option value="Run Day">Run Day</option>
+                          <option value="Swim Day">Swim Day</option>
+                          <option value="Bike Day">Bike Day</option>
                           {workoutTemplates.map(tmpl => <option key={tmpl.id} value={tmpl.name}>{tmpl.name}</option>)}
                         </select>
                       </div>
