@@ -11,10 +11,10 @@ body {
 
 /* Cyber Neon Headers */
 h1 {
-  color: #ff00a0 !important;
+  color: #c2547e !important;
   text-transform: uppercase;
   letter-spacing: 2px;
-  text-shadow: 0 0 15px rgba(255, 0, 160, 0.45);
+  text-shadow: 0 0 15px rgba(194, 84, 126, 0.45);
 }
 
 h3, h4 {
@@ -46,8 +46,8 @@ div[class*="bg-[#120b1c]"], div[class*="bg-black"], .bg-black\/30 {
 /* Glowing Interactive Command Keys */
 button {
   background: #1f0b2a !important;
-  color: #ff00a0 !important;
-  border: 1px solid rgba(255, 0, 160, 0.3) !important;
+  color: #c2547e !important;
+  border: 1px solid rgba(194, 84, 126, 0.3) !important;
   padding: 12px 20px;
   border-radius: 8px;
   font-weight: bold;
@@ -58,16 +58,16 @@ button {
 }
 
 button:hover {
-  background: #ff00a0 !important;
+  background: #c2547e !important;
   color: #000000 !important;
-  box-shadow: 0 0 15px rgba(255, 0, 160, 0.6);
+  box-shadow: 0 0 15px rgba(194, 84, 126, 0.6);
 }
 
 /* Matrix Terminal Inputs */
 input:not([type="checkbox"]):not([type="radio"]), textarea, select {
   background-color: #0c0712 !important;
-  border: 1px solid rgba(255, 0, 160, 0.25) !important;
-  color: #ff00a0 !important;
+  border: 1px solid rgba(194, 84, 126, 0.25) !important;
+  color: #c2547e !important;
   padding: 10px;
   border-radius: 6px;
   width: 100%;
@@ -86,8 +86,8 @@ input[type="checkbox"], input[type="radio"] {
 
 input:focus, textarea:focus, select:focus {
   outline: none;
-  border-color: #ff00a0 !important;
-  box-shadow: 0 0 8px rgba(255, 0, 160, 0.4);
+  border-color: #c2547e !important;
+  box-shadow: 0 0 8px rgba(194, 84, 126, 0.4);
 }
 
 /* Form layouts */
@@ -101,7 +101,7 @@ label {
 /* Mode toggle — override global button styles */
 .mode-toggle {
   background: transparent !important;
-  border: 1px solid rgba(255, 0, 160, 0.3) !important;
+  border: 1px solid rgba(194, 84, 126, 0.3) !important;
   padding: 6px 12px !important;
   color: inherit !important;
   border-radius: 9999px !important;
@@ -111,7 +111,7 @@ label {
 .mode-toggle:hover {
   background: transparent !important;
   color: inherit !important;
-  box-shadow: 0 0 10px rgba(255, 0, 160, 0.25) !important;
+  box-shadow: 0 0 10px rgba(194, 84, 126, 0.25) !important;
 }
 
 /* ===================================================================
@@ -171,7 +171,7 @@ body.light-mode button:not(.mode-toggle) {
   border: 1px solid rgba(204, 0, 128, 0.3) !important;
 }
 body.light-mode button:not(.mode-toggle):hover {
-  background: #ff00a0 !important;
+  background: #c2547e !important;
   color: #ffffff !important;
 }
 

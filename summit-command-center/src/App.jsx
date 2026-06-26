@@ -464,11 +464,11 @@ export default function App() {
               onChange={e => setPasswordInput(e.target.value)}
               onKeyDown={e => e.key === 'Enter' && handleUnlock()}
               autoFocus
-              className={`w-full bg-white/5 border ${passwordError ? 'border-red-500' : 'border-white/10'} rounded-lg px-4 py-3 text-white text-sm outline-none focus:border-[#ff00a0] transition-colors`}
+              className={`w-full bg-white/5 border ${passwordError ? 'border-red-500' : 'border-white/10'} rounded-lg px-4 py-3 text-white text-sm outline-none focus:border-[#c2547e] transition-colors`}
             />
             <button
               onClick={handleUnlock}
-              className="w-full bg-[#ff00a0] text-black font-bold text-sm py-3 rounded-lg hover:bg-[#ff33b3] transition-colors"
+              className="w-full bg-[#c2547e] text-black font-bold text-sm py-3 rounded-lg hover:bg-[#ff33b3] transition-colors"
             >
               Unlock
             </button>
@@ -485,7 +485,7 @@ export default function App() {
   if (isLoading) {
     return (
       <div className="min-h-screen bg-[#060309] flex items-center justify-center">
-        <div className="flex flex-col items-center gap-3 text-[#ff00a0]">
+        <div className="flex flex-col items-center gap-3 text-[#c2547e]">
           <Loader2 className="w-8 h-8 animate-spin" />
           <span className="text-xs font-mono uppercase tracking-widest">Bringing systems online…</span>
         </div>
@@ -497,7 +497,7 @@ export default function App() {
   const overdueTasks = getOverdueTasks();
 
   return (
-    <div className={`min-h-screen ${lightMode ? '' : 'bg-[#060309]'} text-[#a3a8cc] font-sans antialiased pb-20 selection:bg-[#ff00a0] selection:text-black`}>
+    <div className={`min-h-screen ${lightMode ? '' : 'bg-[#060309]'} text-[#a3a8cc] font-sans antialiased pb-20 selection:bg-[#c2547e] selection:text-black`}>
       {/* GLOWING SYSTEM RADIAL OVERLAYS */}
       {!lightMode && <div className="fixed inset-0 bg-[radial-gradient(circle_at_50%_10%,#160a1d_0%,#060309_100%)] pointer-events-none z-0"></div>}
 
@@ -507,7 +507,7 @@ export default function App() {
           className={`fixed top-4 right-4 z-50 px-4 py-3 rounded-xl border text-xs font-mono uppercase tracking-wide shadow-xl flex items-center gap-2 ${
             toast.isError
               ? 'bg-red-950/90 border-red-500/40 text-red-300'
-              : 'bg-[#120b1c]/95 border-[#ff00a0]/40 text-[#ff00a0]'
+              : 'bg-[#120b1c]/95 border-[#c2547e]/40 text-[#c2547e]'
           }`}
         >
           {toast.isError && <AlertTriangle className="w-4 h-4" />}
@@ -525,9 +525,9 @@ export default function App() {
         )}
 
         {/* CYBERNETIC INTEGRATION HERO TITLE HEADER */}
-        <header className="mb-8 border-l-4 border-[#ff00a0] pl-4 py-2 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+        <header className="mb-8 border-l-4 border-[#c2547e] pl-4 py-2 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           <div>
-            <h1 className="text-3xl md:text-4xl font-extrabold text-[#ff00a0] tracking-wider uppercase drop-shadow-[0_0_15px_rgba(255,0,160,0.45)]">
+            <h1 className="text-3xl md:text-4xl font-extrabold text-[#c2547e] tracking-wider uppercase drop-shadow-[0_0_15px_rgba(255,0,160,0.45)]">
               Summit Command Center
             </h1>
             <p className="text-xs font-mono text-[#7b7f9e] uppercase tracking-widest mt-1">
@@ -536,20 +536,20 @@ export default function App() {
           </div>
           <div className="flex items-center gap-3">
             <button
-              className="mode-toggle flex items-center gap-2 px-3 py-1.5 rounded-full border border-[#ff00a0]/30 hover:border-[#ff00a0] transition-all"
+              className="mode-toggle flex items-center gap-2 px-3 py-1.5 rounded-full border border-[#c2547e]/30 hover:border-[#c2547e] transition-all"
               onClick={() => setLightMode(m => !m)}
               title={lightMode ? 'Switch to Dark Mode' : 'Switch to Light Mode'}
             >
-              <Sun className={`w-3.5 h-3.5 ${lightMode ? 'text-[#ff00a0]' : 'text-[#7b7f9e]'}`} />
+              <Sun className={`w-3.5 h-3.5 ${lightMode ? 'text-[#c2547e]' : 'text-[#7b7f9e]'}`} />
               <div className="relative w-8 h-4">
-                <div className={`absolute inset-0 rounded-full transition-colors duration-300 ${lightMode ? 'bg-[#ff00a0]/20' : 'bg-[#1a0f26]'}`}></div>
-                <div className={`absolute top-0.5 w-3 h-3 rounded-full bg-[#ff00a0] shadow transition-all duration-300 ${lightMode ? 'left-[18px]' : 'left-0.5'}`}></div>
+                <div className={`absolute inset-0 rounded-full transition-colors duration-300 ${lightMode ? 'bg-[#c2547e]/20' : 'bg-[#1a0f26]'}`}></div>
+                <div className={`absolute top-0.5 w-3 h-3 rounded-full bg-[#c2547e] shadow transition-all duration-300 ${lightMode ? 'left-[18px]' : 'left-0.5'}`}></div>
               </div>
-              <Moon className={`w-3.5 h-3.5 ${!lightMode ? 'text-[#ff00a0]' : 'text-[#7b7f9e]'}`} />
+              <Moon className={`w-3.5 h-3.5 ${!lightMode ? 'text-[#c2547e]' : 'text-[#7b7f9e]'}`} />
             </button>
 
-            <div className="flex gap-2 bg-[#120b1c] border border-[#ff00a0]/20 rounded-lg px-3 py-1.5 text-xs font-mono">
-              <span className="text-[#ff00a0] animate-pulse">●</span>
+            <div className="flex gap-2 bg-[#120b1c] border border-[#c2547e]/20 rounded-lg px-3 py-1.5 text-xs font-mono">
+              <span className="text-[#c2547e] animate-pulse">●</span>
               <span>SAT SCAN ACTIVE // CHRONO-MATRIX ONLINE</span>
             </div>
           </div>
@@ -568,8 +568,8 @@ export default function App() {
               onClick={() => setCurrentPage(id)}
               className={`flex items-center justify-center gap-2 font-mono py-3 rounded-full border text-xs font-bold uppercase tracking-wider transition-all duration-300 ${
                 match(currentPage)
-                  ? 'bg-[#ff00a0] text-[#060309] border-[#ff00a0] shadow-[0_0_20px_rgba(255,0,160,0.4)]'
-                  : 'bg-[#1f0b2a]/40 text-[#ff00a0] border-[#ff00a0]/30 hover:bg-[#ff00a0] hover:text-[#060309] hover:border-[#ff00a0]'
+                  ? 'bg-[#c2547e] text-[#060309] border-[#c2547e] shadow-[0_0_20px_rgba(255,0,160,0.4)]'
+                  : 'bg-[#1f0b2a]/40 text-[#c2547e] border-[#c2547e]/30 hover:bg-[#c2547e] hover:text-[#060309] hover:border-[#c2547e]'
               }`}
             >
               <Icon className="w-4 h-4" />
@@ -593,11 +593,11 @@ export default function App() {
                       Active Operational Frame
                     </h2>
                     <p className="text-sm font-mono mt-1 text-[#7b7f9e]">
-                      Timeline: <span className="text-[#ff00a0] font-bold">{todayDayName.toUpperCase()}</span> | Chrono Lock: {formatToSwissDate(new Date().toISOString().split('T')[0])}
+                      Timeline: <span className="text-[#c2547e] font-bold">{todayDayName.toUpperCase()}</span> | Chrono Lock: {formatToSwissDate(new Date().toISOString().split('T')[0])}
                     </p>
                   </div>
-                  <div className="bg-[#0c0712] border border-[#ff00a0]/20 rounded-xl px-4 py-2 font-mono text-xs flex gap-4">
-                    <div>Lifts logged: <span className="text-[#ff00a0] font-bold">{strengthLogs.length}</span></div>
+                  <div className="bg-[#0c0712] border border-[#c2547e]/20 rounded-xl px-4 py-2 font-mono text-xs flex gap-4">
+                    <div>Lifts logged: <span className="text-[#c2547e] font-bold">{strengthLogs.length}</span></div>
                     <div>Cardio log: <span className="text-[#d946ef] font-bold">{cardioLogs.length}</span></div>
                   </div>
                 </div>
@@ -619,15 +619,15 @@ export default function App() {
 
               {/* Nutrition Allocator */}
               <div className="bg-[#120b1c]/80 border border-[#d946ef]/20 hover:border-[#d946ef]/50 transition-all duration-300 rounded-2xl p-6 shadow-xl backdrop-blur-md">
-                <h3 className="text-md font-bold text-[#ff00a0] uppercase tracking-wide mb-4 flex items-center gap-2">
-                  <Utensils className="w-5 h-5 text-[#ff00a0]" />
+                <h3 className="text-md font-bold text-[#c2547e] uppercase tracking-wide mb-4 flex items-center gap-2">
+                  <Utensils className="w-5 h-5 text-[#c2547e]" />
                   Fuel Map Deployed Today
                 </h3>
                 <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
                   {mealSlots.map(slot => {
                     const assignedMeal = mealPlan[`${todayDayName}_${slot}`];
                     return (
-                      <div key={slot} className="bg-[#0c0712] border border-[#ff00a0]/15 p-3 rounded-xl flex flex-col justify-between">
+                      <div key={slot} className="bg-[#0c0712] border border-[#c2547e]/15 p-3 rounded-xl flex flex-col justify-between">
                         <span className="text-[10px] uppercase font-mono text-[#7b7f9e] block mb-1">{slot}</span>
                         {assignedMeal && assignedMeal !== 'None' ? (
                           <span className="text-xs font-bold text-white leading-tight break-words">{assignedMeal}</span>
@@ -642,8 +642,8 @@ export default function App() {
 
               {/* Gym Performance Panel */}
               <div className="bg-[#120b1c]/80 border border-[#d946ef]/20 hover:border-[#d946ef]/50 transition-all duration-300 rounded-2xl p-6 shadow-xl backdrop-blur-md">
-                <h3 className="text-md font-bold text-[#ff00a0] uppercase tracking-wide mb-3 flex items-center gap-2">
-                  <Dumbbell className="w-5 h-5 text-[#ff00a0]" />
+                <h3 className="text-md font-bold text-[#c2547e] uppercase tracking-wide mb-3 flex items-center gap-2">
+                  <Dumbbell className="w-5 h-5 text-[#c2547e]" />
                   Today's Training Load
                 </h3>
 
@@ -661,8 +661,8 @@ export default function App() {
 
               {/* Dynamic Task Allocator Checkpoints */}
               <div className="bg-[#120b1c]/80 border border-[#d946ef]/20 hover:border-[#d946ef]/50 transition-all duration-300 rounded-2xl p-6 shadow-xl backdrop-blur-md">
-                <h3 className="text-md font-bold text-[#ff00a0] uppercase tracking-wide mb-4 flex items-center gap-2">
-                  <CheckSquare className="w-5 h-5 text-[#ff00a0]" />
+                <h3 className="text-md font-bold text-[#c2547e] uppercase tracking-wide mb-4 flex items-center gap-2">
+                  <CheckSquare className="w-5 h-5 text-[#c2547e]" />
                   Today's Allocated Milestones
                 </h3>
 
@@ -675,7 +675,7 @@ export default function App() {
                         ? Math.round((task.checklist.filter(item => item.isCompleted).length / task.checklist.length) * 100)
                         : 0;
                       return (
-                        <div key={task.id} className="bg-[#0c0712] border border-[#ff00a0]/15 p-4 rounded-xl">
+                        <div key={task.id} className="bg-[#0c0712] border border-[#c2547e]/15 p-4 rounded-xl">
                           <div className="flex justify-between items-center mb-2">
                             <div>
                               <span className="text-xs font-bold text-white block uppercase tracking-wide">{task.name}</span>
@@ -686,8 +686,8 @@ export default function App() {
                             </span>
                           </div>
 
-                          <div className="w-full bg-[#1a0f26] h-1.5 rounded-full mb-3 overflow-hidden border border-[#ff00a0]/10">
-                            <div className="bg-gradient-to-r from-[#d946ef] to-[#ff00a0] h-full" style={{ width: `${progressPct}%` }}></div>
+                          <div className="w-full bg-[#1a0f26] h-1.5 rounded-full mb-3 overflow-hidden border border-[#c2547e]/10">
+                            <div className="bg-gradient-to-r from-[#d946ef] to-[#c2547e] h-full" style={{ width: `${progressPct}%` }}></div>
                           </div>
 
                           {task.checklist.length === 0 ? (
@@ -695,7 +695,7 @@ export default function App() {
                               <span className="text-xs italic text-[#7b7f9e]">Mark task completed directly on completion</span>
                               <button
                                 onClick={() => handleCompleteTask(task.id)}
-                                className="bg-[#ff00a0]/10 hover:bg-[#ff00a0] text-[#ff00a0] hover:text-[#060309] border border-[#ff00a0]/30 text-[10px] font-mono font-bold uppercase tracking-wider py-1.5 px-3 rounded-full transition-all"
+                                className="bg-[#c2547e]/10 hover:bg-[#c2547e] text-[#c2547e] hover:text-[#060309] border border-[#c2547e]/30 text-[10px] font-mono font-bold uppercase tracking-wider py-1.5 px-3 rounded-full transition-all"
                               >
                                 Complete Task
                               </button>
@@ -703,10 +703,10 @@ export default function App() {
                           ) : (
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-2 mt-2">
                               {task.checklist.map(item => (
-                                <label key={item.id} className="flex items-center gap-3 bg-[#120b1c]/60 p-2 rounded-lg border border-[#ff00a0]/10 hover:border-[#ff00a0]/35 cursor-pointer transition-all">
+                                <label key={item.id} className="flex items-center gap-3 bg-[#120b1c]/60 p-2 rounded-lg border border-[#c2547e]/10 hover:border-[#c2547e]/35 cursor-pointer transition-all">
                                   <input
                                     type="checkbox"
-                                    className="accent-[#ff00a0]"
+                                    className="accent-[#c2547e]"
                                     checked={item.isCompleted}
                                     onChange={() => handleToggleSubtask(task.id, item.id)}
                                   />
@@ -730,8 +730,8 @@ export default function App() {
             <div className="space-y-6">
 
               <div className="bg-[#120b1c]/80 border border-[#d946ef]/20 rounded-2xl p-6 shadow-xl backdrop-blur-md">
-                <h3 className="text-md font-bold text-[#ff00a0] uppercase tracking-wide mb-4 flex items-center gap-2">
-                  <Calendar className="w-5 h-5 text-[#ff00a0]" />
+                <h3 className="text-md font-bold text-[#c2547e] uppercase tracking-wide mb-4 flex items-center gap-2">
+                  <Calendar className="w-5 h-5 text-[#c2547e]" />
                   Chronological Horizon
                 </h3>
 
@@ -751,7 +751,7 @@ export default function App() {
                     const activeMilestonesCount = getDistributedMilestonesCount(nextDateStr);
 
                     return (
-                      <div key={offset} className="bg-[#0c0712] border border-[#ff00a0]/15 p-4 rounded-xl hover:border-[#ff00a0]/40 transition-all duration-300">
+                      <div key={offset} className="bg-[#0c0712] border border-[#c2547e]/15 p-4 rounded-xl hover:border-[#c2547e]/40 transition-all duration-300">
                         <div className="flex justify-between items-center mb-2 border-b border-white/5 pb-2">
                           <span className="text-xs font-bold text-[#d946ef] uppercase font-mono">{nextDayName.toUpperCase()}</span>
                           <span className="text-[10px] font-mono text-[#7b7f9e]">{formatToSwissDate(nextDateStr)}</span>
@@ -770,7 +770,7 @@ export default function App() {
                           </div>
                           <div className="flex justify-between">
                             <span className="text-[#7b7f9e]">Predictive Load:</span>
-                            <span className="font-semibold text-[#ff00a0]">{activeMilestonesCount} Milestones</span>
+                            <span className="font-semibold text-[#c2547e]">{activeMilestonesCount} Milestones</span>
                           </div>
                         </div>
                       </div>
@@ -781,14 +781,14 @@ export default function App() {
 
               {/* Cybernetic Telemetry Health Log Widget */}
               <div className="bg-[#120b1c]/80 border border-[#d946ef]/20 rounded-2xl p-6 shadow-xl backdrop-blur-md">
-                <h3 className="text-md font-bold text-[#ff00a0] uppercase tracking-wide mb-4 flex items-center gap-2">
-                  <Activity className="w-5 h-5 text-[#ff00a0]" />
+                <h3 className="text-md font-bold text-[#c2547e] uppercase tracking-wide mb-4 flex items-center gap-2">
+                  <Activity className="w-5 h-5 text-[#c2547e]" />
                   Telemetry Diagnostic
                 </h3>
                 <div className="space-y-4 text-xs font-mono">
                   <div className="flex justify-between">
                     <span className="text-[#7b7f9e]">System Status:</span>
-                    <span className="text-[#ff00a0] font-bold">OPTIMAL</span>
+                    <span className="text-[#c2547e] font-bold">OPTIMAL</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-[#7b7f9e]">Reagent Stockpile:</span>
@@ -823,7 +823,7 @@ export default function App() {
                 <span className="text-3xl font-extrabold text-white block my-2">
                   {velocity === null ? '—' : `${Math.round(velocity * 100)}%`}
                 </span>
-                <span className="text-[10px] text-[#ff00a0] font-mono uppercase">
+                <span className="text-[10px] text-[#c2547e] font-mono uppercase">
                   {velocity === null ? 'No checklist data yet' : 'System Engine Running Secure'}
                 </span>
               </div>
@@ -851,7 +851,7 @@ export default function App() {
 
               {/* Task Matrix Creator */}
               <div className="bg-[#120b1c]/80 border border-[#d946ef]/20 rounded-2xl p-6 shadow-xl backdrop-blur-md">
-                <h3 className="text-md font-bold text-[#ff00a0] uppercase tracking-wide mb-6">
+                <h3 className="text-md font-bold text-[#c2547e] uppercase tracking-wide mb-6">
                   Initialize Project Vector
                 </h3>
 
@@ -860,7 +860,7 @@ export default function App() {
                     <label className="block text-[#a3a8cc] uppercase font-mono mb-1">Operational ID / Name</label>
                     <input
                       type="text"
-                      className="w-full bg-[#0c0712] border border-[#ff00a0]/25 text-white rounded-xl p-3 focus:outline-none focus:border-[#ff00a0] transition-colors"
+                      className="w-full bg-[#0c0712] border border-[#c2547e]/25 text-white rounded-xl p-3 focus:outline-none focus:border-[#c2547e] transition-colors"
                       value={taskForm.name}
                       onChange={(e) => setTaskForm({ ...taskForm, name: e.target.value })}
                       placeholder="e.g. Master's Thesis Sprint"
@@ -872,7 +872,7 @@ export default function App() {
                       <label className="block text-[#a3a8cc] uppercase font-mono mb-1">Hard Deadline (optional)</label>
                       <input
                         type="date"
-                        className="w-full bg-[#0c0712] border border-[#ff00a0]/25 text-white rounded-xl p-3 focus:outline-none focus:border-[#ff00a0] transition-colors"
+                        className="w-full bg-[#0c0712] border border-[#c2547e]/25 text-white rounded-xl p-3 focus:outline-none focus:border-[#c2547e] transition-colors"
                         value={taskForm.dueDate}
                         onChange={(e) => setTaskForm({ ...taskForm, dueDate: e.target.value })}
                       />
@@ -881,7 +881,7 @@ export default function App() {
                       <label className="block text-[#a3a8cc] uppercase font-mono mb-1">Target Date (required)</label>
                       <input
                         type="date"
-                        className="w-full bg-[#0c0712] border border-[#ff00a0]/25 text-white rounded-xl p-3 focus:outline-none focus:border-[#ff00a0] transition-colors"
+                        className="w-full bg-[#0c0712] border border-[#c2547e]/25 text-white rounded-xl p-3 focus:outline-none focus:border-[#c2547e] transition-colors"
                         value={taskForm.targetDate}
                         onChange={(e) => setTaskForm({ ...taskForm, targetDate: e.target.value })}
                       />
@@ -891,7 +891,7 @@ export default function App() {
                   <div>
                     <label className="block text-[#a3a8cc] uppercase font-mono mb-1">Functional Specifications</label>
                     <textarea
-                      className="w-full bg-[#0c0712] border border-[#ff00a0]/25 text-white rounded-xl p-3 focus:outline-none focus:border-[#ff00a0] transition-colors h-24"
+                      className="w-full bg-[#0c0712] border border-[#c2547e]/25 text-white rounded-xl p-3 focus:outline-none focus:border-[#c2547e] transition-colors h-24"
                       value={taskForm.notes}
                       onChange={(e) => setTaskForm({ ...taskForm, notes: e.target.value })}
                       placeholder="Operational details, specifications, etc."
@@ -901,7 +901,7 @@ export default function App() {
                   <div>
                     <label className="block text-[#a3a8cc] uppercase font-mono mb-1">Inject Checklist (One per line)</label>
                     <textarea
-                      className="w-full bg-[#0c0712] border border-[#ff00a0]/25 text-white rounded-xl p-3 focus:outline-none focus:border-[#ff00a0] transition-colors h-28 font-mono"
+                      className="w-full bg-[#0c0712] border border-[#c2547e]/25 text-white rounded-xl p-3 focus:outline-none focus:border-[#c2547e] transition-colors h-28 font-mono"
                       value={taskForm.checklistText}
                       onChange={(e) => setTaskForm({ ...taskForm, checklistText: e.target.value })}
                       placeholder={'Draft chapter 1\nProcess literature base\nSynthesize results'}
@@ -912,7 +912,7 @@ export default function App() {
                     type="button"
                     disabled={!taskForm.name.trim() || !taskForm.targetDate}
                     onClick={handleCreateTask}
-                    className="w-full bg-gradient-to-r from-[#1f0b2a] to-[#0b0410] text-[#ff00a0] border border-[#ff00a0]/30 hover:bg-[#ff00a0] hover:text-[#060309] hover:border-[#ff00a0] transition-all duration-300 font-bold uppercase py-3 rounded-xl font-mono tracking-wider disabled:opacity-40 disabled:hover:bg-transparent disabled:hover:text-[#ff00a0] disabled:cursor-not-allowed"
+                    className="w-full bg-gradient-to-r from-[#1f0b2a] to-[#0b0410] text-[#c2547e] border border-[#c2547e]/30 hover:bg-[#c2547e] hover:text-[#060309] hover:border-[#c2547e] transition-all duration-300 font-bold uppercase py-3 rounded-xl font-mono tracking-wider disabled:opacity-40 disabled:hover:bg-transparent disabled:hover:text-[#c2547e] disabled:cursor-not-allowed"
                   >
                     Add To Queue
                   </button>
@@ -921,7 +921,7 @@ export default function App() {
 
               {/* Backlog Systems Output list */}
               <div className="bg-[#120b1c]/80 border border-[#d946ef]/20 rounded-2xl p-6 shadow-xl backdrop-blur-md space-y-4">
-                <h3 className="text-md font-bold text-[#ff00a0] uppercase tracking-wide">
+                <h3 className="text-md font-bold text-[#c2547e] uppercase tracking-wide">
                   Active Vector Horizonal Lines
                 </h3>
 
@@ -937,7 +937,7 @@ export default function App() {
 
                       return (
                         <div key={t.id} className={`bg-[#0c0712] border rounded-xl p-5 relative transition-all duration-300 ${
-                          t.isCompleted ? 'border-white/5 opacity-60' : isOverdue ? 'border-red-500/40' : 'border-[#ff00a0]/15 hover:border-[#ff00a0]/40'
+                          t.isCompleted ? 'border-white/5 opacity-60' : isOverdue ? 'border-red-500/40' : 'border-[#c2547e]/15 hover:border-[#c2547e]/40'
                         }`}>
                           <div className="flex justify-between items-start mb-2 gap-4">
                             <div>
@@ -971,10 +971,10 @@ export default function App() {
                             <div className="mt-4 space-y-3">
                               <div className="flex justify-between text-[10px] font-mono">
                                 <span className="text-[#7b7f9e]">CHECKLIST PIPELINE</span>
-                                <span className="text-[#ff00a0] font-bold">{completedCount}/{totalCount} DONE</span>
+                                <span className="text-[#c2547e] font-bold">{completedCount}/{totalCount} DONE</span>
                               </div>
                               <div className="w-full bg-[#1a0f26] h-1 rounded-full overflow-hidden">
-                                <div className="bg-gradient-to-r from-[#d946ef] to-[#ff00a0] h-full" style={{ width: `${progressPct}%` }}></div>
+                                <div className="bg-gradient-to-r from-[#d946ef] to-[#c2547e] h-full" style={{ width: `${progressPct}%` }}></div>
                               </div>
 
                               <div className="grid grid-cols-1 md:grid-cols-2 gap-2 pt-2">
@@ -982,7 +982,7 @@ export default function App() {
                                   <label key={item.id} className="flex items-center gap-2 bg-[#120b1c]/40 p-2 rounded-lg border border-white/5 cursor-pointer">
                                     <input
                                       type="checkbox"
-                                      className="accent-[#ff00a0]"
+                                      className="accent-[#c2547e]"
                                       checked={item.isCompleted}
                                       onChange={() => handleToggleSubtask(t.id, item.id)}
                                       disabled={t.isCompleted}
@@ -1006,7 +1006,7 @@ export default function App() {
 
             {/* 14-Day Forecast Chart Display */}
             <div className="bg-[#120b1c]/80 border border-[#d946ef]/20 rounded-2xl p-6 shadow-xl backdrop-blur-md">
-              <h3 className="text-md font-bold text-[#ff00a0] uppercase tracking-wide mb-6">
+              <h3 className="text-md font-bold text-[#c2547e] uppercase tracking-wide mb-6">
                 Milestone Capacity Loading Curve (14-Day Horizon)
               </h3>
 
@@ -1020,14 +1020,14 @@ export default function App() {
                   const fillHeight = Math.min(100, (milestonesValue / 5) * 100);
 
                   return (
-                    <div key={idx} className="bg-[#0c0712] border border-[#ff00a0]/10 rounded-xl p-3 flex flex-col justify-between items-center text-center">
+                    <div key={idx} className="bg-[#0c0712] border border-[#c2547e]/10 rounded-xl p-3 flex flex-col justify-between items-center text-center">
                       <span className="text-[10px] font-mono text-[#7b7f9e]">
                         {targetDateObj.toLocaleDateString('en-US', { weekday: 'short' })}
                       </span>
 
-                      <div className="w-4 bg-[#1a0f26] h-24 rounded-full my-2 relative overflow-hidden border border-[#ff00a0]/5 flex items-end">
+                      <div className="w-4 bg-[#1a0f26] h-24 rounded-full my-2 relative overflow-hidden border border-[#c2547e]/5 flex items-end">
                         <div
-                          className="w-full bg-gradient-to-t from-[#d946ef] to-[#ff00a0] rounded-full transition-all duration-500"
+                          className="w-full bg-gradient-to-t from-[#d946ef] to-[#c2547e] rounded-full transition-all duration-500"
                           style={{ height: `${fillHeight || 10}%` }}
                         ></div>
                       </div>
@@ -1051,34 +1051,34 @@ export default function App() {
         {currentPage === 'Recipe Dashboard' && (
           <div className="space-y-6">
             <div className="bg-[#120b1c]/80 border border-[#d946ef]/20 rounded-2xl p-8 shadow-xl backdrop-blur-md text-center max-w-2xl mx-auto space-y-6">
-              <Utensils className="w-16 h-16 text-[#ff00a0] mx-auto drop-shadow-[0_0_15px_rgba(255,0,160,0.5)]" />
+              <Utensils className="w-16 h-16 text-[#c2547e] mx-auto drop-shadow-[0_0_15px_rgba(255,0,160,0.5)]" />
               <div>
-                <h2 className="text-2xl font-extrabold text-[#ff00a0] tracking-wider uppercase">Nutrition Matrix Portal</h2>
+                <h2 className="text-2xl font-extrabold text-[#c2547e] tracking-wider uppercase">Nutrition Matrix Portal</h2>
                 <p className="text-xs font-mono text-[#7b7f9e] mt-1">LOCK DOWN REAGENTS AND FUEL PATHWAY ALLOCATIONS</p>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-4">
                 <button
                   onClick={() => setCurrentPage('View Cookbook')}
-                  className="bg-[#0c0712] border border-[#ff00a0]/30 hover:border-[#ff00a0] text-white p-4 rounded-xl flex flex-col items-center gap-2 hover:shadow-[0_0_15px_rgba(255,0,160,0.2)] transition-all"
+                  className="bg-[#0c0712] border border-[#c2547e]/30 hover:border-[#c2547e] text-white p-4 rounded-xl flex flex-col items-center gap-2 hover:shadow-[0_0_15px_rgba(255,0,160,0.2)] transition-all"
                 >
-                  <BookOpen className="w-6 h-6 text-[#ff00a0]" />
+                  <BookOpen className="w-6 h-6 text-[#c2547e]" />
                   <span className="text-xs uppercase font-mono font-bold tracking-wide">My Recipes</span>
                 </button>
 
                 <button
                   onClick={() => setCurrentPage('Add Recipe')}
-                  className="bg-[#0c0712] border border-[#ff00a0]/30 hover:border-[#ff00a0] text-white p-4 rounded-xl flex flex-col items-center gap-2 hover:shadow-[0_0_15px_rgba(255,0,160,0.2)] transition-all"
+                  className="bg-[#0c0712] border border-[#c2547e]/30 hover:border-[#c2547e] text-white p-4 rounded-xl flex flex-col items-center gap-2 hover:shadow-[0_0_15px_rgba(255,0,160,0.2)] transition-all"
                 >
-                  <Plus className="w-6 h-6 text-[#ff00a0]" />
+                  <Plus className="w-6 h-6 text-[#c2547e]" />
                   <span className="text-xs uppercase font-mono font-bold tracking-wide">Add Blueprint</span>
                 </button>
 
                 <button
                   onClick={() => setCurrentPage('Weekly Meal Planner')}
-                  className="bg-[#0c0712] border border-[#ff00a0]/30 hover:border-[#ff00a0] text-white p-4 rounded-xl flex flex-col items-center gap-2 hover:shadow-[0_0_15px_rgba(255,0,160,0.2)] transition-all"
+                  className="bg-[#0c0712] border border-[#c2547e]/30 hover:border-[#c2547e] text-white p-4 rounded-xl flex flex-col items-center gap-2 hover:shadow-[0_0_15px_rgba(255,0,160,0.2)] transition-all"
                 >
-                  <Calendar className="w-6 h-6 text-[#ff00a0]" />
+                  <Calendar className="w-6 h-6 text-[#c2547e]" />
                   <span className="text-xs uppercase font-mono font-bold tracking-wide">Weekly Plan</span>
                 </button>
               </div>
@@ -1090,7 +1090,7 @@ export default function App() {
         {currentPage === 'Add Recipe' && (
           <div className="bg-[#120b1c]/80 border border-[#d946ef]/20 rounded-2xl p-6 shadow-xl backdrop-blur-md max-w-2xl mx-auto">
             <div className="flex justify-between items-center mb-6">
-              <h3 className="text-md font-bold text-[#ff00a0] uppercase tracking-wide">Synthesize Recipe Map</h3>
+              <h3 className="text-md font-bold text-[#c2547e] uppercase tracking-wide">Synthesize Recipe Map</h3>
               <button onClick={() => setCurrentPage('Recipe Dashboard')} className="text-xs font-mono text-[#7b7f9e] hover:text-white uppercase">Cancel</button>
             </div>
 
@@ -1099,7 +1099,7 @@ export default function App() {
                 <label className="block text-[#a3a8cc] uppercase font-mono mb-1">Designation ID (Name)</label>
                 <input
                   type="text"
-                  className="w-full bg-[#0c0712] border border-[#ff00a0]/25 text-white rounded-xl p-3 focus:outline-none focus:border-[#ff00a0] transition-colors"
+                  className="w-full bg-[#0c0712] border border-[#c2547e]/25 text-white rounded-xl p-3 focus:outline-none focus:border-[#c2547e] transition-colors"
                   value={recipeForm.name}
                   onChange={(e) => setRecipeForm({ ...recipeForm, name: e.target.value })}
                   placeholder="e.g. Anabolic Rice Bowl"
@@ -1109,7 +1109,7 @@ export default function App() {
               <div>
                 <label className="block text-[#a3a8cc] uppercase font-mono mb-1">Matrix Vector Classification</label>
                 <select
-                  className="w-full bg-[#0c0712] border border-[#ff00a0]/25 text-[#ff00a0] rounded-xl p-3 focus:outline-none focus:border-[#ff00a0] transition-colors font-mono"
+                  className="w-full bg-[#0c0712] border border-[#c2547e]/25 text-[#c2547e] rounded-xl p-3 focus:outline-none focus:border-[#c2547e] transition-colors font-mono"
                   value={recipeForm.category}
                   onChange={(e) => setRecipeForm({ ...recipeForm, category: e.target.value })}
                 >
@@ -1123,7 +1123,7 @@ export default function App() {
               <div>
                 <label className="block text-[#a3a8cc] uppercase font-mono mb-1">Reagent Inventory Checklist (One per line)</label>
                 <textarea
-                  className="w-full bg-[#0c0712] border border-[#ff00a0]/25 text-white rounded-xl p-3 focus:outline-none focus:border-[#ff00a0] transition-colors h-28 font-mono"
+                  className="w-full bg-[#0c0712] border border-[#c2547e]/25 text-white rounded-xl p-3 focus:outline-none focus:border-[#c2547e] transition-colors h-28 font-mono"
                   value={recipeForm.ingredientsText}
                   onChange={(e) => setRecipeForm({ ...recipeForm, ingredientsText: e.target.value })}
                   placeholder={'200g Lean Ground Beef\n100g Rice Jasmine\n50g Avocado'}
@@ -1133,7 +1133,7 @@ export default function App() {
               <div>
                 <label className="block text-[#a3a8cc] uppercase font-mono mb-1">Synthesizing Protocol (Instructions)</label>
                 <textarea
-                  className="w-full bg-[#0c0712] border border-[#ff00a0]/25 text-white rounded-xl p-3 focus:outline-none focus:border-[#ff00a0] transition-colors h-32"
+                  className="w-full bg-[#0c0712] border border-[#c2547e]/25 text-white rounded-xl p-3 focus:outline-none focus:border-[#c2547e] transition-colors h-32"
                   value={recipeForm.instructions}
                   onChange={(e) => setRecipeForm({ ...recipeForm, instructions: e.target.value })}
                   placeholder="Boil rice. Grill ground beef with spices. Top with sliced avocado."
@@ -1144,7 +1144,7 @@ export default function App() {
                 type="button"
                 disabled={!recipeForm.name.trim() || !recipeForm.instructions.trim()}
                 onClick={handleCreateRecipe}
-                className="w-full bg-gradient-to-r from-[#1f0b2a] to-[#0b0410] text-[#ff00a0] border border-[#ff00a0]/30 hover:bg-[#ff00a0] hover:text-[#060309] hover:border-[#ff00a0] transition-all duration-300 font-bold uppercase py-3 rounded-xl font-mono tracking-wider disabled:opacity-40 disabled:hover:bg-transparent disabled:hover:text-[#ff00a0] disabled:cursor-not-allowed"
+                className="w-full bg-gradient-to-r from-[#1f0b2a] to-[#0b0410] text-[#c2547e] border border-[#c2547e]/30 hover:bg-[#c2547e] hover:text-[#060309] hover:border-[#c2547e] transition-all duration-300 font-bold uppercase py-3 rounded-xl font-mono tracking-wider disabled:opacity-40 disabled:hover:bg-transparent disabled:hover:text-[#c2547e] disabled:cursor-not-allowed"
               >
                 Write To Cookbook Registry
               </button>
@@ -1156,10 +1156,10 @@ export default function App() {
         {currentPage === 'View Cookbook' && (
           <div className="space-y-6">
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-              <h3 className="text-md font-bold text-[#ff00a0] uppercase tracking-wide">My Recipes Database</h3>
+              <h3 className="text-md font-bold text-[#c2547e] uppercase tracking-wide">My Recipes Database</h3>
               <div className="flex gap-2">
-                <button onClick={() => setCurrentPage('Recipe Dashboard')} className="bg-[#1f0b2a]/40 text-[#ff00a0] border border-[#ff00a0]/30 hover:bg-[#ff00a0] hover:text-black hover:border-[#ff00a0] transition-all text-xs font-bold font-mono uppercase px-4 py-2 rounded-full">Menu</button>
-                <button onClick={() => setCurrentPage('Add Recipe')} className="bg-[#ff00a0] text-black text-xs font-bold font-mono uppercase px-4 py-2 rounded-full shadow-lg hover:shadow-[0_0_15px_rgba(255,0,160,0.4)] transition-all">Add New Recipe</button>
+                <button onClick={() => setCurrentPage('Recipe Dashboard')} className="bg-[#1f0b2a]/40 text-[#c2547e] border border-[#c2547e]/30 hover:bg-[#c2547e] hover:text-black hover:border-[#c2547e] transition-all text-xs font-bold font-mono uppercase px-4 py-2 rounded-full">Menu</button>
+                <button onClick={() => setCurrentPage('Add Recipe')} className="bg-[#c2547e] text-black text-xs font-bold font-mono uppercase px-4 py-2 rounded-full shadow-lg hover:shadow-[0_0_15px_rgba(255,0,160,0.4)] transition-all">Add New Recipe</button>
               </div>
             </div>
 
@@ -1171,7 +1171,7 @@ export default function App() {
                   className={`text-xs font-mono font-bold uppercase px-3 py-1.5 rounded-full border transition-all ${
                     selectedRecipeFilter === cat
                       ? 'bg-[#d946ef] text-black border-[#d946ef]'
-                      : 'bg-[#120b1c]/60 text-[#a3a8cc] border-white/5 hover:border-[#ff00a0]/30'
+                      : 'bg-[#120b1c]/60 text-[#a3a8cc] border-white/5 hover:border-[#c2547e]/30'
                   }`}
                 >
                   {cat || 'ALL MATRIX'}
@@ -1225,8 +1225,8 @@ export default function App() {
         {currentPage === 'Weekly Meal Planner' && (
           <div className="space-y-8">
             <div className="flex justify-between items-center">
-              <h3 className="text-md font-bold text-[#ff00a0] uppercase tracking-wide">Weekly Rotational Scheduler</h3>
-              <button onClick={() => setCurrentPage('Recipe Dashboard')} className="bg-[#1f0b2a]/40 text-[#ff00a0] border border-[#ff00a0]/30 hover:bg-[#ff00a0] hover:text-black hover:border-[#ff00a0] transition-all text-xs font-bold font-mono uppercase px-4 py-2 rounded-full">Menu</button>
+              <h3 className="text-md font-bold text-[#c2547e] uppercase tracking-wide">Weekly Rotational Scheduler</h3>
+              <button onClick={() => setCurrentPage('Recipe Dashboard')} className="bg-[#1f0b2a]/40 text-[#c2547e] border border-[#c2547e]/30 hover:bg-[#c2547e] hover:text-black hover:border-[#c2547e] transition-all text-xs font-bold font-mono uppercase px-4 py-2 rounded-full">Menu</button>
             </div>
 
             <div className="space-y-6">
@@ -1240,7 +1240,7 @@ export default function App() {
                         <div key={slot} className="space-y-1 text-xs">
                           <label className="block text-[10px] uppercase font-mono text-[#7b7f9e]">{slot}</label>
                           <select
-                            className="w-full bg-[#0c0712] border border-[#ff00a0]/20 text-white rounded-lg p-2 focus:outline-none focus:border-[#ff00a0]"
+                            className="w-full bg-[#0c0712] border border-[#c2547e]/20 text-white rounded-lg p-2 focus:outline-none focus:border-[#c2547e]"
                             value={value}
                             onChange={(e) => handleSaveMealPlan(day, slot, e.target.value)}
                           >
@@ -1258,8 +1258,8 @@ export default function App() {
 
             {/* Dynamic Integrated Procurement Generator */}
             <div className="bg-[#120b1c]/80 border border-[#d946ef]/20 rounded-2xl p-6 shadow-xl backdrop-blur-md">
-              <h3 className="text-md font-bold text-[#ff00a0] uppercase tracking-wide mb-2 flex items-center gap-2">
-                <ShoppingBag className="w-5 h-5 text-[#ff00a0]" />
+              <h3 className="text-md font-bold text-[#c2547e] uppercase tracking-wide mb-2 flex items-center gap-2">
+                <ShoppingBag className="w-5 h-5 text-[#c2547e]" />
                 Auto-Generated Procurement List
               </h3>
               <p className="text-[11px] font-mono text-[#7b7f9e] mb-4">INVENTORY CHECKLIST CALCULATED DIRECTLY FROM THE ACTIVE WEEKLY ROTATIONAL MEALS</p>
@@ -1269,11 +1269,11 @@ export default function App() {
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
                   {getAutoGeneratedShoppingList().map(({ ingredient, count }, idx) => (
-                    <label key={idx} className="flex items-center gap-3 bg-[#0c0712] border border-[#ff00a0]/10 hover:border-[#ff00a0]/30 p-3 rounded-xl transition-all cursor-pointer">
-                      <input type="checkbox" className="accent-[#ff00a0] w-4 h-4 rounded" />
+                    <label key={idx} className="flex items-center gap-3 bg-[#0c0712] border border-[#c2547e]/10 hover:border-[#c2547e]/30 p-3 rounded-xl transition-all cursor-pointer">
+                      <input type="checkbox" className="accent-[#c2547e] w-4 h-4 rounded" />
                       <div className="text-xs font-mono">
                         <span className="text-white font-bold">{ingredient}</span>
-                        <span className="text-[#ff00a0] ml-2 font-extrabold">({count}x deployed)</span>
+                        <span className="text-[#c2547e] ml-2 font-extrabold">({count}x deployed)</span>
                       </div>
                     </label>
                   ))}
@@ -1296,7 +1296,7 @@ export default function App() {
                 <span className="text-3xl font-extrabold text-white block my-2">
                   {getTotalKineticVolume().toLocaleString()} KG
                 </span>
-                <span className="text-[10px] text-[#ff00a0] font-mono uppercase">Force Matrix Unlocked</span>
+                <span className="text-[10px] text-[#c2547e] font-mono uppercase">Force Matrix Unlocked</span>
               </div>
 
               <div className="bg-[#120b1c]/80 border border-[#d946ef]/20 rounded-2xl p-5 shadow-xl backdrop-blur-md text-center">
@@ -1322,7 +1322,7 @@ export default function App() {
 
                 {/* Physical Template Builder Panel */}
                 <div className="bg-[#120b1c]/80 border border-[#d946ef]/20 rounded-2xl p-6 shadow-xl">
-                  <h3 className="text-md font-bold text-[#ff00a0] uppercase tracking-wide mb-4">
+                  <h3 className="text-md font-bold text-[#c2547e] uppercase tracking-wide mb-4">
                     Workout Blueprint Constructor
                   </h3>
 
@@ -1331,7 +1331,7 @@ export default function App() {
                       <label className="block text-[#a3a8cc] uppercase font-mono mb-1">Routine Designation ID (Name)</label>
                       <input
                         type="text"
-                        className="w-full bg-[#0c0712] border border-[#ff00a0]/25 text-white rounded-xl p-3 focus:outline-none focus:border-[#ff00a0]"
+                        className="w-full bg-[#0c0712] border border-[#c2547e]/25 text-white rounded-xl p-3 focus:outline-none focus:border-[#c2547e]"
                         value={workoutTemplateForm.name}
                         onChange={(e) => setWorkoutTemplateForm({ ...workoutTemplateForm, name: e.target.value })}
                         placeholder="e.g. Back and Biceps Destructor"
@@ -1340,7 +1340,7 @@ export default function App() {
                     <div>
                       <label className="block text-[#a3a8cc] uppercase font-mono mb-1">Log Exercises (One per line)</label>
                       <textarea
-                        className="w-full bg-[#0c0712] border border-[#ff00a0]/25 text-white rounded-xl p-3 focus:outline-none focus:border-[#ff00a0] h-24 font-mono"
+                        className="w-full bg-[#0c0712] border border-[#c2547e]/25 text-white rounded-xl p-3 focus:outline-none focus:border-[#c2547e] h-24 font-mono"
                         value={workoutTemplateForm.exercisesText}
                         onChange={(e) => setWorkoutTemplateForm({ ...workoutTemplateForm, exercisesText: e.target.value })}
                         placeholder={'Weighted pullups\nBarbell Rows\nIncline Dumbbell Curls'}
@@ -1350,7 +1350,7 @@ export default function App() {
                       type="button"
                       disabled={!workoutTemplateForm.name.trim() || !workoutTemplateForm.exercisesText.trim()}
                       onClick={handleCreateWorkoutTemplate}
-                      className="w-full bg-gradient-to-r from-[#1f0b2a] to-[#0b0410] text-[#ff00a0] border border-[#ff00a0]/30 hover:bg-[#ff00a0] hover:text-[#060309] hover:border-[#ff00a0] transition-all duration-300 font-bold uppercase py-2.5 rounded-xl font-mono tracking-wider disabled:opacity-40 disabled:hover:bg-transparent disabled:hover:text-[#ff00a0] disabled:cursor-not-allowed"
+                      className="w-full bg-gradient-to-r from-[#1f0b2a] to-[#0b0410] text-[#c2547e] border border-[#c2547e]/30 hover:bg-[#c2547e] hover:text-[#060309] hover:border-[#c2547e] transition-all duration-300 font-bold uppercase py-2.5 rounded-xl font-mono tracking-wider disabled:opacity-40 disabled:hover:bg-transparent disabled:hover:text-[#c2547e] disabled:cursor-not-allowed"
                     >
                       Write Blueprint Frame
                     </button>
@@ -1378,15 +1378,15 @@ export default function App() {
 
                 {/* Training Rotational Scheduler */}
                 <div className="bg-[#120b1c]/80 border border-[#d946ef]/20 rounded-2xl p-6 shadow-xl">
-                  <h3 className="text-md font-bold text-[#ff00a0] uppercase tracking-wide mb-4">
+                  <h3 className="text-md font-bold text-[#c2547e] uppercase tracking-wide mb-4">
                     Weekly Rotational Training Plan
                   </h3>
                   <div className="space-y-3 text-xs">
                     {daysOfWeek.map(day => (
-                      <div key={day} className="flex justify-between items-center bg-[#0c0712] border border-[#ff00a0]/10 p-2.5 rounded-xl">
+                      <div key={day} className="flex justify-between items-center bg-[#0c0712] border border-[#c2547e]/10 p-2.5 rounded-xl">
                         <span className="font-mono text-white text-[11px] font-bold uppercase">{day}</span>
                         <select
-                          className="bg-[#120b1c] border border-[#ff00a0]/20 text-[#ff00a0] rounded px-2 py-1 text-xs focus:outline-none"
+                          className="bg-[#120b1c] border border-[#c2547e]/20 text-[#c2547e] rounded px-2 py-1 text-xs focus:outline-none"
                           value={weeklyWorkoutPlan[day] || 'Rest Day'}
                           onChange={(e) => handleUpdateWeeklyWorkout(day, e.target.value)}
                         >
@@ -1405,7 +1405,7 @@ export default function App() {
 
                 {/* Manual Aerobic Intake Entry */}
                 <div className="bg-[#120b1c]/80 border border-[#d946ef]/20 rounded-2xl p-6 shadow-xl">
-                  <h3 className="text-md font-bold text-[#ff00a0] uppercase tracking-wide mb-4">
+                  <h3 className="text-md font-bold text-[#c2547e] uppercase tracking-wide mb-4">
                     Log Aerobic Session
                   </h3>
                   <div className="space-y-4 text-xs">
@@ -1413,7 +1413,7 @@ export default function App() {
                       <div>
                         <label className="block text-[#a3a8cc] uppercase font-mono mb-1">Module type</label>
                         <select
-                          className="w-full bg-[#0c0712] border border-[#ff00a0]/25 text-[#ff00a0] rounded-xl p-2.5 focus:outline-none"
+                          className="w-full bg-[#0c0712] border border-[#c2547e]/25 text-[#c2547e] rounded-xl p-2.5 focus:outline-none"
                           value={cardioForm.activity}
                           onChange={(e) => setCardioForm({ ...cardioForm, activity: e.target.value })}
                         >
@@ -1427,7 +1427,7 @@ export default function App() {
                         <label className="block text-[#a3a8cc] uppercase font-mono mb-1">Duration (Min)</label>
                         <input
                           type="number"
-                          className="w-full bg-[#0c0712] border border-[#ff00a0]/25 text-white rounded-xl p-2.5 focus:outline-none"
+                          className="w-full bg-[#0c0712] border border-[#c2547e]/25 text-white rounded-xl p-2.5 focus:outline-none"
                           value={cardioForm.duration}
                           onChange={(e) => setCardioForm({ ...cardioForm, duration: e.target.value })}
                           min="1"
@@ -1438,7 +1438,7 @@ export default function App() {
                         <input
                           type="number"
                           step="0.1"
-                          className="w-full bg-[#0c0712] border border-[#ff00a0]/25 text-white rounded-xl p-2.5 focus:outline-none"
+                          className="w-full bg-[#0c0712] border border-[#c2547e]/25 text-white rounded-xl p-2.5 focus:outline-none"
                           value={cardioForm.distance}
                           onChange={(e) => setCardioForm({ ...cardioForm, distance: e.target.value })}
                           min="0"
@@ -1449,7 +1449,7 @@ export default function App() {
                       type="button"
                       onClick={handleLogManualCardio}
                       disabled={!cardioForm.duration || Number(cardioForm.duration) <= 0}
-                      className="w-full bg-gradient-to-r from-[#1f0b2a] to-[#0b0410] text-[#ff00a0] border border-[#ff00a0]/30 hover:bg-[#ff00a0] hover:text-[#060309] hover:border-[#ff00a0] transition-all duration-300 font-bold uppercase py-2.5 rounded-xl font-mono tracking-wider disabled:opacity-40 disabled:hover:bg-transparent disabled:hover:text-[#ff00a0] disabled:cursor-not-allowed"
+                      className="w-full bg-gradient-to-r from-[#1f0b2a] to-[#0b0410] text-[#c2547e] border border-[#c2547e]/30 hover:bg-[#c2547e] hover:text-[#060309] hover:border-[#c2547e] transition-all duration-300 font-bold uppercase py-2.5 rounded-xl font-mono tracking-wider disabled:opacity-40 disabled:hover:bg-transparent disabled:hover:text-[#c2547e] disabled:cursor-not-allowed"
                     >
                       Write Cardio Telemetry
                     </button>
@@ -1458,7 +1458,7 @@ export default function App() {
 
                 {/* Training Chronological Databases */}
                 <div className="bg-[#120b1c]/80 border border-[#d946ef]/20 rounded-2xl p-6 shadow-xl">
-                  <h3 className="text-md font-bold text-[#ff00a0] uppercase tracking-wide mb-4">
+                  <h3 className="text-md font-bold text-[#c2547e] uppercase tracking-wide mb-4">
                     Historical Log Archive
                   </h3>
 
@@ -1493,7 +1493,7 @@ export default function App() {
                           cardioLogs.slice().reverse().map(log => (
                             <div key={log.id} className="bg-[#0c0712] border border-white/5 p-2 rounded-lg flex justify-between items-center text-[11px]">
                               <div>
-                                <span className="text-[#ff00a0] font-bold block">{log.activity.toUpperCase()}</span>
+                                <span className="text-[#c2547e] font-bold block">{log.activity.toUpperCase()}</span>
                                 <span className="text-white font-mono">{log.duration} Min | {log.distance} KM</span>
                               </div>
                               <button onClick={() => handleDeleteCardioLog(log.id)} className="text-red-500 hover:bg-red-500/15 p-1 rounded-full transition-all">
@@ -1558,9 +1558,9 @@ function TodaysWorkoutPanel({
 
   return (
     <div className="space-y-4">
-      <div className="bg-[#ff00a0]/10 border border-[#ff00a0]/30 rounded-xl p-3 flex justify-between items-center">
+      <div className="bg-[#c2547e]/10 border border-[#c2547e]/30 rounded-xl p-3 flex justify-between items-center">
         <span className="text-xs font-mono font-bold text-white uppercase tracking-wider">ACTIVE WORKOUT MATRIX: {todaysRoutine.toUpperCase()}</span>
-        <span className="bg-[#ff00a0] text-black text-[10px] font-bold px-2 py-0.5 rounded-full font-mono uppercase">LIVE RECORDING</span>
+        <span className="bg-[#c2547e] text-black text-[10px] font-bold px-2 py-0.5 rounded-full font-mono uppercase">LIVE RECORDING</span>
       </div>
 
       <div className="space-y-3">
@@ -1570,14 +1570,14 @@ function TodaysWorkoutPanel({
           const isLocked = justLogged[key];
 
           return (
-            <div key={index} className="bg-[#0c0712] border border-[#ff00a0]/10 rounded-xl p-4 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+            <div key={index} className="bg-[#0c0712] border border-[#c2547e]/10 rounded-xl p-4 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
               <span className="text-xs font-bold text-[#d946ef] min-w-[150px]">{exercise.toUpperCase()}</span>
               <div className="flex gap-2 w-full md:w-auto">
                 <div className="flex-1 md:flex-initial">
                   <span className="text-[9px] uppercase font-mono text-[#7b7f9e] block mb-1">Weight KG</span>
                   <input
                     type="number"
-                    className="bg-[#120b1c] border border-[#ff00a0]/25 text-[#ff00a0] rounded-lg px-2 py-1 text-xs font-mono w-full md:w-20"
+                    className="bg-[#120b1c] border border-[#c2547e]/25 text-[#c2547e] rounded-lg px-2 py-1 text-xs font-mono w-full md:w-20"
                     value={userInputs.weight}
                     onChange={(e) => setStrengthLogInputs(prev => ({
                       ...prev,
@@ -1591,7 +1591,7 @@ function TodaysWorkoutPanel({
                   <span className="text-[9px] uppercase font-mono text-[#7b7f9e] block mb-1">Sets</span>
                   <input
                     type="number"
-                    className="bg-[#120b1c] border border-[#ff00a0]/25 text-[#ff00a0] rounded-lg px-2 py-1 text-xs font-mono w-full md:w-16"
+                    className="bg-[#120b1c] border border-[#c2547e]/25 text-[#c2547e] rounded-lg px-2 py-1 text-xs font-mono w-full md:w-16"
                     value={userInputs.sets}
                     onChange={(e) => setStrengthLogInputs(prev => ({
                       ...prev,
@@ -1604,7 +1604,7 @@ function TodaysWorkoutPanel({
                   <span className="text-[9px] uppercase font-mono text-[#7b7f9e] block mb-1">Reps</span>
                   <input
                     type="number"
-                    className="bg-[#120b1c] border border-[#ff00a0]/25 text-[#ff00a0] rounded-lg px-2 py-1 text-xs font-mono w-full md:w-16"
+                    className="bg-[#120b1c] border border-[#c2547e]/25 text-[#c2547e] rounded-lg px-2 py-1 text-xs font-mono w-full md:w-16"
                     value={userInputs.reps}
                     onChange={(e) => setStrengthLogInputs(prev => ({
                       ...prev,
@@ -1618,7 +1618,7 @@ function TodaysWorkoutPanel({
                 type="button"
                 onClick={() => onLog(todaysRoutine, exercise)}
                 style={{ borderColor: isLocked ? '#d946ef' : 'rgba(255, 0, 160, 0.3)' }}
-                className="w-full md:w-auto bg-gradient-to-r from-[#1f0b2a] to-[#0b0410] text-[#ff00a0] border hover:bg-[#ff00a0] hover:text-[#060309] hover:border-[#ff00a0] transition-all duration-300 text-[10px] font-bold font-mono py-2 px-4 rounded-full uppercase tracking-wider"
+                className="w-full md:w-auto bg-gradient-to-r from-[#1f0b2a] to-[#0b0410] text-[#c2547e] border hover:bg-[#c2547e] hover:text-[#060309] hover:border-[#c2547e] transition-all duration-300 text-[10px] font-bold font-mono py-2 px-4 rounded-full uppercase tracking-wider"
               >
                 {isLocked ? 'DATA PACKET LOCKED' : 'LOCK DATA SET'}
               </button>
