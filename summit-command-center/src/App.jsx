@@ -1391,7 +1391,7 @@ export default function App() {
 
                     <div>
                       <label className="block text-[#a3a8cc] uppercase font-mono mb-2">Add Drills</label>
-                      <div className="flex gap-2">
+                      <div className="flex gap-2 mb-2">
                         <input
                           type="text"
                           className="flex-1 bg-[#0c0712] border border-[#c2547e]/25 text-white rounded-xl p-2.5 focus:outline-none focus:border-[#c2547e]"
@@ -1414,6 +1414,25 @@ export default function App() {
                           +
                         </button>
                       </div>
+                      <textarea
+                        className="w-full bg-[#0c0712] border border-[#c2547e]/15 text-white rounded-xl p-2.5 focus:outline-none focus:border-[#c2547e] h-20 font-mono"
+                        placeholder={"Or paste multiple (one per line):\nSquat\nBench Press\nDeadlift"}
+                        value={workoutTemplateForm.pasteText || ''}
+                        onChange={(e) => setWorkoutTemplateForm({ ...workoutTemplateForm, pasteText: e.target.value })}
+                      />
+                      {workoutTemplateForm.pasteText?.trim() && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const lines = workoutTemplateForm.pasteText.split('\n').map(l => l.trim()).filter(Boolean);
+                            const newExercises = lines.map(name => ({ name, type: workoutTemplateForm.draftType }));
+                            setWorkoutTemplateForm(prev => ({ ...prev, exercises: [...prev.exercises, ...newExercises], pasteText: '' }));
+                          }}
+                          className="mt-1.5 w-full text-[10px] font-mono font-bold uppercase px-3 py-1.5 rounded-lg border border-[#c2547e]/30 text-[#c2547e] hover:bg-[#c2547e] hover:text-white transition-all"
+                        >
+                          Add All as {workoutTemplateForm.draftType}
+                        </button>
+                      )}
                     </div>
 
                     {workoutTemplateForm.exercises.length > 0 && (
