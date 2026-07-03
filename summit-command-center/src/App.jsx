@@ -1,16 +1,10 @@
-import React, { useState, useEffect } from 'react';
-import {
-  Activity,
-  CheckSquare,
-  Calendar,
-  Trash2,
-  Dumbbell,
-  Loader2,
-  AlertTriangle,
-  Sun,
-  Moon
-} from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Loader2, AlertTriangle } from 'lucide-react';
 import { dbGet, dbSet } from './lib/db';
+import Sidebar from './components/Sidebar';
+import Dashboard from './pages/Dashboard';
+import TaskBoard from './pages/TaskBoard';
+import FitnessDeck from './pages/FitnessDeck';
 
 // ---------------------------------------------------------------------------
 // STORAGE LAYER
@@ -49,6 +43,13 @@ const REST_WEEK = {
   Thursday: 'Rest Day', Friday: 'Rest Day', Saturday: 'Rest Day', Sunday: 'Rest Day'
 };
 
+// Tasks predate the `status` column used by the kanban board — this backfills
+// it from `isCompleted` so existing data slots into the right column on load.
+const withStatus = (task) => ({
+  ...task,
+  status: task.status || (task.isCompleted ? 'done' : 'todo'),
+});
+
 
 export default function App() {
   // Global State Engine
@@ -67,12 +68,12 @@ export default function App() {
   const [passwordInput, setPasswordInput] = useState('');
   const [passwordError, setPasswordError] = useState(false);
 
-  const [lightMode, setLightMode] = useState(() => localStorage.getItem('summit_light_mode') === 'true');
+  const [darkMode, setDarkMode] = useState(() => localStorage.getItem('summit_dark_mode') === 'true');
 
   useEffect(() => {
-    localStorage.setItem('summit_light_mode', lightMode);
-    document.body.classList.toggle('light-mode', lightMode);
-  }, [lightMode]);
+    localStorage.setItem('summit_dark_mode', darkMode);
+    document.documentElement.classList.toggle('dark', darkMode);
+  }, [darkMode]);
 
   // Calendar Utility Definitions
   const daysOfWeek = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
@@ -105,12 +106,12 @@ export default function App() {
           loadData(STORAGE_KEYS.workoutTemplates, DEFAULT_WORKOUT_TEMPLATES),
           loadData(STORAGE_KEYS.weeklyWorkoutPlan, DEFAULT_WEEKLY_WORKOUT_PLAN),
         ]);
-        setTasks(t);
+        setTasks(t.map(withStatus));
         setStrengthLogs(sl);
         setCardioLogs(cl);
         setWorkoutTemplates(wt);
         setWeeklyWorkoutPlan(wwp);
-      } catch (err) {
+      } catch {
         setLoadError('Could not load saved data. Starting with a clean slate — anything you add will still try to save.');
       } finally {
         setIsLoading(false);
@@ -150,6 +151,7 @@ export default function App() {
       targetDate: taskForm.targetDate,
       notes: taskForm.notes,
       isCompleted: false,
+      status: 'todo',
       checklist: newChecklistItems
     };
 
@@ -181,10 +183,23 @@ export default function App() {
         return {
           ...t,
           isCompleted: true,
+          status: 'done',
           checklist: t.checklist.map(item => ({ ...item, isCompleted: true }))
         };
       }
       return t;
+    });
+    setTasks(updated);
+    saveToStorage(STORAGE_KEYS.tasks, updated);
+  };
+
+  // Drives the kanban board — dragging a card to a column, or setting status
+  // from the task detail modal. Keeps `isCompleted` in sync since the rest of
+  // the app's stats (velocity, overdue, dashboard) key off of it.
+  const handleUpdateTaskStatus = (taskId, newStatus) => {
+    const updated = tasks.map(t => {
+      if (t.id !== taskId) return t;
+      return { ...t, status: newStatus, isCompleted: newStatus === 'done' };
     });
     setTasks(updated);
     saveToStorage(STORAGE_KEYS.tasks, updated);
@@ -407,13 +422,13 @@ export default function App() {
       }
     };
     return (
-      <div className="min-h-screen bg-[#060309] flex items-center justify-center">
+      <div className="min-h-screen bg-[#f7f7f5] flex items-center justify-center">
         <div className="flex flex-col items-center gap-6 w-72">
           <div className="text-center">
-            <div className="text-2xl font-bold text-white tracking-widest uppercase">Summit</div>
-            <div className="text-xs text-[#a3a8cc] tracking-widest mt-1">Command Center</div>
+            <div className="text-2xl font-semibold text-gray-900">Summit</div>
+            <div className="text-xs text-gray-400 mt-1">Command Center</div>
           </div>
-          <div className={`w-full flex flex-col gap-3 transition-all ${passwordError ? 'animate-bounce' : ''}`}>
+          <div className={`w-full flex flex-col gap-3 ${passwordError ? 'animate-bounce' : ''}`}>
             <input
               type="password"
               placeholder="Password"
@@ -421,15 +436,15 @@ export default function App() {
               onChange={e => setPasswordInput(e.target.value)}
               onKeyDown={e => e.key === 'Enter' && handleUnlock()}
               autoFocus
-              className={`w-full bg-white/5 border ${passwordError ? 'border-red-500' : 'border-white/10'} rounded-lg px-4 py-3 text-white text-sm outline-none focus:border-[#c2547e] transition-colors`}
+              className={`w-full bg-white border ${passwordError ? 'border-red-400' : 'border-gray-200'} rounded-lg px-4 py-3 text-gray-900 text-sm outline-none focus:border-blue-500 transition-colors`}
             />
             <button
               onClick={handleUnlock}
-              className="w-full bg-[#c2547e] text-black font-bold text-sm py-3 rounded-lg hover:bg-[#ff33b3] transition-colors"
+              className="w-full bg-blue-600 text-white font-medium text-sm py-3 rounded-lg hover:bg-blue-700 transition-colors"
             >
               Unlock
             </button>
-            {passwordError && <p className="text-red-400 text-xs text-center">Incorrect password</p>}
+            {passwordError && <p className="text-red-500 text-xs text-center">Incorrect password</p>}
           </div>
         </div>
       </div>
@@ -441,10 +456,10 @@ export default function App() {
   // ---------------------------------------------------------------------------
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-[#060309] flex items-center justify-center">
-        <div className="flex flex-col items-center gap-3 text-[#c2547e]">
-          <Loader2 className="w-8 h-8 animate-spin" />
-          <span className="text-xs font-mono uppercase tracking-widest">Bringing systems online…</span>
+      <div className="min-h-screen bg-[#f7f7f5] flex items-center justify-center">
+        <div className="flex flex-col items-center gap-3 text-blue-600">
+          <Loader2 className="w-6 h-6 animate-spin" />
+          <span className="text-xs text-gray-400">Loading…</span>
         </div>
       </div>
     );
@@ -454,1011 +469,112 @@ export default function App() {
   const overdueTasks = getOverdueTasks();
 
   return (
-    <div className={`min-h-screen ${lightMode ? '' : 'bg-[#060309]'} text-[#a3a8cc] font-sans antialiased pb-20 selection:bg-[#c2547e] selection:text-black`}>
-      {/* GLOWING SYSTEM RADIAL OVERLAYS */}
-      {!lightMode && <div className="fixed inset-0 bg-[radial-gradient(circle_at_50%_10%,#160a1d_0%,#060309_100%)] pointer-events-none z-0"></div>}
+    <div className="min-h-screen bg-[#f7f7f5] dark:bg-[#191919] text-[#37352f] dark:text-[#e6e6e6] font-sans antialiased flex">
+      <Sidebar
+        currentPage={currentPage}
+        setCurrentPage={setCurrentPage}
+        darkMode={darkMode}
+        setDarkMode={setDarkMode}
+      />
 
-      {/* TOAST */}
-      {toast && (
-        <div
-          className={`fixed top-4 right-4 z-50 px-4 py-3 rounded-xl border text-xs font-mono uppercase tracking-wide shadow-xl flex items-center gap-2 ${
-            toast.isError
-              ? 'bg-red-950/90 border-red-500/40 text-red-300'
-              : 'bg-[#120b1c]/95 border-[#c2547e]/40 text-[#c2547e]'
-          }`}
-        >
-          {toast.isError && <AlertTriangle className="w-4 h-4" />}
-          {toast.message}
+      <div className="flex-1 min-w-0">
+        {toast && (
+          <div
+            className={`fixed top-4 right-4 z-50 px-4 py-3 rounded-lg border text-sm shadow-lg flex items-center gap-2 ${
+              toast.isError
+                ? 'bg-red-50 border-red-200 text-red-600 dark:bg-red-500/10 dark:border-red-500/30 dark:text-red-400'
+                : 'bg-white border-gray-200 text-gray-700 dark:bg-[#252525] dark:border-white/10 dark:text-gray-200'
+            }`}
+          >
+            {toast.isError && <AlertTriangle className="w-4 h-4" />}
+            {toast.message}
+          </div>
+        )}
+
+        <div className="max-w-6xl mx-auto px-6 lg:px-10 py-8">
+
+          {loadError && (
+            <div className="mb-6 bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/20 rounded-xl p-4 flex items-start gap-3 text-sm text-red-600 dark:text-red-400">
+              <AlertTriangle className="w-4 h-4 mt-0.5 flex-shrink-0" />
+              <span>{loadError}</span>
+            </div>
+          )}
+
+          <h1 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-6">
+            {currentPage === 'Main Hub' && 'Home'}
+            {currentPage === 'Task Dashboard' && 'Tasks'}
+            {currentPage === 'Fitness Dashboard' && 'Fitness'}
+          </h1>
+
+          {currentPage === 'Main Hub' && (
+            <Dashboard
+              tasks={tasks}
+              overdueTasks={overdueTasks}
+              weeklyWorkoutPlan={weeklyWorkoutPlan}
+              workoutTemplates={workoutTemplates}
+              todayDayName={todayDayName}
+              strengthLogs={strengthLogs}
+              cardioLogs={cardioLogs}
+              setCurrentPage={setCurrentPage}
+              getDistributedMilestonesCount={getDistributedMilestonesCount}
+              formatToSwissDate={formatToSwissDate}
+              handleToggleSubtask={handleToggleSubtask}
+              handleCompleteTask={handleCompleteTask}
+              strengthLogInputs={strengthLogInputs}
+              setStrengthLogInputs={setStrengthLogInputs}
+              cardioLogInputs={cardioLogInputs}
+              setCardioLogInputs={setCardioLogInputs}
+              justLogged={justLogged}
+              justLoggedCardio={justLoggedCardio}
+              strengthKey={strengthKey}
+              handleLogStrengthFromHub={handleLogStrengthFromHub}
+              handleLogCardioFromHub={handleLogCardioFromHub}
+            />
+          )}
+
+          {currentPage === 'Task Dashboard' && (
+            <TaskBoard
+              tasks={tasks}
+              overdueTasks={overdueTasks}
+              velocity={velocity}
+              getDistributedMilestonesCount={getDistributedMilestonesCount}
+              formatToSwissDate={formatToSwissDate}
+              taskForm={taskForm}
+              setTaskForm={setTaskForm}
+              handleCreateTask={handleCreateTask}
+              handleToggleSubtask={handleToggleSubtask}
+              handleUpdateTaskStatus={handleUpdateTaskStatus}
+              handleDeleteTask={handleDeleteTask}
+            />
+          )}
+
+          {currentPage === 'Fitness Dashboard' && (
+            <FitnessDeck
+              strengthLogs={strengthLogs}
+              cardioLogs={cardioLogs}
+              workoutTemplates={workoutTemplates}
+              weeklyWorkoutPlan={weeklyWorkoutPlan}
+              daysOfWeek={daysOfWeek}
+              workoutTemplateForm={workoutTemplateForm}
+              setWorkoutTemplateForm={setWorkoutTemplateForm}
+              cardioForm={cardioForm}
+              setCardioForm={setCardioForm}
+              getTotalKineticVolume={getTotalKineticVolume}
+              getTotalCardioMinutes={getTotalCardioMinutes}
+              handleAddExerciseToDraft={handleAddExerciseToDraft}
+              handleRemoveDraftExercise={handleRemoveDraftExercise}
+              handleCreateWorkoutTemplate={handleCreateWorkoutTemplate}
+              handleDeleteTemplate={handleDeleteTemplate}
+              handleUpdateWeeklyWorkout={handleUpdateWeeklyWorkout}
+              handleApplyWeekPreset={handleApplyWeekPreset}
+              handleLogManualCardio={handleLogManualCardio}
+              handleDeleteStrengthLog={handleDeleteStrengthLog}
+              handleDeleteCardioLog={handleDeleteCardioLog}
+              REST_WEEK={REST_WEEK}
+            />
+          )}
+
         </div>
-      )}
-
-      <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8">
-
-        {loadError && (
-          <div className="mb-6 bg-red-950/40 border border-red-500/30 rounded-xl p-4 flex items-start gap-3 text-xs text-red-300">
-            <AlertTriangle className="w-4 h-4 mt-0.5 flex-shrink-0" />
-            <span>{loadError}</span>
-          </div>
-        )}
-
-        {/* CYBERNETIC INTEGRATION HERO TITLE HEADER */}
-        <header className="mb-8 border-l-4 border-[#c2547e] pl-4 py-2 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-          <div>
-            <h1 className="text-3xl md:text-4xl font-extrabold text-[#c2547e] tracking-wider uppercase drop-shadow-[0_0_15px_rgba(255,0,160,0.45)]">
-              Summit Command Center
-            </h1>
-            <p className="text-xs font-mono text-[#7b7f9e] uppercase tracking-widest mt-1">
-              SYSTEM LEVEL v3.1 // CYBERNETIC BIO-HUD ONLINE
-            </p>
-          </div>
-          <div className="flex items-center gap-3">
-            <button
-              className="mode-toggle flex items-center gap-2 px-3 py-1.5 rounded-full border border-[#c2547e]/30 hover:border-[#c2547e] transition-all"
-              onClick={() => setLightMode(m => !m)}
-              title={lightMode ? 'Switch to Dark Mode' : 'Switch to Light Mode'}
-            >
-              <Sun className={`w-3.5 h-3.5 ${lightMode ? 'text-[#c2547e]' : 'text-[#7b7f9e]'}`} />
-              <div className="relative w-8 h-4">
-                <div className={`absolute inset-0 rounded-full transition-colors duration-300 ${lightMode ? 'bg-[#c2547e]/20' : 'bg-[#1a0f26]'}`}></div>
-                <div className={`absolute top-0.5 w-3 h-3 rounded-full bg-[#c2547e] shadow transition-all duration-300 ${lightMode ? 'left-[18px]' : 'left-0.5'}`}></div>
-              </div>
-              <Moon className={`w-3.5 h-3.5 ${!lightMode ? 'text-[#c2547e]' : 'text-[#7b7f9e]'}`} />
-            </button>
-
-            <div className="flex gap-2 bg-[#120b1c] border border-[#c2547e]/20 rounded-lg px-3 py-1.5 text-xs font-mono">
-              <span className="text-[#c2547e] animate-pulse">●</span>
-              <span>SAT SCAN ACTIVE // CHRONO-MATRIX ONLINE</span>
-            </div>
-          </div>
-        </header>
-
-        {/* CORE TELEPORT NAVIGATION DESK */}
-        <nav className="grid grid-cols-3 gap-3 mb-8">
-          {[
-            { id: 'Main Hub', label: 'Main Hub', icon: Activity, match: (p) => p === 'Main Hub' },
-            { id: 'Task Dashboard', label: 'Task Manager', icon: CheckSquare, match: (p) => p === 'Task Dashboard' },
-            { id: 'Fitness Dashboard', label: 'Fitness Deck', icon: Dumbbell, match: (p) => p === 'Fitness Dashboard' }
-          ].map(({ id, label, icon: Icon, match }) => (
-            <button
-              key={id}
-              onClick={() => setCurrentPage(id)}
-              className={`flex items-center justify-center gap-2 font-mono py-3 rounded-full border text-xs font-bold uppercase tracking-wider transition-all duration-300 ${
-                match(currentPage)
-                  ? 'bg-[#c2547e] text-[#060309] border-[#c2547e] shadow-[0_0_20px_rgba(255,0,160,0.4)]'
-                  : 'bg-[#1f0b2a]/40 text-[#c2547e] border-[#c2547e]/30 hover:bg-[#c2547e] hover:text-[#060309] hover:border-[#c2547e]'
-              }`}
-            >
-              <Icon className="w-4 h-4" />
-              {label}
-            </button>
-          ))}
-        </nav>
-
-        {/* =====================================================================
-            SCREEN: MAIN HUB
-            ===================================================================== */}
-        {currentPage === 'Main Hub' && (
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-
-            <div className="lg:col-span-2 space-y-6">
-
-              <div className="bg-[#120b1c]/80 border border-[#d946ef]/20 rounded-2xl p-6 shadow-xl backdrop-blur-md">
-                <div className="flex items-center justify-between mb-4 border-b border-white/5 pb-4">
-                  <div>
-                    <h2 className="text-xl font-extrabold text-[#d946ef] tracking-wide uppercase drop-shadow-[0_0_10px_rgba(217,70,239,0.3)]">
-                      Today's Mission Brief
-                    </h2>
-                    <p className="text-xs font-mono mt-1 text-[#7b7f9e]">
-                      <span className="text-[#c2547e] font-bold">{todayDayName.toUpperCase()}</span> · {formatToSwissDate(new Date().toISOString().split('T')[0])}
-                    </p>
-                  </div>
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
-                  <div className="bg-[#0c0712] border border-[#c2547e]/15 rounded-xl p-4 flex flex-col justify-between gap-3 hover:border-[#c2547e]/40 transition-all">
-                    <div>
-                      <span className="text-[10px] uppercase font-mono text-[#7b7f9e] block mb-1">Training Today</span>
-                      <span className="font-bold text-white text-sm">{weeklyWorkoutPlan[todayDayName] || 'Rest Day'}</span>
-                    </div>
-                    <button
-                      onClick={() => setCurrentPage('Fitness Dashboard')}
-                      className="text-[10px] font-mono font-bold uppercase text-[#c2547e] hover:text-white transition-colors text-left"
-                    >
-                      → Open Fitness Deck
-                    </button>
-                  </div>
-                  <div className="bg-[#0c0712] border border-[#c2547e]/15 rounded-xl p-4 flex flex-col justify-between gap-3 hover:border-[#c2547e]/40 transition-all">
-                    <div>
-                      <span className="text-[10px] uppercase font-mono text-[#7b7f9e] block mb-1">Active Tasks</span>
-                      <span className="font-bold text-white text-sm">{tasks.filter(t => !t.isCompleted).length} Open</span>
-                      {overdueTasks.length > 0 && (
-                        <span className="text-[10px] font-mono text-red-400 block mt-0.5">{overdueTasks.length} overdue</span>
-                      )}
-                    </div>
-                    <button
-                      onClick={() => setCurrentPage('Task Dashboard')}
-                      className="text-[10px] font-mono font-bold uppercase text-[#c2547e] hover:text-white transition-colors text-left"
-                    >
-                      → Open Task Manager
-                    </button>
-                  </div>
-                  <div className="bg-[#0c0712] border border-[#c2547e]/15 rounded-xl p-4 flex flex-col gap-1 hover:border-[#c2547e]/40 transition-all">
-                    <span className="text-[10px] uppercase font-mono text-[#7b7f9e] block mb-1">Session Telemetry</span>
-                    <div className="font-mono text-xs">
-                      <div>Lifts: <span className="text-[#c2547e] font-bold">{strengthLogs.length}</span></div>
-                      <div>Cardio: <span className="text-[#d946ef] font-bold">{cardioLogs.length}</span></div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {overdueTasks.length > 0 && (
-                <div className="bg-red-950/30 border border-red-500/30 rounded-2xl p-5 flex items-start gap-3">
-                  <AlertTriangle className="w-5 h-5 text-red-400 flex-shrink-0 mt-0.5" />
-                  <div>
-                    <h3 className="text-sm font-bold text-red-400 uppercase tracking-wide">
-                      {overdueTasks.length} Task{overdueTasks.length > 1 ? 's' : ''} Past Hard Deadline
-                    </h3>
-                    <p className="text-xs text-red-300/80 mt-1 font-mono">
-                      {overdueTasks.map(t => t.name).join(', ')}
-                    </p>
-                  </div>
-                </div>
-              )}
-
-              {/* Gym Performance Panel */}
-              <div className="bg-[#120b1c]/80 border border-[#d946ef]/20 hover:border-[#d946ef]/50 transition-all duration-300 rounded-2xl p-6 shadow-xl backdrop-blur-md">
-                <div className="flex items-center justify-between mb-3">
-                  <h3 className="text-md font-bold text-[#c2547e] uppercase tracking-wide flex items-center gap-2">
-                    <Dumbbell className="w-5 h-5 text-[#c2547e]" />
-                    Today's Training Load
-                  </h3>
-                  <button
-                    onClick={() => setCurrentPage('Fitness Dashboard')}
-                    className="text-[10px] font-mono font-bold uppercase text-[#7b7f9e] hover:text-[#c2547e] transition-colors"
-                  >
-                    → Full Deck
-                  </button>
-                </div>
-
-                <TodaysWorkoutPanel
-                  weeklyWorkoutPlan={weeklyWorkoutPlan}
-                  workoutTemplates={workoutTemplates}
-                  todayDayName={todayDayName}
-                  strengthLogInputs={strengthLogInputs}
-                  setStrengthLogInputs={setStrengthLogInputs}
-                  cardioLogInputs={cardioLogInputs}
-                  setCardioLogInputs={setCardioLogInputs}
-                  justLogged={justLogged}
-                  justLoggedCardio={justLoggedCardio}
-                  strengthKey={strengthKey}
-                  onLog={handleLogStrengthFromHub}
-                  onLogCardio={handleLogCardioFromHub}
-                />
-              </div>
-
-              {/* Dynamic Task Allocator Checkpoints */}
-              <div className="bg-[#120b1c]/80 border border-[#d946ef]/20 hover:border-[#d946ef]/50 transition-all duration-300 rounded-2xl p-6 shadow-xl backdrop-blur-md">
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-md font-bold text-[#c2547e] uppercase tracking-wide flex items-center gap-2">
-                    <CheckSquare className="w-5 h-5 text-[#c2547e]" />
-                    Today's Allocated Milestones
-                  </h3>
-                  <button
-                    onClick={() => setCurrentPage('Task Dashboard')}
-                    className="text-[10px] font-mono font-bold uppercase text-[#7b7f9e] hover:text-[#c2547e] transition-colors"
-                  >
-                    → All Tasks
-                  </button>
-                </div>
-
-                {tasks.filter(t => !t.isCompleted).length === 0 ? (
-                  <p className="text-xs text-[#7b7f9e] italic font-mono">No active operational tasks scheduled. High-performance state achieved.</p>
-                ) : (
-                  <div className="space-y-4">
-                    {tasks.filter(t => !t.isCompleted).map(task => {
-                      const progressPct = task.checklist.length > 0
-                        ? Math.round((task.checklist.filter(item => item.isCompleted).length / task.checklist.length) * 100)
-                        : 0;
-                      return (
-                        <div key={task.id} className="bg-[#0c0712] border border-[#c2547e]/15 p-4 rounded-xl">
-                          <div className="flex justify-between items-center mb-2">
-                            <div>
-                              <span className="text-xs font-bold text-white block uppercase tracking-wide">{task.name}</span>
-                              <span className="text-[10px] font-mono text-[#7b7f9e]">Target Horizon: {formatToSwissDate(task.targetDate)}</span>
-                            </div>
-                            <span className="text-xs font-mono font-semibold text-[#d946ef] bg-[#d946ef]/10 px-2 py-0.5 rounded-full border border-[#d946ef]/20">
-                              {progressPct}% COMPLETED
-                            </span>
-                          </div>
-
-                          <div className="w-full bg-[#1a0f26] h-1.5 rounded-full mb-3 overflow-hidden border border-[#c2547e]/10">
-                            <div className="bg-gradient-to-r from-[#d946ef] to-[#c2547e] h-full" style={{ width: `${progressPct}%` }}></div>
-                          </div>
-
-                          {task.checklist.length === 0 ? (
-                            <div className="flex justify-between items-center pt-2">
-                              <span className="text-xs italic text-[#7b7f9e]">Mark task completed directly on completion</span>
-                              <button
-                                onClick={() => handleCompleteTask(task.id)}
-                                className="bg-[#c2547e]/10 hover:bg-[#c2547e] text-[#c2547e] hover:text-[#060309] border border-[#c2547e]/30 text-[10px] font-mono font-bold uppercase tracking-wider py-1.5 px-3 rounded-full transition-all"
-                              >
-                                Complete Task
-                              </button>
-                            </div>
-                          ) : (
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-2 mt-2">
-                              {task.checklist.map(item => (
-                                <label key={item.id} className="flex items-center gap-3 bg-[#120b1c]/60 p-2 rounded-lg border border-[#c2547e]/10 hover:border-[#c2547e]/35 cursor-pointer transition-all">
-                                  <input
-                                    type="checkbox"
-                                    className="accent-[#c2547e]"
-                                    checked={item.isCompleted}
-                                    onChange={() => handleToggleSubtask(task.id, item.id)}
-                                  />
-                                  <span className={`text-xs ${item.isCompleted ? 'line-through text-[#4a4d66]' : 'text-[#a3a8cc]'}`}>
-                                    {item.name}
-                                  </span>
-                                </label>
-                              ))}
-                            </div>
-                          )}
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
-
-            </div>
-
-            {/* COLUMN 3: SYSTEM SIDE PANEL FORECASTS */}
-            <div className="space-y-6">
-
-              <div className="bg-[#120b1c]/80 border border-[#d946ef]/20 rounded-2xl p-6 shadow-xl backdrop-blur-md">
-                <h3 className="text-md font-bold text-[#c2547e] uppercase tracking-wide mb-4 flex items-center gap-2">
-                  <Calendar className="w-5 h-5 text-[#c2547e]" />
-                  Chronological Horizon
-                </h3>
-
-                <div className="space-y-4">
-                  {[1, 2, 3].map(offset => {
-                    const nextDateObj = new Date();
-                    nextDateObj.setDate(nextDateObj.getDate() + offset);
-                    const nextDayName = nextDateObj.toLocaleDateString('en-US', { weekday: 'long' });
-                    const nextDateStr = nextDateObj.toISOString().split('T')[0];
-
-                    const assignedWorkout = weeklyWorkoutPlan[nextDayName] || 'Rest Day';
-                    const activeMilestonesCount = getDistributedMilestonesCount(nextDateStr);
-
-                    return (
-                      <div key={offset} className="bg-[#0c0712] border border-[#c2547e]/15 p-4 rounded-xl hover:border-[#c2547e]/40 transition-all duration-300">
-                        <div className="flex justify-between items-center mb-2 border-b border-white/5 pb-2">
-                          <span className="text-xs font-bold text-[#d946ef] uppercase font-mono">{nextDayName.toUpperCase()}</span>
-                          <span className="text-[10px] font-mono text-[#7b7f9e]">{formatToSwissDate(nextDateStr)}</span>
-                        </div>
-
-                        <div className="space-y-1 text-xs">
-                          <div className="flex justify-between">
-                            <span className="text-[#7b7f9e]">Training:</span>
-                            <span className="font-semibold text-white">{assignedWorkout}</span>
-                          </div>
-                          <div className="flex justify-between">
-                            <span className="text-[#7b7f9e]">Task Load:</span>
-                            <span className="font-semibold text-[#c2547e]">{activeMilestonesCount} Milestones</span>
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-
-              {/* Cybernetic Telemetry Health Log Widget */}
-              <div className="bg-[#120b1c]/80 border border-[#d946ef]/20 rounded-2xl p-6 shadow-xl backdrop-blur-md">
-                <h3 className="text-md font-bold text-[#c2547e] uppercase tracking-wide mb-4 flex items-center gap-2">
-                  <Activity className="w-5 h-5 text-[#c2547e]" />
-                  Telemetry Diagnostic
-                </h3>
-                <div className="space-y-4 text-xs font-mono">
-                  <div className="flex justify-between">
-                    <span className="text-[#7b7f9e]">System Status:</span>
-                    <span className="text-[#c2547e] font-bold">OPTIMAL</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-[#7b7f9e]">Active Loadouts:</span>
-                    <span className="text-white">{workoutTemplates.length} Gym Blueprints</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-[#7b7f9e]">Chronological Cache:</span>
-                    <span className="text-[#d946ef] font-bold">SAVED</span>
-                  </div>
-                </div>
-              </div>
-
-            </div>
-
-          </div>
-        )}
-
-        {/* =====================================================================
-            SCREEN: TASK DASHBOARD
-            ===================================================================== */}
-        {currentPage === 'Task Dashboard' && (
-          <div className="space-y-8">
-
-            {/* Predictive Analytical Dashboard Row */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <div className="bg-[#120b1c]/80 border border-[#d946ef]/20 rounded-2xl p-5 shadow-xl backdrop-blur-md text-center">
-                <span className="text-xs uppercase font-mono text-[#a3a8cc] tracking-wider block">Historical Completion Velocity</span>
-                <span className="text-3xl font-extrabold text-white block my-2">
-                  {velocity === null ? '—' : `${Math.round(velocity * 100)}%`}
-                </span>
-                <span className="text-[10px] text-[#c2547e] font-mono uppercase">
-                  {velocity === null ? 'No checklist data yet' : 'System Engine Running Secure'}
-                </span>
-              </div>
-
-              <div className="bg-[#120b1c]/80 border border-[#d946ef]/20 rounded-2xl p-5 shadow-xl backdrop-blur-md text-center">
-                <span className="text-xs uppercase font-mono text-[#a3a8cc] tracking-wider block">Allocated Load (Today)</span>
-                <span className="text-3xl font-extrabold text-white block my-2">
-                  {getDistributedMilestonesCount(new Date().toISOString().split('T')[0])} Chunks
-                </span>
-                <span className="text-[10px] text-[#7b7f9e] font-mono uppercase">Predictive Horizon Loaded</span>
-              </div>
-
-              <div className="bg-[#120b1c]/80 border border-[#d946ef]/20 rounded-2xl p-5 shadow-xl backdrop-blur-md text-center">
-                <span className="text-xs uppercase font-mono text-[#a3a8cc] tracking-wider block">Active Horizon Pipelines</span>
-                <span className="text-3xl font-extrabold text-white block my-2">
-                  {tasks.filter(t => !t.isCompleted).length} Tasks
-                </span>
-                <span className="text-[10px] text-[#d946ef] font-mono uppercase">
-                  {overdueTasks.length > 0 ? `${overdueTasks.length} overdue` : 'System Buffer Active'}
-                </span>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-
-              {/* Task Matrix Creator */}
-              <div className="bg-[#120b1c]/80 border border-[#d946ef]/20 rounded-2xl p-6 shadow-xl backdrop-blur-md">
-                <h3 className="text-md font-bold text-[#c2547e] uppercase tracking-wide mb-6">
-                  Initialize Project Vector
-                </h3>
-
-                <div className="space-y-4 text-xs">
-                  <div>
-                    <label className="block text-[#a3a8cc] uppercase font-mono mb-1">Operational ID / Name</label>
-                    <input
-                      type="text"
-                      className="w-full bg-[#0c0712] border border-[#c2547e]/25 text-white rounded-xl p-3 focus:outline-none focus:border-[#c2547e] transition-colors"
-                      value={taskForm.name}
-                      onChange={(e) => setTaskForm({ ...taskForm, name: e.target.value })}
-                      placeholder="e.g. Master's Thesis Sprint"
-                    />
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-[#a3a8cc] uppercase font-mono mb-1">Hard Deadline (optional)</label>
-                      <input
-                        type="date"
-                        className="w-full bg-[#0c0712] border border-[#c2547e]/25 text-white rounded-xl p-3 focus:outline-none focus:border-[#c2547e] transition-colors"
-                        value={taskForm.dueDate}
-                        onChange={(e) => setTaskForm({ ...taskForm, dueDate: e.target.value })}
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-[#a3a8cc] uppercase font-mono mb-1">Target Date (required)</label>
-                      <input
-                        type="date"
-                        className="w-full bg-[#0c0712] border border-[#c2547e]/25 text-white rounded-xl p-3 focus:outline-none focus:border-[#c2547e] transition-colors"
-                        value={taskForm.targetDate}
-                        onChange={(e) => setTaskForm({ ...taskForm, targetDate: e.target.value })}
-                      />
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="block text-[#a3a8cc] uppercase font-mono mb-1">Functional Specifications</label>
-                    <textarea
-                      className="w-full bg-[#0c0712] border border-[#c2547e]/25 text-white rounded-xl p-3 focus:outline-none focus:border-[#c2547e] transition-colors h-24"
-                      value={taskForm.notes}
-                      onChange={(e) => setTaskForm({ ...taskForm, notes: e.target.value })}
-                      placeholder="Operational details, specifications, etc."
-                    ></textarea>
-                  </div>
-
-                  <div>
-                    <label className="block text-[#a3a8cc] uppercase font-mono mb-1">Inject Checklist (One per line)</label>
-                    <textarea
-                      className="w-full bg-[#0c0712] border border-[#c2547e]/25 text-white rounded-xl p-3 focus:outline-none focus:border-[#c2547e] transition-colors h-28 font-mono"
-                      value={taskForm.checklistText}
-                      onChange={(e) => setTaskForm({ ...taskForm, checklistText: e.target.value })}
-                      placeholder={'Draft chapter 1\nProcess literature base\nSynthesize results'}
-                    ></textarea>
-                  </div>
-
-                  <button
-                    type="button"
-                    disabled={!taskForm.name.trim() || !taskForm.targetDate}
-                    onClick={handleCreateTask}
-                    className="w-full bg-gradient-to-r from-[#1f0b2a] to-[#0b0410] text-[#c2547e] border border-[#c2547e]/30 hover:bg-[#c2547e] hover:text-[#060309] hover:border-[#c2547e] transition-all duration-300 font-bold uppercase py-3 rounded-xl font-mono tracking-wider disabled:opacity-40 disabled:hover:bg-transparent disabled:hover:text-[#c2547e] disabled:cursor-not-allowed"
-                  >
-                    Add To Queue
-                  </button>
-                </div>
-              </div>
-
-              {/* Backlog Systems Output list */}
-              <div className="bg-[#120b1c]/80 border border-[#d946ef]/20 rounded-2xl p-6 shadow-xl backdrop-blur-md space-y-4">
-                <h3 className="text-md font-bold text-[#c2547e] uppercase tracking-wide">
-                  Active Vector Horizonal Lines
-                </h3>
-
-                {tasks.length === 0 ? (
-                  <p className="text-xs text-[#7b7f9e] italic font-mono">Backlog empty. Deployed state optimized.</p>
-                ) : (
-                  <div className="space-y-6 overflow-y-auto max-h-[580px] pr-2">
-                    {tasks.map(t => {
-                      const completedCount = t.checklist.filter(item => item.isCompleted).length;
-                      const totalCount = t.checklist.length;
-                      const progressPct = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0;
-                      const isOverdue = overdueTasks.some(ot => ot.id === t.id);
-
-                      return (
-                        <div key={t.id} className={`bg-[#0c0712] border rounded-xl p-5 relative transition-all duration-300 ${
-                          t.isCompleted ? 'border-white/5 opacity-60' : isOverdue ? 'border-red-500/40' : 'border-[#c2547e]/15 hover:border-[#c2547e]/40'
-                        }`}>
-                          <div className="flex justify-between items-start mb-2 gap-4">
-                            <div>
-                              <h4 className="text-sm font-extrabold text-white uppercase tracking-wide">{t.name}</h4>
-                              <p className={`text-[10px] font-mono mt-0.5 ${isOverdue ? 'text-red-400' : 'text-[#7b7f9e]'}`}>
-                                Hard Deadline: {formatToSwissDate(t.dueDate)} | Target: {formatToSwissDate(t.targetDate)}
-                                {isOverdue && ' — OVERDUE'}
-                              </p>
-                            </div>
-                            <div className="flex gap-1.5">
-                              {!t.isCompleted && (
-                                <button
-                                  onClick={() => handleCompleteTask(t.id)}
-                                  className="text-xs text-[#d946ef] bg-[#d946ef]/10 border border-[#d946ef]/20 rounded-full px-2.5 py-1 uppercase font-mono font-bold hover:bg-[#d946ef] hover:text-black transition-all"
-                                >
-                                  Complete
-                                </button>
-                              )}
-                              <button
-                                onClick={() => handleDeleteTask(t.id)}
-                                className="text-xs text-red-500 bg-red-500/10 border border-red-500/20 rounded-full p-1.5 uppercase font-mono hover:bg-red-500 hover:text-white transition-all"
-                              >
-                                <Trash2 className="w-4 h-4" />
-                              </button>
-                            </div>
-                          </div>
-
-                          {t.notes && <p className="text-xs text-[#7b7f9e] my-3 leading-relaxed bg-[#120b1c] p-3 rounded-lg border border-white/5">{t.notes}</p>}
-
-                          {totalCount > 0 && (
-                            <div className="mt-4 space-y-3">
-                              <div className="flex justify-between text-[10px] font-mono">
-                                <span className="text-[#7b7f9e]">CHECKLIST PIPELINE</span>
-                                <span className="text-[#c2547e] font-bold">{completedCount}/{totalCount} DONE</span>
-                              </div>
-                              <div className="w-full bg-[#1a0f26] h-1 rounded-full overflow-hidden">
-                                <div className="bg-gradient-to-r from-[#d946ef] to-[#c2547e] h-full" style={{ width: `${progressPct}%` }}></div>
-                              </div>
-
-                              <div className="grid grid-cols-1 md:grid-cols-2 gap-2 pt-2">
-                                {t.checklist.map(item => (
-                                  <label key={item.id} className="flex items-center gap-2 bg-[#120b1c]/40 p-2 rounded-lg border border-white/5 cursor-pointer">
-                                    <input
-                                      type="checkbox"
-                                      className="accent-[#c2547e]"
-                                      checked={item.isCompleted}
-                                      onChange={() => handleToggleSubtask(t.id, item.id)}
-                                      disabled={t.isCompleted}
-                                    />
-                                    <span className={`text-xs ${item.isCompleted ? 'line-through text-[#4a4d66]' : 'text-[#a3a8cc]'}`}>
-                                      {item.name}
-                                    </span>
-                                  </label>
-                                ))}
-                              </div>
-                            </div>
-                          )}
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
-
-            </div>
-
-            {/* 14-Day Forecast Chart Display */}
-            <div className="bg-[#120b1c]/80 border border-[#d946ef]/20 rounded-2xl p-6 shadow-xl backdrop-blur-md">
-              <h3 className="text-md font-bold text-[#c2547e] uppercase tracking-wide mb-6">
-                Milestone Capacity Loading Curve (14-Day Horizon)
-              </h3>
-
-              <div className="grid grid-cols-2 sm:grid-cols-7 lg:grid-cols-14 gap-3">
-                {Array.from({ length: 14 }).map((_, idx) => {
-                  const targetDateObj = new Date();
-                  targetDateObj.setDate(targetDateObj.getDate() + idx);
-                  const formattedDateStr = targetDateObj.toISOString().split('T')[0];
-                  const milestonesValue = getDistributedMilestonesCount(formattedDateStr);
-
-                  const fillHeight = Math.min(100, (milestonesValue / 5) * 100);
-
-                  return (
-                    <div key={idx} className="bg-[#0c0712] border border-[#c2547e]/10 rounded-xl p-3 flex flex-col justify-between items-center text-center">
-                      <span className="text-[10px] font-mono text-[#7b7f9e]">
-                        {targetDateObj.toLocaleDateString('en-US', { weekday: 'short' })}
-                      </span>
-
-                      <div className="w-4 bg-[#1a0f26] h-24 rounded-full my-2 relative overflow-hidden border border-[#c2547e]/5 flex items-end">
-                        <div
-                          className="w-full bg-gradient-to-t from-[#d946ef] to-[#c2547e] rounded-full transition-all duration-500"
-                          style={{ height: `${fillHeight || 10}%` }}
-                        ></div>
-                      </div>
-
-                      <span className="text-xs font-bold text-white font-mono">{milestonesValue}</span>
-                      <span className="text-[8px] font-mono text-[#4a4d66]">
-                        {targetDateObj.toLocaleDateString('de-CH', { day: '2-digit', month: '2-digit' })}
-                      </span>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-
-          </div>
-        )}
-
-        {/* =====================================================================
-            SCREEN: FITNESS DASHBOARD
-            ===================================================================== */}
-        {currentPage === 'Fitness Dashboard' && (
-          <div className="space-y-8">
-
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <div className="bg-[#120b1c]/80 border border-[#d946ef]/20 rounded-2xl p-5 shadow-xl backdrop-blur-md text-center">
-                <span className="text-xs uppercase font-mono text-[#a3a8cc] tracking-wider block">Cumulative Lifts Volume</span>
-                <span className="text-3xl font-extrabold text-white block my-2">
-                  {getTotalKineticVolume().toLocaleString()} KG
-                </span>
-                <span className="text-[10px] text-[#c2547e] font-mono uppercase">Force Matrix Unlocked</span>
-              </div>
-
-              <div className="bg-[#120b1c]/80 border border-[#d946ef]/20 rounded-2xl p-5 shadow-xl backdrop-blur-md text-center">
-                <span className="text-xs uppercase font-mono text-[#a3a8cc] tracking-wider block">Aerobic Kinetic Output</span>
-                <span className="text-3xl font-extrabold text-white block my-2">
-                  {getTotalCardioMinutes()} Mins
-                </span>
-                <span className="text-[10px] text-[#7b7f9e] font-mono uppercase">Mitochondrial Output Optimized</span>
-              </div>
-
-              <div className="bg-[#120b1c]/80 border border-[#d946ef]/20 rounded-2xl p-5 shadow-xl backdrop-blur-md text-center">
-                <span className="text-xs uppercase font-mono text-[#a3a8cc] tracking-wider block">Logged Bio-Telemetry Points</span>
-                <span className="text-3xl font-extrabold text-white block my-2">
-                  {strengthLogs.length + cardioLogs.length} Packets
-                </span>
-                <span className="text-[10px] text-[#d946ef] font-mono uppercase">Bio-Telemetry Loop Lock</span>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-
-              <div className="space-y-6">
-
-                {/* Physical Template Builder Panel */}
-                <div className="bg-[#120b1c]/80 border border-[#d946ef]/20 rounded-2xl p-6 shadow-xl">
-                  <h3 className="text-md font-bold text-[#c2547e] uppercase tracking-wide mb-4">
-                    Workout Blueprint Constructor
-                  </h3>
-
-                  <div className="space-y-4 text-xs">
-                    <div>
-                      <label className="block text-[#a3a8cc] uppercase font-mono mb-1">Routine Name</label>
-                      <input
-                        type="text"
-                        className="w-full bg-[#0c0712] border border-[#c2547e]/25 text-white rounded-xl p-3 focus:outline-none focus:border-[#c2547e]"
-                        value={workoutTemplateForm.name}
-                        onChange={(e) => setWorkoutTemplateForm({ ...workoutTemplateForm, name: e.target.value })}
-                        placeholder="e.g. Back and Biceps Destructor"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-[#a3a8cc] uppercase font-mono mb-2">Add Drills</label>
-                      <div className="flex gap-2 mb-2">
-                        <input
-                          type="text"
-                          className="flex-1 bg-[#0c0712] border border-[#c2547e]/25 text-white rounded-xl p-2.5 focus:outline-none focus:border-[#c2547e]"
-                          value={workoutTemplateForm.draftName}
-                          onChange={(e) => setWorkoutTemplateForm({ ...workoutTemplateForm, draftName: e.target.value })}
-                          onKeyDown={(e) => e.key === 'Enter' && handleAddExerciseToDraft()}
-                          placeholder="e.g. Squat / Run / Swim"
-                        />
-                        <select
-                          className="bg-[#0c0712] border border-[#c2547e]/25 text-[#c2547e] rounded-xl px-2 focus:outline-none"
-                          value={workoutTemplateForm.draftType}
-                          onChange={(e) => setWorkoutTemplateForm({ ...workoutTemplateForm, draftType: e.target.value })}
-                        >
-                          <option value="gym">Gym</option>
-                          <option value="run">Run</option>
-                          <option value="swim">Swim</option>
-                          <option value="bike">Bike</option>
-                        </select>
-                        <button type="button" onClick={handleAddExerciseToDraft} className="px-3 py-2 rounded-xl border border-[#c2547e]/30 text-[#c2547e] hover:bg-[#c2547e] hover:text-white transition-all font-bold">
-                          +
-                        </button>
-                      </div>
-                      <textarea
-                        className="w-full bg-[#0c0712] border border-[#c2547e]/15 text-white rounded-xl p-2.5 focus:outline-none focus:border-[#c2547e] h-20 font-mono"
-                        placeholder={"Or paste multiple (one per line):\nSquat\nBench Press\nDeadlift"}
-                        value={workoutTemplateForm.pasteText || ''}
-                        onChange={(e) => setWorkoutTemplateForm({ ...workoutTemplateForm, pasteText: e.target.value })}
-                      />
-                      {workoutTemplateForm.pasteText?.trim() && (
-                        <button
-                          type="button"
-                          onClick={() => {
-                            const lines = workoutTemplateForm.pasteText.split('\n').map(l => l.trim()).filter(Boolean);
-                            const newExercises = lines.map(name => ({ name, type: workoutTemplateForm.draftType }));
-                            setWorkoutTemplateForm(prev => ({ ...prev, exercises: [...prev.exercises, ...newExercises], pasteText: '' }));
-                          }}
-                          className="mt-1.5 w-full text-[10px] font-mono font-bold uppercase px-3 py-1.5 rounded-lg border border-[#c2547e]/30 text-[#c2547e] hover:bg-[#c2547e] hover:text-white transition-all"
-                        >
-                          Add All as {workoutTemplateForm.draftType}
-                        </button>
-                      )}
-                    </div>
-
-                    {workoutTemplateForm.exercises.length > 0 && (
-                      <div className="space-y-1.5">
-                        {workoutTemplateForm.exercises.map((ex, idx) => {
-                          const typeColour = ex.type === 'gym' ? '#d946ef' : '#c2547e';
-                          return (
-                            <div key={idx} className="flex items-center justify-between bg-[#0c0712] border border-white/5 px-3 py-2 rounded-lg">
-                              <div className="flex items-center gap-2">
-                                <span className="text-[10px] font-mono font-bold uppercase px-1.5 py-0.5 rounded" style={{ color: typeColour, border: `1px solid ${typeColour}40` }}>{ex.type}</span>
-                                <span className="text-white font-mono">{ex.name}</span>
-                              </div>
-                              <button type="button" onClick={() => handleRemoveDraftExercise(idx)} className="text-red-500 hover:text-red-400 text-xs font-bold px-1">✕</button>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    )}
-
-                    <button
-                      type="button"
-                      disabled={!workoutTemplateForm.name.trim() || workoutTemplateForm.exercises.length === 0}
-                      onClick={handleCreateWorkoutTemplate}
-                      className="w-full bg-gradient-to-r from-[#1f0b2a] to-[#0b0410] text-[#c2547e] border border-[#c2547e]/30 hover:bg-[#c2547e] hover:text-[#060309] hover:border-[#c2547e] transition-all duration-300 font-bold uppercase py-2.5 rounded-xl font-mono tracking-wider disabled:opacity-40 disabled:hover:bg-transparent disabled:hover:text-[#c2547e] disabled:cursor-not-allowed"
-                    >
-                      Write Blueprint Frame
-                    </button>
-                  </div>
-
-                  <div className="mt-6 space-y-3">
-                    <span className="text-[10px] uppercase font-mono text-[#7b7f9e] block">Stored Blueprints</span>
-                    {workoutTemplates.length === 0 ? (
-                      <span className="text-[10px] italic font-mono text-[#4a4d66]">No blueprints created yet</span>
-                    ) : (
-                      workoutTemplates.map(t => {
-                        const normEx = t.exercises.map(e => typeof e === 'string' ? { name: e, type: 'gym' } : e);
-                        return (
-                          <div key={t.id} className="bg-[#0c0712] border border-white/5 p-3 rounded-xl flex justify-between items-start">
-                            <div>
-                              <strong className="text-xs text-white uppercase block mb-1">{t.name}</strong>
-                              <div className="flex flex-wrap gap-1">
-                                {normEx.map((ex, i) => (
-                                  <span key={i} className="text-[10px] font-mono px-1.5 py-0.5 rounded" style={{ color: ex.type === 'gym' ? '#d946ef' : '#c2547e', border: `1px solid ${ex.type === 'gym' ? '#d946ef' : '#c2547e'}30` }}>
-                                    {ex.name} <span className="opacity-60">({ex.type})</span>
-                                  </span>
-                                ))}
-                              </div>
-                            </div>
-                            <button onClick={() => handleDeleteTemplate(t.id)} className="text-red-500 hover:bg-red-500/10 p-1.5 rounded-full transition-all flex-shrink-0">
-                              <Trash2 className="w-4 h-4" />
-                            </button>
-                          </div>
-                        );
-                      })
-                    )}
-                  </div>
-                </div>
-
-                {/* Training Rotational Scheduler */}
-                <div className="bg-[#120b1c]/80 border border-[#d946ef]/20 rounded-2xl p-6 shadow-xl">
-                  <div className="flex justify-between items-center mb-4">
-                    <h3 className="text-md font-bold text-[#c2547e] uppercase tracking-wide">
-                      Weekly Rotational Training Plan
-                    </h3>
-                    <button
-                      onClick={() => handleApplyWeekPreset(REST_WEEK)}
-                      className="text-[10px] font-mono font-bold uppercase px-3 py-1.5 rounded-full border border-[#d946ef]/40 text-[#d946ef] hover:bg-[#d946ef] hover:text-white transition-all"
-                    >
-                      Rest Week
-                    </button>
-                  </div>
-                  <div className="space-y-3 text-xs">
-                    {daysOfWeek.map(day => (
-                      <div key={day} className="flex justify-between items-center bg-[#0c0712] border border-[#c2547e]/10 p-2.5 rounded-xl">
-                        <span className="font-mono text-white text-[11px] font-bold uppercase">{day}</span>
-                        <select
-                          className="bg-[#120b1c] border border-[#c2547e]/20 text-[#c2547e] rounded px-2 py-1 text-xs focus:outline-none"
-                          value={weeklyWorkoutPlan[day] || 'Rest Day'}
-                          onChange={(e) => handleUpdateWeeklyWorkout(day, e.target.value)}
-                        >
-                          <option value="Rest Day">Rest Day</option>
-                          {workoutTemplates.map(tmpl => <option key={tmpl.id} value={tmpl.name}>{tmpl.name}</option>)}
-                        </select>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-              </div>
-
-              {/* Logging Systems output panels */}
-              <div className="space-y-6">
-
-                {/* Manual Aerobic Intake Entry */}
-                <div className="bg-[#120b1c]/80 border border-[#d946ef]/20 rounded-2xl p-6 shadow-xl">
-                  <h3 className="text-md font-bold text-[#c2547e] uppercase tracking-wide mb-4">
-                    Log Aerobic Session
-                  </h3>
-                  <div className="space-y-4 text-xs">
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                      <div>
-                        <label className="block text-[#a3a8cc] uppercase font-mono mb-1">Module type</label>
-                        <select
-                          className="w-full bg-[#0c0712] border border-[#c2547e]/25 text-[#c2547e] rounded-xl p-2.5 focus:outline-none"
-                          value={cardioForm.activity}
-                          onChange={(e) => setCardioForm({ ...cardioForm, activity: e.target.value })}
-                        >
-                          <option value="Running">Running</option>
-                          <option value="Cycling">Cycling</option>
-                          <option value="Swimming">Swimming</option>
-                          <option value="Rowing">Rowing Machine</option>
-                        </select>
-                      </div>
-                      <div>
-                        <label className="block text-[#a3a8cc] uppercase font-mono mb-1">Duration (Min)</label>
-                        <input
-                          type="number"
-                          className="w-full bg-[#0c0712] border border-[#c2547e]/25 text-white rounded-xl p-2.5 focus:outline-none"
-                          value={cardioForm.duration}
-                          onChange={(e) => setCardioForm({ ...cardioForm, duration: e.target.value })}
-                          min="1"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-[#a3a8cc] uppercase font-mono mb-1">Distance (KM)</label>
-                        <input
-                          type="number"
-                          step="0.1"
-                          className="w-full bg-[#0c0712] border border-[#c2547e]/25 text-white rounded-xl p-2.5 focus:outline-none"
-                          value={cardioForm.distance}
-                          onChange={(e) => setCardioForm({ ...cardioForm, distance: e.target.value })}
-                          min="0"
-                        />
-                      </div>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={handleLogManualCardio}
-                      disabled={!cardioForm.duration || Number(cardioForm.duration) <= 0}
-                      className="w-full bg-gradient-to-r from-[#1f0b2a] to-[#0b0410] text-[#c2547e] border border-[#c2547e]/30 hover:bg-[#c2547e] hover:text-[#060309] hover:border-[#c2547e] transition-all duration-300 font-bold uppercase py-2.5 rounded-xl font-mono tracking-wider disabled:opacity-40 disabled:hover:bg-transparent disabled:hover:text-[#c2547e] disabled:cursor-not-allowed"
-                    >
-                      Write Cardio Telemetry
-                    </button>
-                  </div>
-                </div>
-
-                {/* Training Chronological Databases */}
-                <div className="bg-[#120b1c]/80 border border-[#d946ef]/20 rounded-2xl p-6 shadow-xl">
-                  <h3 className="text-md font-bold text-[#c2547e] uppercase tracking-wide mb-4">
-                    Historical Log Archive
-                  </h3>
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <span className="text-[10px] uppercase font-mono text-[#7b7f9e] block mb-2">Strength Record History</span>
-                      <div className="space-y-2 max-h-64 overflow-y-auto pr-2">
-                        {strengthLogs.length === 0 ? (
-                          <span className="text-[10px] italic font-mono text-[#4a4d66]">No records logged</span>
-                        ) : (
-                          strengthLogs.slice().reverse().map(log => (
-                            <div key={log.id} className="bg-[#0c0712] border border-white/5 p-2 rounded-lg flex justify-between items-center text-[11px]">
-                              <div>
-                                <span className="text-[#d946ef] font-bold block">{log.exercise.toUpperCase()}</span>
-                                <span className="text-white font-mono">{log.weight}KG x {log.sets}x{log.reps}</span>
-                              </div>
-                              <button onClick={() => handleDeleteStrengthLog(log.id)} className="text-red-500 hover:bg-red-500/15 p-1 rounded-full transition-all">
-                                <Trash2 className="w-3.5 h-3.5" />
-                              </button>
-                            </div>
-                          ))
-                        )}
-                      </div>
-                    </div>
-
-                    <div>
-                      <span className="text-[10px] uppercase font-mono text-[#7b7f9e] block mb-2">Cardio Performance Logs</span>
-                      <div className="space-y-2 max-h-64 overflow-y-auto pr-2">
-                        {cardioLogs.length === 0 ? (
-                          <span className="text-[10px] italic font-mono text-[#4a4d66]">No records logged</span>
-                        ) : (
-                          cardioLogs.slice().reverse().map(log => (
-                            <div key={log.id} className="bg-[#0c0712] border border-white/5 p-2 rounded-lg flex justify-between items-center text-[11px]">
-                              <div>
-                                <span className="text-[#c2547e] font-bold block">{log.activity.toUpperCase()}</span>
-                                <span className="text-white font-mono">{log.duration} Min | {log.distance} KM</span>
-                              </div>
-                              <button onClick={() => handleDeleteCardioLog(log.id)} className="text-red-500 hover:bg-red-500/15 p-1 rounded-full transition-all">
-                                <Trash2 className="w-3.5 h-3.5" />
-                              </button>
-                            </div>
-                          ))
-                        )}
-                      </div>
-                    </div>
-                  </div>
-
-                </div>
-
-              </div>
-
-            </div>
-
-          </div>
-        )}
-
-      </div>
-    </div>
-  );
-}
-
-// ---------------------------------------------------------------------------
-// Extracted subcomponent: today's workout panel.
-// Pulled out mainly because it previously contained an IIFE buried in JSX
-// plus a direct DOM-mutation hack for the "locked" button feedback. Now it's
-// a normal component driven entirely by props/state.
-// ---------------------------------------------------------------------------
-function TodaysWorkoutPanel({
-  weeklyWorkoutPlan,
-  workoutTemplates,
-  todayDayName,
-  strengthLogInputs,
-  setStrengthLogInputs,
-  cardioLogInputs,
-  setCardioLogInputs,
-  justLogged,
-  justLoggedCardio,
-  strengthKey,
-  onLog,
-  onLogCardio
-}) {
-  const todaysRoutine = weeklyWorkoutPlan[todayDayName];
-
-  if (!todaysRoutine || todaysRoutine === 'None' || todaysRoutine === 'Rest Day') {
-    return (
-      <div className="text-center py-6">
-        <span className="text-sm font-mono text-[#7b7f9e] uppercase tracking-wider block">REST SEQUENCE ACTIVE</span>
-        <span className="text-xs text-[#4a4d66] mt-1 block">Muscle protein synthesis optimized. Reagents absorbing.</span>
-      </div>
-    );
-  }
-
-  const activeTemplate = workoutTemplates.find(t => t.name === todaysRoutine);
-  if (!activeTemplate || !activeTemplate.exercises.length) {
-    return (
-      <div className="text-center py-4 text-xs text-[#7b7f9e]">
-        No active exercises found inside custom blueprint: "{todaysRoutine}"
-      </div>
-    );
-  }
-
-  const normalizeEx = (ex) => typeof ex === 'string' ? { name: ex, type: 'gym' } : ex;
-  const isCardio = (type) => ['run', 'swim', 'bike'].includes(type);
-
-  return (
-    <div className="space-y-4">
-      <div className="bg-[#c2547e]/10 border border-[#c2547e]/30 rounded-xl p-3 flex justify-between items-center">
-        <span className="text-xs font-mono font-bold text-white uppercase tracking-wider">ACTIVE: {todaysRoutine.toUpperCase()}</span>
-        <span className="bg-[#c2547e] text-white text-[10px] font-bold px-2 py-0.5 rounded-full font-mono uppercase">LIVE</span>
-      </div>
-
-      <div className="space-y-3">
-        {activeTemplate.exercises.map((rawEx, index) => {
-          const ex = normalizeEx(rawEx);
-          const key = strengthKey(todaysRoutine, ex.name);
-
-          if (isCardio(ex.type)) {
-            const mins = cardioLogInputs[key]?.minutes ?? 30;
-            const isLocked = justLoggedCardio[key];
-            return (
-              <div key={index} className="bg-[#0c0712] border border-[#c2547e]/10 rounded-xl p-4 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-                <div className="flex items-center gap-2">
-                  <span className="text-[10px] font-mono font-bold uppercase px-1.5 py-0.5 rounded border border-[#c2547e]/40 text-[#c2547e]">{ex.type}</span>
-                  <span className="text-xs font-bold text-[#c2547e]">{ex.name.toUpperCase()}</span>
-                </div>
-                <div className="flex items-center gap-3">
-                  <div>
-                    <span className="text-[9px] uppercase font-mono text-[#7b7f9e] block mb-1">Minutes</span>
-                    <input
-                      type="number"
-                      className="bg-[#120b1c] border border-[#c2547e]/25 text-[#c2547e] rounded-lg px-2 py-1 text-xs font-mono w-20"
-                      value={mins}
-                      onChange={(e) => setCardioLogInputs(prev => ({ ...prev, [key]: { minutes: e.target.value } }))}
-                      min="1"
-                    />
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => onLogCardio(todaysRoutine, ex.name)}
-                    className="mt-4 w-full md:w-auto text-[#c2547e] border border-[#c2547e]/30 hover:bg-[#c2547e] hover:text-white transition-all duration-300 text-[10px] font-bold font-mono py-2 px-4 rounded-full uppercase tracking-wider"
-                    style={{ borderColor: isLocked ? '#d946ef' : undefined }}
-                  >
-                    {isLocked ? 'LOGGED' : 'LOG SESSION'}
-                  </button>
-                </div>
-              </div>
-            );
-          }
-
-          const userInputs = strengthLogInputs[key] || { weight: 40, sets: 3, reps: 8 };
-          const isLocked = justLogged[key];
-          return (
-            <div key={index} className="bg-[#0c0712] border border-[#c2547e]/10 rounded-xl p-4 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-              <span className="text-xs font-bold text-[#d946ef] min-w-[150px]">{ex.name.toUpperCase()}</span>
-              <div className="flex gap-2 w-full md:w-auto">
-                <div className="flex-1 md:flex-initial">
-                  <span className="text-[9px] uppercase font-mono text-[#7b7f9e] block mb-1">Weight KG</span>
-                  <input
-                    type="number"
-                    className="bg-[#120b1c] border border-[#c2547e]/25 text-[#c2547e] rounded-lg px-2 py-1 text-xs font-mono w-full md:w-20"
-                    value={userInputs.weight}
-                    onChange={(e) => setStrengthLogInputs(prev => ({ ...prev, [key]: { ...userInputs, weight: e.target.value } }))}
-                    min="0" step="0.5"
-                  />
-                </div>
-                <div className="flex-1 md:flex-initial">
-                  <span className="text-[9px] uppercase font-mono text-[#7b7f9e] block mb-1">Sets</span>
-                  <input
-                    type="number"
-                    className="bg-[#120b1c] border border-[#c2547e]/25 text-[#c2547e] rounded-lg px-2 py-1 text-xs font-mono w-full md:w-16"
-                    value={userInputs.sets}
-                    onChange={(e) => setStrengthLogInputs(prev => ({ ...prev, [key]: { ...userInputs, sets: e.target.value } }))}
-                    min="1"
-                  />
-                </div>
-                <div className="flex-1 md:flex-initial">
-                  <span className="text-[9px] uppercase font-mono text-[#7b7f9e] block mb-1">Reps</span>
-                  <input
-                    type="number"
-                    className="bg-[#120b1c] border border-[#c2547e]/25 text-[#c2547e] rounded-lg px-2 py-1 text-xs font-mono w-full md:w-16"
-                    value={userInputs.reps}
-                    onChange={(e) => setStrengthLogInputs(prev => ({ ...prev, [key]: { ...userInputs, reps: e.target.value } }))}
-                    min="1"
-                  />
-                </div>
-              </div>
-              <button
-                type="button"
-                onClick={() => onLog(todaysRoutine, ex.name)}
-                style={{ borderColor: isLocked ? '#d946ef' : 'rgba(194, 84, 126, 0.3)' }}
-                className="w-full md:w-auto text-[#c2547e] border hover:bg-[#c2547e] hover:text-white transition-all duration-300 text-[10px] font-bold font-mono py-2 px-4 rounded-full uppercase tracking-wider"
-              >
-                {isLocked ? 'LOCKED' : 'LOG SET'}
-              </button>
-            </div>
-          );
-        })}
       </div>
     </div>
   );
