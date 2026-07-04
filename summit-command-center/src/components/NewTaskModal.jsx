@@ -1,4 +1,5 @@
 import { X } from 'lucide-react';
+import ChecklistEditor from './ChecklistEditor';
 
 export default function NewTaskModal({ taskForm, setTaskForm, onCreate, onClose }) {
   const canSubmit = taskForm.name.trim() && taskForm.targetDate;
@@ -11,7 +12,7 @@ export default function NewTaskModal({ taskForm, setTaskForm, onCreate, onClose 
       >
         <div className="flex items-center justify-between p-5 border-b border-gray-100 dark:border-white/10">
           <h2 className="text-base font-semibold text-gray-900 dark:text-gray-100">New task</h2>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-700 dark:hover:text-gray-200">
+          <button onClick={onClose} aria-label="Close" className="text-gray-400 hover:text-gray-700 dark:hover:text-gray-200">
             <X className="w-4 h-4" />
           </button>
         </div>
@@ -60,15 +61,10 @@ export default function NewTaskModal({ taskForm, setTaskForm, onCreate, onClose 
             />
           </div>
 
-          <div>
-            <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Checklist (one item per line)</label>
-            <textarea
-              className="w-full bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 text-gray-900 dark:text-gray-100 rounded-lg p-2.5 focus:outline-none focus:border-blue-500 h-24 font-mono text-xs"
-              value={taskForm.checklistText}
-              onChange={(e) => setTaskForm({ ...taskForm, checklistText: e.target.value })}
-              placeholder={'Draft chapter 1\nProcess literature base\nSynthesize results'}
-            />
-          </div>
+          <ChecklistEditor
+            items={taskForm.checklist}
+            onChange={(checklist) => setTaskForm({ ...taskForm, checklist })}
+          />
 
           <button
             type="button"

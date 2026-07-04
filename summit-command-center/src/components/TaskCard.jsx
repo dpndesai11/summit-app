@@ -1,7 +1,14 @@
 import { useDraggable } from '@dnd-kit/core';
 import { CSS } from '@dnd-kit/utilities';
+import { weightedCompletion, getDueBadgeLevel } from '../lib/taskUtils';
 
-export default function TaskCard({ task, isOverdue, formatToSwissDate, onOpen }) {
+const DUE_BADGE_STYLES = {
+  overdue: 'text-red-600 bg-red-50 dark:bg-red-500/10',
+  soon: 'text-amber-600 bg-amber-50 dark:bg-amber-500/10',
+  normal: 'text-gray-400 bg-gray-100 dark:bg-white/5',
+};
+
+export default function TaskCard({ task, formatToSwissDate, onOpen }) {
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
     id: task.id,
   });
@@ -12,7 +19,9 @@ export default function TaskCard({ task, isOverdue, formatToSwissDate, onOpen })
 
   const totalCount = task.checklist.length;
   const completedCount = task.checklist.filter(i => i.isCompleted).length;
-  const progressPct = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0;
+  const weightedPct = Math.round((weightedCompletion(task.checklist) ?? 0) * 100);
+
+  const dueBadgeLevel = getDueBadgeLevel(task);
 
   return (
     <div
@@ -28,20 +37,20 @@ export default function TaskCard({ task, isOverdue, formatToSwissDate, onOpen })
       {totalCount > 0 && (
         <div className="mb-2">
           <div className="w-full bg-gray-200 dark:bg-white/10 h-1 rounded-full overflow-hidden">
-            <div className="bg-blue-600 h-full" style={{ width: `${progressPct}%` }}></div>
+            <div className="bg-blue-600 h-full" style={{ width: `${weightedPct}%` }}></div>
           </div>
         </div>
       )}
 
       <div className="flex items-center gap-2 flex-wrap">
+        {task.dueDate && dueBadgeLevel && (
+          <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded ${DUE_BADGE_STYLES[dueBadgeLevel]}`}>
+            {dueBadgeLevel === 'overdue' ? 'Overdue' : `Due ${formatToSwissDate(task.dueDate)}`}
+          </span>
+        )}
         {task.targetDate && (
           <span className="text-[10px] text-gray-400 dark:text-gray-500">
             Target {formatToSwissDate(task.targetDate)}
-          </span>
-        )}
-        {isOverdue && (
-          <span className="text-[10px] font-medium text-red-600 bg-red-50 dark:bg-red-500/10 px-1.5 py-0.5 rounded">
-            Overdue
           </span>
         )}
         {totalCount > 0 && (

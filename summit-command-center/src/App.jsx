@@ -1,10 +1,13 @@
 import { useState, useEffect } from 'react';
 import { Loader2, AlertTriangle } from 'lucide-react';
 import { dbGet, dbSet } from './lib/db';
+import { migrateTasksAndProjects, weightedCompletion, toISODate, startOfWeek } from './lib/taskUtils';
 import Sidebar from './components/Sidebar';
 import Dashboard from './pages/Dashboard';
 import TaskBoard from './pages/TaskBoard';
 import FitnessDeck from './pages/FitnessDeck';
+import Projects from './pages/Projects';
+import TodayFocus from './pages/TodayFocus';
 
 // ---------------------------------------------------------------------------
 // STORAGE LAYER
@@ -19,7 +22,10 @@ const STORAGE_KEYS = {
   strengthLogs: 'summit_strength_logs',
   cardioLogs: 'summit_cardio_logs',
   workoutTemplates: 'summit_workout_templates',
-  weeklyWorkoutPlan: 'summit_weekly_workout_plan'
+  weeklyWorkoutPlan: 'summit_weekly_workout_plan',
+  projects: 'summit_projects',
+  dailySelections: 'summit_daily_selections',
+  weeklyReviewLog: 'summit_weekly_review_log'
 };
 
 
@@ -43,14 +49,6 @@ const REST_WEEK = {
   Thursday: 'Rest Day', Friday: 'Rest Day', Saturday: 'Rest Day', Sunday: 'Rest Day'
 };
 
-// Tasks predate the `status` column used by the kanban board — this backfills
-// it from `isCompleted` so existing data slots into the right column on load.
-const withStatus = (task) => ({
-  ...task,
-  status: task.status || (task.isCompleted ? 'done' : 'todo'),
-});
-
-
 export default function App() {
   // Global State Engine
   const [currentPage, setCurrentPage] = useState('Main Hub');
@@ -59,6 +57,19 @@ export default function App() {
   const [cardioLogs, setCardioLogs] = useState([]);
   const [workoutTemplates, setWorkoutTemplates] = useState([]);
   const [weeklyWorkoutPlan, setWeeklyWorkoutPlan] = useState(REST_WEEK);
+  const [projects, setProjects] = useState([]);
+  const [dailySelections, setDailySelections] = useState({});
+  const [weeklyReviewLog, setWeeklyReviewLog] = useState([]);
+
+  // Cross-page deep links (task -> project, project -> task) without a
+  // router: a page sets `pendingNav` via `navigateTo`, the target page reads
+  // its own scoped payload in a useEffect and clears it.
+  const [pendingNav, setPendingNav] = useState(null); // { page, payload } | null
+  const navigateTo = (page, payload = null) => {
+    setPendingNav(payload ? { page, payload } : null);
+    setCurrentPage(page);
+  };
+  const clearPendingNav = () => setPendingNav(null);
 
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState(null);
@@ -84,6 +95,12 @@ export default function App() {
     setTimeout(() => setToast(null), 3000);
   };
 
+  const saveToStorage = (key, data) => {
+    dbSet(key, data).catch(() => {
+      showToast('Save failed — your change is visible but may not persist.', true);
+    });
+  };
+
   // -------------------------------------------------------------------------
   // Load all data from persistent storage on startup
   // -------------------------------------------------------------------------
@@ -99,18 +116,38 @@ export default function App() {
       };
 
       try {
-        const [t, sl, cl, wt, wwp] = await Promise.all([
+        const [t, sl, cl, wt, wwp, rawProjects, ds, wrl] = await Promise.all([
           loadData(STORAGE_KEYS.tasks, []),
           loadData(STORAGE_KEYS.strengthLogs, []),
           loadData(STORAGE_KEYS.cardioLogs, []),
           loadData(STORAGE_KEYS.workoutTemplates, DEFAULT_WORKOUT_TEMPLATES),
           loadData(STORAGE_KEYS.weeklyWorkoutPlan, DEFAULT_WEEKLY_WORKOUT_PLAN),
+          loadData(STORAGE_KEYS.projects, []),
+          loadData(STORAGE_KEYS.dailySelections, {}),
+          loadData(STORAGE_KEYS.weeklyReviewLog, []),
         ]);
-        setTasks(t.map(withStatus));
+
+        // Backfills `status`/`weight`/`tags`/`properties`/`completedAt` on
+        // tasks, and migrates any legacy `properties.project` string into a
+        // real `projects` entry. The project-creation half must be
+        // force-written immediately (see taskUtils) or it would re-mint
+        // duplicate projects on every reload before the first save.
+        const { tasks: migratedTasks, projects: migratedProjects, forceWrite } =
+          migrateTasksAndProjects(t, rawProjects);
+
+        setTasks(migratedTasks);
         setStrengthLogs(sl);
         setCardioLogs(cl);
         setWorkoutTemplates(wt);
         setWeeklyWorkoutPlan(wwp);
+        setProjects(migratedProjects);
+        setDailySelections(ds);
+        setWeeklyReviewLog(wrl);
+
+        if (forceWrite) {
+          saveToStorage(STORAGE_KEYS.tasks, migratedTasks);
+          saveToStorage(STORAGE_KEYS.projects, migratedProjects);
+        }
       } catch {
         setLoadError('Could not load saved data. Starting with a clean slate — anything you add will still try to save.');
       } finally {
@@ -120,45 +157,33 @@ export default function App() {
     load();
   }, []);
 
-  const saveToStorage = (key, data) => {
-    dbSet(key, data).catch(() => {
-      showToast('Save failed — your change is visible but may not persist.', true);
-    });
-  };
-
   // ---------------------------------------------------------------------------
   // TASK ENGINE ACTIONS
   // ---------------------------------------------------------------------------
-  const [taskForm, setTaskForm] = useState({ name: '', dueDate: '', targetDate: '', notes: '', checklistText: '' });
+  const emptyTaskForm = { name: '', dueDate: '', targetDate: '', notes: '', checklist: [], tags: [], properties: {} };
+  const [taskForm, setTaskForm] = useState(emptyTaskForm);
 
   const handleCreateTask = () => {
     if (!taskForm.name.trim() || !taskForm.targetDate) return;
 
-    const newTaskId = Date.now();
-    const newChecklistItems = taskForm.checklistText
-      .split('\n')
-      .filter(line => line.trim())
-      .map((line, idx) => ({
-        id: newTaskId + idx + 100,
-        name: line.trim(),
-        isCompleted: false
-      }));
-
     const newTask = {
-      id: newTaskId,
+      id: Date.now(),
       name: taskForm.name.trim(),
       dueDate: taskForm.dueDate,
       targetDate: taskForm.targetDate,
       notes: taskForm.notes,
       isCompleted: false,
       status: 'todo',
-      checklist: newChecklistItems
+      completedAt: null,
+      checklist: taskForm.checklist,
+      tags: taskForm.tags,
+      properties: taskForm.properties
     };
 
     const updated = [...tasks, newTask];
     setTasks(updated);
     saveToStorage(STORAGE_KEYS.tasks, updated);
-    setTaskForm({ name: '', dueDate: '', targetDate: '', notes: '', checklistText: '' });
+    setTaskForm(emptyTaskForm);
   };
 
   const handleToggleSubtask = (taskId, itemId) => {
@@ -184,6 +209,7 @@ export default function App() {
           ...t,
           isCompleted: true,
           status: 'done',
+          completedAt: new Date().toISOString(),
           checklist: t.checklist.map(item => ({ ...item, isCompleted: true }))
         };
       }
@@ -199,7 +225,12 @@ export default function App() {
   const handleUpdateTaskStatus = (taskId, newStatus) => {
     const updated = tasks.map(t => {
       if (t.id !== taskId) return t;
-      return { ...t, status: newStatus, isCompleted: newStatus === 'done' };
+      return {
+        ...t,
+        status: newStatus,
+        isCompleted: newStatus === 'done',
+        completedAt: newStatus === 'done' ? new Date().toISOString() : null
+      };
     });
     setTasks(updated);
     saveToStorage(STORAGE_KEYS.tasks, updated);
@@ -211,14 +242,22 @@ export default function App() {
     saveToStorage(STORAGE_KEYS.tasks, updated);
   };
 
-  // Historical completion rate across all checklist items ever created.
+  // Full-task edit (name/dates/notes/checklist/tags/properties) from the
+  // task detail modal's edit form. `updates` is a plain object merged onto
+  // the existing task, so callers only need to send the fields that changed.
+  const handleUpdateTask = (taskId, updates) => {
+    const updated = tasks.map(t => t.id === taskId ? { ...t, ...updates } : t);
+    setTasks(updated);
+    saveToStorage(STORAGE_KEYS.tasks, updated);
+  };
+
+  // Historical completion rate across all checklist items ever created,
+  // weighted by each item's `weight` (default 1) rather than a flat count.
   // Returns null (not 0 or 1) when there's no data yet, so the UI can show
   // "no data" instead of a misleading 100%.
   const getHistoricalVelocity = () => {
     const allItems = tasks.flatMap(t => t.checklist);
-    if (allItems.length === 0) return null;
-    const completed = allItems.filter(item => item.isCompleted).length;
-    return completed / allItems.length;
+    return weightedCompletion(allItems);
   };
 
   // Estimated workload "weight" landing on a given date, spread across each
@@ -256,6 +295,67 @@ export default function App() {
       due.setHours(0, 0, 0, 0);
       return due < today;
     });
+  };
+
+  // ---------------------------------------------------------------------------
+  // PROJECT ENGINE ACTIONS
+  // ---------------------------------------------------------------------------
+  const handleCreateProject = (name, notes = '') => {
+    if (!name.trim()) return null;
+    const newProject = { id: Date.now(), name: name.trim(), notes, createdAt: new Date().toISOString() };
+    const updated = [...projects, newProject];
+    setProjects(updated);
+    saveToStorage(STORAGE_KEYS.projects, updated);
+    return newProject.id;
+  };
+
+  const handleRenameProject = (projectId, name) => {
+    if (!name.trim()) return;
+    const updated = projects.map(p => p.id === projectId ? { ...p, name: name.trim() } : p);
+    setProjects(updated);
+    saveToStorage(STORAGE_KEYS.projects, updated);
+  };
+
+  const handleUpdateProjectNotes = (projectId, notes) => {
+    const updated = projects.map(p => p.id === projectId ? { ...p, notes } : p);
+    setProjects(updated);
+    saveToStorage(STORAGE_KEYS.projects, updated);
+  };
+
+  // Deleting a project never deletes its tasks — it only orphans the link,
+  // which is why the tasks array is left untouched here (orphaned tasks are
+  // surfaced separately via the Projects page's orphaned-tasks banner).
+  const handleDeleteProject = (projectId) => {
+    const updated = projects.filter(p => p.id !== projectId);
+    setProjects(updated);
+    saveToStorage(STORAGE_KEYS.projects, updated);
+  };
+
+  // ---------------------------------------------------------------------------
+  // TODAY / FOCUS + WEEKLY REVIEW ACTIONS
+  // ---------------------------------------------------------------------------
+  const handleToggleDailySelection = (taskId) => {
+    const todayISO = toISODate(new Date());
+    const current = dailySelections[todayISO] || [];
+    const updatedForToday = current.includes(taskId)
+      ? current.filter(id => id !== taskId)
+      : [...current, taskId];
+    const updated = { ...dailySelections, [todayISO]: updatedForToday };
+    setDailySelections(updated);
+    saveToStorage(STORAGE_KEYS.dailySelections, updated);
+  };
+
+  // Appends a completed review to the log only — task data is never mutated
+  // by the review ritual, it's purely observational.
+  const handleCompleteWeeklyReview = (notes) => {
+    const entry = {
+      weekStartDate: toISODate(startOfWeek(new Date())),
+      completedAt: new Date().toISOString(),
+      notes
+    };
+    const updated = [...weeklyReviewLog, entry];
+    setWeeklyReviewLog(updated);
+    saveToStorage(STORAGE_KEYS.weeklyReviewLog, updated);
   };
 
   // ---------------------------------------------------------------------------
@@ -503,6 +603,8 @@ export default function App() {
           <h1 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-6">
             {currentPage === 'Main Hub' && 'Home'}
             {currentPage === 'Task Dashboard' && 'Tasks'}
+            {currentPage === 'Today Focus' && 'Today'}
+            {currentPage === 'Projects' && 'Projects'}
             {currentPage === 'Fitness Dashboard' && 'Fitness'}
           </h1>
 
@@ -535,6 +637,7 @@ export default function App() {
           {currentPage === 'Task Dashboard' && (
             <TaskBoard
               tasks={tasks}
+              projects={projects}
               overdueTasks={overdueTasks}
               velocity={velocity}
               getDistributedMilestonesCount={getDistributedMilestonesCount}
@@ -544,7 +647,52 @@ export default function App() {
               handleCreateTask={handleCreateTask}
               handleToggleSubtask={handleToggleSubtask}
               handleUpdateTaskStatus={handleUpdateTaskStatus}
+              handleUpdateTask={handleUpdateTask}
               handleDeleteTask={handleDeleteTask}
+              navigateTo={navigateTo}
+              pendingNav={pendingNav?.page === 'Task Dashboard' ? pendingNav.payload : null}
+              clearPendingNav={clearPendingNav}
+            />
+          )}
+
+          {currentPage === 'Today Focus' && (
+            <TodayFocus
+              tasks={tasks}
+              projects={projects}
+              overdueTasks={overdueTasks}
+              dailySelections={dailySelections}
+              weeklyReviewLog={weeklyReviewLog}
+              formatToSwissDate={formatToSwissDate}
+              handleToggleSubtask={handleToggleSubtask}
+              handleCompleteTask={handleCompleteTask}
+              handleUpdateTaskStatus={handleUpdateTaskStatus}
+              handleUpdateTask={handleUpdateTask}
+              handleDeleteTask={handleDeleteTask}
+              handleToggleDailySelection={handleToggleDailySelection}
+              handleCompleteWeeklyReview={handleCompleteWeeklyReview}
+              navigateTo={navigateTo}
+              pendingNav={pendingNav?.page === 'Today Focus' ? pendingNav.payload : null}
+              clearPendingNav={clearPendingNav}
+            />
+          )}
+
+          {currentPage === 'Projects' && (
+            <Projects
+              tasks={tasks}
+              projects={projects}
+              overdueTasks={overdueTasks}
+              formatToSwissDate={formatToSwissDate}
+              handleCreateProject={handleCreateProject}
+              handleRenameProject={handleRenameProject}
+              handleUpdateProjectNotes={handleUpdateProjectNotes}
+              handleDeleteProject={handleDeleteProject}
+              handleToggleSubtask={handleToggleSubtask}
+              handleUpdateTaskStatus={handleUpdateTaskStatus}
+              handleUpdateTask={handleUpdateTask}
+              handleDeleteTask={handleDeleteTask}
+              navigateTo={navigateTo}
+              pendingNav={pendingNav?.page === 'Projects' ? pendingNav.payload : null}
+              clearPendingNav={clearPendingNav}
             />
           )}
 

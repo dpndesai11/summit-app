@@ -1,18 +1,15 @@
-import { useState } from 'react';
-import { DndContext, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
+import { useState, useEffect } from 'react';
 import { Plus } from 'lucide-react';
-import KanbanColumn from '../components/KanbanColumn';
+import { filterTasks } from '../lib/taskUtils';
+import BoardView from '../components/BoardView';
+import PlannerView from '../components/PlannerView';
 import TaskDetailModal from '../components/TaskDetailModal';
 import NewTaskModal from '../components/NewTaskModal';
-
-const COLUMNS = [
-  { id: 'todo', title: 'To Do' },
-  { id: 'in_progress', title: 'In Progress' },
-  { id: 'done', title: 'Done' },
-];
+import FilterBar from '../components/FilterBar';
 
 export default function TaskBoard({
   tasks,
+  projects,
   overdueTasks,
   velocity,
   getDistributedMilestonesCount,
@@ -22,23 +19,34 @@ export default function TaskBoard({
   handleCreateTask,
   handleToggleSubtask,
   handleUpdateTaskStatus,
+  handleUpdateTask,
   handleDeleteTask,
+  navigateTo,
+  pendingNav,
+  clearPendingNav,
 }) {
   const [openTaskId, setOpenTaskId] = useState(null);
   const [showNewTask, setShowNewTask] = useState(false);
+  const [filters, setFilters] = useState({});
+  const [view, setView] = useState('board');
 
-  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }));
+  // Deep link from another page (e.g. a project's linked-task list) that
+  // wants this exact task's detail modal open. Consumed during render (React's
+  // sanctioned "adjust state from changed props" pattern) rather than in a
+  // useEffect, since setting local state synchronously inside an effect body
+  // triggers an extra unnecessary render pass.
+  const [consumedNav, setConsumedNav] = useState(null);
+  if (pendingNav && pendingNav !== consumedNav) {
+    setConsumedNav(pendingNav);
+    if (pendingNav.taskId) setOpenTaskId(pendingNav.taskId);
+  }
+  useEffect(() => {
+    if (pendingNav) clearPendingNav();
+  }, [pendingNav]);
+
   const overdueIds = new Set(overdueTasks.map(t => t.id));
   const openTask = tasks.find(t => t.id === openTaskId) || null;
-
-  const handleDragEnd = (event) => {
-    const { active, over } = event;
-    if (!over) return;
-    const task = tasks.find(t => t.id === active.id);
-    if (task && task.status !== over.id) {
-      handleUpdateTaskStatus(task.id, over.id);
-    }
-  };
+  const filteredTasks = filterTasks(tasks, filters, projects);
 
   return (
     <div className="space-y-6">
@@ -70,7 +78,26 @@ export default function TaskBoard({
 
       <div>
         <div className="flex items-center justify-between mb-3">
-          <h2 className="text-sm font-semibold text-gray-900 dark:text-gray-100">Board</h2>
+          <div className="flex items-center gap-3">
+            <h2 className="text-sm font-semibold text-gray-900 dark:text-gray-100">
+              {view === 'board' ? 'Board' : 'Planner'}
+            </h2>
+            <div className="flex gap-1">
+              {['board', 'planner'].map(v => (
+                <button
+                  key={v}
+                  onClick={() => setView(v)}
+                  className={`text-xs font-medium capitalize px-2.5 py-1 rounded-md transition-colors ${
+                    view === v
+                      ? 'bg-blue-600 text-white'
+                      : 'bg-gray-100 dark:bg-white/10 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-white/20'
+                  }`}
+                >
+                  {v}
+                </button>
+              ))}
+            </div>
+          </div>
           <button
             onClick={() => setShowNewTask(true)}
             className="flex items-center gap-1.5 text-sm font-medium bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-lg transition-colors"
@@ -80,21 +107,31 @@ export default function TaskBoard({
           </button>
         </div>
 
-        <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
-          <div className="flex gap-4 overflow-x-auto pb-2">
-            {COLUMNS.map(col => (
-              <KanbanColumn
-                key={col.id}
-                id={col.id}
-                title={col.title}
-                tasks={tasks.filter(t => t.status === col.id)}
-                overdueIds={overdueIds}
-                formatToSwissDate={formatToSwissDate}
-                onOpenTask={(task) => setOpenTaskId(task.id)}
-              />
-            ))}
-          </div>
-        </DndContext>
+        <FilterBar
+          tasks={tasks}
+          filteredCount={filteredTasks.length}
+          filters={filters}
+          onChange={setFilters}
+          projects={projects}
+        />
+
+        <div className="mt-3">
+          {view === 'board' ? (
+            <BoardView
+              tasks={filteredTasks}
+              formatToSwissDate={formatToSwissDate}
+              onOpenTask={(task) => setOpenTaskId(task.id)}
+              onUpdateTaskStatus={handleUpdateTaskStatus}
+            />
+          ) : (
+            <PlannerView
+              tasks={filteredTasks}
+              getDistributedMilestonesCount={getDistributedMilestonesCount}
+              formatToSwissDate={formatToSwissDate}
+              onOpenTask={(task) => setOpenTaskId(task.id)}
+            />
+          )}
+        </div>
       </div>
 
       <div className="bg-white dark:bg-[#252525] border border-gray-200 dark:border-white/10 rounded-xl p-5">
@@ -131,12 +168,15 @@ export default function TaskBoard({
       {openTask && (
         <TaskDetailModal
           task={openTask}
+          projects={projects}
           isOverdue={overdueIds.has(openTask.id)}
           formatToSwissDate={formatToSwissDate}
           onClose={() => setOpenTaskId(null)}
           onToggleSubtask={handleToggleSubtask}
           onSetStatus={handleUpdateTaskStatus}
+          onUpdateTask={handleUpdateTask}
           onDelete={handleDeleteTask}
+          onNavigateToProject={(projectId) => navigateTo('Projects', { projectId })}
         />
       )}
 

@@ -1,8 +1,10 @@
-import { LayoutGrid, CheckSquare, Dumbbell, Sun, Moon, Mountain } from 'lucide-react';
+import { LayoutGrid, CheckSquare, Dumbbell, Sun, Moon, Mountain, Target, Folder } from 'lucide-react';
 
 const NAV_ITEMS = [
   { id: 'Main Hub', label: 'Home', icon: LayoutGrid },
   { id: 'Task Dashboard', label: 'Tasks', icon: CheckSquare },
+  { id: 'Today Focus', label: 'Today', icon: Target },
+  { id: 'Projects', label: 'Projects', icon: Folder },
   { id: 'Fitness Dashboard', label: 'Fitness', icon: Dumbbell },
 ];
 

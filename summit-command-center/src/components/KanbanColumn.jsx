@@ -1,7 +1,7 @@
 import { useDroppable } from '@dnd-kit/core';
 import TaskCard from './TaskCard';
 
-export default function KanbanColumn({ id, title, tasks, overdueIds, formatToSwissDate, onOpenTask }) {
+export default function KanbanColumn({ id, title, tasks, formatToSwissDate, onOpenTask }) {
   const { setNodeRef, isOver } = useDroppable({ id });
 
   return (
@@ -23,7 +23,6 @@ export default function KanbanColumn({ id, title, tasks, overdueIds, formatToSwi
           <TaskCard
             key={task.id}
             task={task}
-            isOverdue={overdueIds.has(task.id)}
             formatToSwissDate={formatToSwissDate}
             onOpen={onOpenTask}
           />
