@@ -3,6 +3,7 @@ name: Deploy to GitHub Pages
 on:
   push:
     branches: [main]
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -35,6 +36,18 @@ jobs:
           VITE_GITHUB_REPO: ${{ secrets.VITE_GITHUB_REPO }}
           VITE_GITHUB_TOKEN: ${{ secrets.VITE_GITHUB_TOKEN }}
           VITE_APP_PASSWORD: ${{ secrets.VITE_APP_PASSWORD }}
+      - run: npm ci
+        working-directory: summit-command-center/fitness
+      - run: npm run build
+        working-directory: summit-command-center/fitness
+        env:
+          VITE_GITHUB_OWNER: ${{ secrets.VITE_GITHUB_OWNER }}
+          VITE_GITHUB_REPO: ${{ secrets.VITE_GITHUB_REPO }}
+          VITE_GITHUB_TOKEN: ${{ secrets.VITE_GITHUB_TOKEN }}
+          VITE_APP_PASSWORD: ${{ secrets.VITE_APP_PASSWORD }}
+      - run: |
+          mkdir -p summit-command-center/dist/fitness
+          cp -r summit-command-center/fitness/dist/. summit-command-center/dist/fitness/
       - uses: actions/upload-pages-artifact@v3
         with:
           path: summit-command-center/dist
