@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import {
   Dumbbell, CalendarDays, History, Flame, Timer, Trash2, Plus,
-  Check, Minus, Moon, ChevronDown, Activity, X, Loader2, AlertTriangle
+  Check, Minus, Moon, ChevronDown, Activity, X, Loader2, AlertTriangle, Lock
 } from 'lucide-react';
 import { dbGet, dbSet } from './lib/db';
 
@@ -15,7 +15,8 @@ const STORAGE_KEYS = {
   strengthLogs: 'summit_strength_logs',
   cardioLogs: 'summit_cardio_logs',
   workoutTemplates: 'summit_workout_templates',
-  weeklyWorkoutPlan: 'summit_weekly_workout_plan'
+  weeklyWorkoutPlan: 'summit_weekly_workout_plan',
+  activeSession: 'summit_active_session'
 };
 
 const DEFAULT_TEMPLATES = [
@@ -63,6 +64,26 @@ const startOfWeekISO = () => {
   return toISO(d);
 };
 
+// --- Per-set helpers ---------------------------------------------------------
+// Older strength logs are a single aggregate record: { weight, sets: <count>, reps }
+// covering N identical sets. Newer records carry `setDetails`, an array of
+// individual { setNumber, reps, weight, timestamp }. These helpers let the rest
+// of the app treat both shapes uniformly, and editing a legacy record migrates
+// just that record to setDetails without touching any others.
+const expandLogSets = (log) => (
+  Array.isArray(log.setDetails)
+    ? log.setDetails
+    : Array.from({ length: Number(log.sets) || 0 }, (_, i) => ({
+        setNumber: i + 1, reps: log.reps, weight: log.weight, timestamp: null
+      }))
+);
+
+const logSetCount = (log) => (Array.isArray(log.setDetails) ? log.setDetails.length : Number(log.sets) || 0);
+
+const logVolume = (log) => expandLogSets(log).reduce(
+  (a, s) => a + (Number(s.weight) || 0) * (Number(s.reps) || 0), 0
+);
+
 // --- Small mobile-friendly stepper input (big tap targets beat tiny inputs) --
 function Stepper({ label, value, onChange, step = 1, min = 0, unit }) {
   const bump = (dir) => onChange(Math.max(min, Number(value || 0) + dir * step));
@@ -103,12 +124,41 @@ function StatCard({ icon: Icon, label, value, sub }) {
   );
 }
 
+// Compact editable row for one set within an expanded history entry.
+function EditableSetRow({ set, onChange, onDelete }) {
+  return (
+    <div className="flex items-center gap-2 bg-white rounded-lg px-2.5 py-1.5 border border-gray-100">
+      <span className="text-[10px] text-gray-400 w-10 flex-shrink-0">Set {set.setNumber}</span>
+      <input
+        type="number"
+        inputMode="decimal"
+        value={set.weight}
+        onChange={e => onChange({ ...set, weight: e.target.value === '' ? '' : Number(e.target.value) })}
+        className="w-14 bg-gray-50 border border-gray-200 rounded-md text-center text-xs py-1 outline-none focus:border-blue-400"
+      />
+      <span className="text-[10px] text-gray-400 flex-shrink-0">kg ×</span>
+      <input
+        type="number"
+        inputMode="numeric"
+        value={set.reps}
+        onChange={e => onChange({ ...set, reps: e.target.value === '' ? '' : Number(e.target.value) })}
+        className="w-12 bg-gray-50 border border-gray-200 rounded-md text-center text-xs py-1 outline-none focus:border-blue-400"
+      />
+      <span className="text-[10px] text-gray-400 flex-shrink-0">reps</span>
+      <button onClick={onDelete} className="ml-auto text-gray-300 active:text-red-500 flex-shrink-0">
+        <X className="w-3.5 h-3.5" />
+      </button>
+    </div>
+  );
+}
+
 export default function FitnessTracker() {
   const [tab, setTab] = useState('today');
   const [templates, setTemplates] = useState(DEFAULT_TEMPLATES);
   const [plan, setPlan] = useState(DEFAULT_PLAN);
   const [strengthLogs, setStrengthLogs] = useState([]);
   const [cardioLogs, setCardioLogs] = useState([]);
+  const [activeSession, setActiveSession] = useState(null);
   const [toast, setToast] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState(null);
@@ -118,6 +168,11 @@ export default function FitnessTracker() {
   const [strengthInputs, setStrengthInputs] = useState({});
   const [cardioInputs, setCardioInputs] = useState({});
   const [justLogged, setJustLogged] = useState({});
+
+  // Which history entry is expanded for per-set editing.
+  const [expandedLogId, setExpandedLogId] = useState(null);
+  // Marks a stale (different-day) session's banner as dismissed, keyed by "date::templateName".
+  const [dismissedStale, setDismissedStale] = useState(null);
 
   // Template builder
   const [builder, setBuilder] = useState({ name: '', exercises: [], draftName: '', draftType: 'gym' });
@@ -130,6 +185,15 @@ export default function FitnessTracker() {
   const todayTemplateName = plan[todayName];
   const todayTemplate = templates.find(t => t.name === todayTemplateName);
   const key = (t, e) => `${t}::${e}`;
+
+  // The workout currently being worked through — either today's fresh session,
+  // or a leftover unfinished session from an earlier day (see stale banner below).
+  const sessionTemplate = activeSession
+    ? (templates.find(t => t.name === activeSession.templateName) || todayTemplate)
+    : todayTemplate;
+
+  const staleKey = activeSession ? `${activeSession.date}::${activeSession.templateName}` : null;
+  const showStaleBanner = !!activeSession && activeSession.date !== toISO(new Date()) && dismissedStale !== staleKey;
 
   const showToast = (msg, isError = false) => {
     setToast({ message: msg, isError });
@@ -159,16 +223,18 @@ export default function FitnessTracker() {
         }
       };
       try {
-        const [sl, cl, wt, wwp] = await Promise.all([
+        const [sl, cl, wt, wwp, as] = await Promise.all([
           loadData(STORAGE_KEYS.strengthLogs, []),
           loadData(STORAGE_KEYS.cardioLogs, []),
           loadData(STORAGE_KEYS.workoutTemplates, DEFAULT_TEMPLATES),
           loadData(STORAGE_KEYS.weeklyWorkoutPlan, DEFAULT_PLAN),
+          loadData(STORAGE_KEYS.activeSession, null),
         ]);
         setStrengthLogs(sl);
         setCardioLogs(cl);
         setTemplates(wt);
         setPlan(wwp);
+        setActiveSession(as);
       } catch {
         setLoadError('Could not load saved data. Starting fresh — new entries will still try to save.');
       } finally {
@@ -183,20 +249,115 @@ export default function FitnessTracker() {
   const updateCardioLogs = (next) => { setCardioLogs(next); saveToStorage(STORAGE_KEYS.cardioLogs, next); };
   const updateTemplates = (next) => { setTemplates(next); saveToStorage(STORAGE_KEYS.workoutTemplates, next); };
   const updatePlan = (next) => { setPlan(next); saveToStorage(STORAGE_KEYS.weeklyWorkoutPlan, next); };
+  const updateActiveSession = (next) => { setActiveSession(next); saveToStorage(STORAGE_KEYS.activeSession, next); };
 
-  // --- Logging actions -------------------------------------------------------
-  const logStrength = (templateName, exercise) => {
-    const k = key(templateName, exercise);
-    const inp = strengthInputs[k] || { weight: 40, sets: 3, reps: 8 };
-    updateStrengthLogs([...strengthLogs, {
-      id: Date.now() + Math.random(),
+  // Auto-start today's session the first time a workout day loads and nothing
+  // is already in progress. A leftover session from a previous day is left
+  // alone (see stale banner) rather than silently overwritten.
+  useEffect(() => {
+    if (isLoading || activeSession || !todayTemplate) return;
+    const firstGym = todayTemplate.exercises.find(e => e.type !== 'cardio');
+    if (!firstGym) return;
+    updateActiveSession({
       date: toISO(new Date()),
-      exercise,
+      templateName: todayTemplate.name,
+      exercises: {},
+      activeExercise: firstGym.name
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isLoading, todayTemplate?.name, activeSession]);
+
+  // --- Session actions (Add Set / Lock Set / Complete) ------------------------
+  const addSet = (exerciseName) => {
+    if (!activeSession) return;
+    const ik = key(activeSession.templateName, exerciseName);
+    const inp = strengthInputs[ik] || { weight: 40, reps: 8 };
+    const ex = activeSession.exercises[exerciseName] || { sets: [], locked: false };
+    if (ex.locked) return;
+    const newSet = {
+      setNumber: ex.sets.length + 1,
+      reps: Number(inp.reps) || 0,
       weight: Number(inp.weight) || 0,
-      sets: Number(inp.sets) || 0,
-      reps: Number(inp.reps) || 0
-    }]);
-    flash(k);
+      timestamp: Date.now()
+    };
+    updateActiveSession({
+      ...activeSession,
+      exercises: { ...activeSession.exercises, [exerciseName]: { ...ex, sets: [...ex.sets, newSet] } }
+    });
+    setStrengthInputs(p => ({ ...p, [ik]: { weight: 40, reps: 8 } }));
+  };
+
+  const removeSetFromSession = (exerciseName, index) => {
+    if (!activeSession) return;
+    const ex = activeSession.exercises[exerciseName];
+    if (!ex || ex.locked) return;
+    const sets = ex.sets.filter((_, i) => i !== index).map((s, i) => ({ ...s, setNumber: i + 1 }));
+    updateActiveSession({
+      ...activeSession,
+      exercises: { ...activeSession.exercises, [exerciseName]: { ...ex, sets } }
+    });
+  };
+
+  const lockExercise = (exerciseName) => {
+    if (!activeSession || !sessionTemplate) return;
+    const ex = activeSession.exercises[exerciseName] || { sets: [], locked: false };
+    if (ex.sets.length === 0) return;
+    const gymExercises = sessionTemplate.exercises.filter(e => e.type !== 'cardio');
+    const idx = gymExercises.findIndex(e => e.name === exerciseName);
+    const nextEx = gymExercises[idx + 1];
+    updateActiveSession({
+      ...activeSession,
+      exercises: { ...activeSession.exercises, [exerciseName]: { ...ex, locked: true } },
+      activeExercise: nextEx ? nextEx.name : null
+    });
+    showToast(nextEx ? `${exerciseName} locked — next up: ${nextEx.name}` : `${exerciseName} locked`);
+  };
+
+  const completeWorkout = () => {
+    if (!activeSession) return;
+    const entries = Object.entries(activeSession.exercises)
+      .filter(([, ex]) => ex.sets.length > 0)
+      .map(([exercise, ex]) => ({
+        id: Date.now() + Math.random(),
+        date: activeSession.date,
+        exercise,
+        setDetails: ex.sets
+      }));
+    if (entries.length === 0) {
+      showToast('No sets recorded — nothing to complete', true);
+      return;
+    }
+    updateStrengthLogs([...strengthLogs, ...entries]);
+    updateActiveSession(null);
+    showToast('Workout complete!');
+  };
+
+  const discardSession = () => {
+    updateActiveSession(null);
+    setDismissedStale(null);
+  };
+
+  const resumeStaleSession = () => setDismissedStale(staleKey);
+
+  // --- History editing (works on both legacy and per-set records) ------------
+  const updateLogSet = (logId, setIndex, updatedSet) => {
+    updateStrengthLogs(strengthLogs.map(l => {
+      if (l.id !== logId) return l;
+      const sets = expandLogSets(l);
+      sets[setIndex] = { ...sets[setIndex], ...updatedSet };
+      return { ...l, setDetails: sets };
+    }));
+  };
+
+  const deleteLogSet = (logId, setIndex) => {
+    const target = strengthLogs.find(l => l.id === logId);
+    if (!target) return;
+    const sets = expandLogSets(target).filter((_, i) => i !== setIndex).map((s, i) => ({ ...s, setNumber: i + 1 }));
+    if (sets.length === 0) {
+      updateStrengthLogs(strengthLogs.filter(l => l.id !== logId));
+    } else {
+      updateStrengthLogs(strengthLogs.map(l => (l.id === logId ? { ...l, setDetails: sets } : l)));
+    }
   };
 
   const logCardioFromPlan = (templateName, exercise) => {
@@ -255,7 +416,7 @@ export default function FitnessTracker() {
   };
 
   // --- Stats -----------------------------------------------------------------
-  const totalVolume = strengthLogs.reduce((a, l) => a + l.weight * l.sets * l.reps, 0);
+  const totalVolume = strengthLogs.reduce((a, l) => a + logVolume(l), 0);
   const totalCardioMin = cardioLogs.reduce((a, l) => a + l.duration, 0);
   const weekStart = startOfWeekISO();
   const sessionsThisWeek = new Set(
@@ -296,28 +457,91 @@ export default function FitnessTracker() {
         </div>
       );
     }
-    const inp = strengthInputs[k] || { weight: 40, sets: 3, reps: 8 };
+
+    if (!activeSession) return null;
+    const exSession = activeSession.exercises[ex.name] || { sets: [], locked: false };
+    const isLocked = exSession.locked;
+    const isActive = activeSession.activeExercise === ex.name && !isLocked;
+
+    if (isLocked) {
+      return (
+        <div key={k} className="bg-gray-50 rounded-2xl border border-gray-200 p-4 opacity-80">
+          <div className="flex items-center gap-2 mb-2">
+            <Check className="w-4 h-4 text-green-500" />
+            <span className="font-semibold text-gray-700 text-sm">{ex.name}</span>
+            <span className="text-[10px] text-gray-400 ml-auto">{exSession.sets.length} set{exSession.sets.length === 1 ? '' : 's'} locked</span>
+          </div>
+          <div className="flex flex-wrap gap-1.5">
+            {exSession.sets.map(s => (
+              <span key={s.setNumber} className="text-[11px] bg-white border border-gray-200 rounded-full px-2 py-0.5 text-gray-500">
+                {s.weight}kg × {s.reps}
+              </span>
+            ))}
+          </div>
+        </div>
+      );
+    }
+
+    if (!isActive) {
+      return (
+        <button
+          key={k}
+          onClick={() => updateActiveSession({ ...activeSession, activeExercise: ex.name })}
+          className="w-full text-left bg-white rounded-2xl border border-dashed border-gray-200 p-4 opacity-60"
+        >
+          <div className="flex items-center gap-2">
+            <Dumbbell className="w-4 h-4 text-gray-300" />
+            <span className="font-medium text-gray-400 text-sm">{ex.name}</span>
+            <span className="text-[10px] text-gray-300 ml-auto">Not started</span>
+          </div>
+        </button>
+      );
+    }
+
+    const inp = strengthInputs[k] || { weight: 40, reps: 8 };
     const setInp = (field, v) => setStrengthInputs(p => ({ ...p, [k]: { ...inp, [field]: v } }));
     return (
-      <div key={k} className="bg-white rounded-2xl border border-gray-200 p-4">
+      <div key={k} className="bg-white rounded-2xl border border-blue-200 p-4">
         <div className="flex items-center gap-2 mb-3">
           <Dumbbell className="w-4 h-4 text-blue-500" />
           <span className="font-semibold text-gray-900 text-sm">{ex.name}</span>
+          <span className="text-[10px] text-blue-500 bg-blue-50 px-2 py-0.5 rounded-full ml-auto">
+            {exSession.sets.length} set{exSession.sets.length === 1 ? '' : 's'} logged
+          </span>
         </div>
+
+        {exSession.sets.length > 0 && (
+          <div className="flex flex-wrap gap-1.5 mb-3">
+            {exSession.sets.map((s, i) => (
+              <span key={s.setNumber} className="text-[11px] bg-gray-100 rounded-full pl-2 pr-1 py-0.5 text-gray-600 flex items-center gap-1">
+                {s.weight}kg × {s.reps}
+                <button onClick={() => removeSetFromSession(ex.name, i)} className="text-gray-400 active:text-red-500">
+                  <X className="w-3 h-3" />
+                </button>
+              </span>
+            ))}
+          </div>
+        )}
+
         <div className="flex gap-2 mb-3">
           <Stepper label="Weight" unit="kg" value={inp.weight} step={2.5} onChange={v => setInp('weight', v)} />
-          <Stepper label="Sets" value={inp.sets} onChange={v => setInp('sets', v)} />
           <Stepper label="Reps" value={inp.reps} onChange={v => setInp('reps', v)} />
         </div>
-        <button
-          onClick={() => logStrength(templateName, ex.name)}
-          className={`w-full h-11 rounded-xl text-sm font-semibold transition-colors flex items-center justify-center gap-1.5 ${
-            logged ? 'bg-green-500 text-white' : 'bg-blue-600 text-white active:bg-blue-700'
-          }`}
-        >
-          {logged ? <Check className="w-4 h-4" /> : null}
-          {logged ? 'Logged' : 'Log set'}
-        </button>
+        <div className="flex gap-2">
+          <button
+            onClick={() => addSet(ex.name)}
+            className="flex-1 h-11 rounded-xl text-sm font-semibold bg-blue-600 text-white active:bg-blue-700 flex items-center justify-center gap-1.5"
+          >
+            <Plus className="w-4 h-4" /> Add set
+          </button>
+          <button
+            onClick={() => lockExercise(ex.name)}
+            disabled={exSession.sets.length === 0}
+            className="flex-1 h-11 rounded-xl text-sm font-semibold bg-gray-900 text-white active:bg-gray-700 disabled:opacity-30 flex items-center justify-center gap-1.5"
+          >
+            <Lock className="w-4 h-4" /> Lock set
+          </button>
+        </div>
       </div>
     );
   };
@@ -331,14 +555,46 @@ export default function FitnessTracker() {
         <StatCard icon={CalendarDays} label="This week" value={sessionsThisWeek} sub="active days" />
       </div>
 
-      {todayTemplate ? (
+      {showStaleBanner && (
+        <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4">
+          <div className="flex items-center gap-2 mb-1">
+            <AlertTriangle className="w-4 h-4 text-amber-500" />
+            <span className="text-sm font-semibold text-amber-800">Unfinished workout</span>
+          </div>
+          <div className="text-xs text-amber-700 mb-3">
+            {activeSession.templateName} from {formatSwiss(activeSession.date)} was never completed.
+          </div>
+          <div className="flex gap-2">
+            <button onClick={resumeStaleSession}
+              className="flex-1 h-9 rounded-lg bg-amber-600 text-white text-xs font-semibold active:bg-amber-700">
+              Resume
+            </button>
+            <button onClick={discardSession}
+              className="flex-1 h-9 rounded-lg bg-white border border-amber-300 text-amber-700 text-xs font-semibold active:bg-amber-100">
+              Discard
+            </button>
+          </div>
+        </div>
+      )}
+
+      {sessionTemplate ? (
         <>
           <div className="bg-blue-600 rounded-2xl p-4 text-white">
-            <div className="text-[11px] uppercase tracking-wide text-blue-200">{todayName}</div>
-            <div className="text-lg font-bold">{todayTemplate.name}</div>
-            <div className="text-xs text-blue-200">{todayTemplate.exercises.length} exercises</div>
+            <div className="text-[11px] uppercase tracking-wide text-blue-200">
+              {activeSession && activeSession.date !== toISO(new Date()) ? formatSwiss(activeSession.date) : todayName}
+            </div>
+            <div className="text-lg font-bold">{sessionTemplate.name}</div>
+            <div className="text-xs text-blue-200">{sessionTemplate.exercises.length} exercises</div>
           </div>
-          {todayTemplate.exercises.map(ex => renderExerciseCard(todayTemplate.name, ex))}
+          {sessionTemplate.exercises.map(ex => renderExerciseCard(sessionTemplate.name, ex))}
+          {activeSession && sessionTemplate.exercises.some(e => e.type !== 'cardio') && (
+            <button
+              onClick={completeWorkout}
+              className="w-full h-12 rounded-xl text-sm font-bold bg-green-600 text-white active:bg-green-700 flex items-center justify-center gap-2"
+            >
+              <Check className="w-4 h-4" /> Complete workout
+            </button>
+          )}
         </>
       ) : (
         <div className="bg-white rounded-2xl border border-gray-200 p-6 text-center">
@@ -526,19 +782,43 @@ export default function FitnessTracker() {
             {groupByDate(strengthLogs).map(([date, logs]) => (
               <div key={date}>
                 <div className="text-[10px] uppercase tracking-wide text-gray-400 mb-1.5">{formatSwiss(date)}</div>
-                <div className="space-y-1">
-                  {logs.map(l => (
-                    <div key={l.id} className="flex items-center justify-between bg-gray-50 rounded-lg px-3 py-2">
-                      <span className="text-xs font-medium text-gray-900">{l.exercise}</span>
-                      <div className="flex items-center gap-3">
-                        <span className="text-xs text-gray-500 tabular-nums">{l.weight}kg × {l.sets}×{l.reps}</span>
-                        <button onClick={() => updateStrengthLogs(strengthLogs.filter(x => x.id !== l.id))}
-                          className="text-gray-300 active:text-red-500">
-                          <Trash2 className="w-3.5 h-3.5" />
+                <div className="space-y-1.5">
+                  {logs.map(l => {
+                    const sets = expandLogSets(l);
+                    const expanded = expandedLogId === l.id;
+                    return (
+                      <div key={l.id} className="bg-gray-50 rounded-lg px-3 py-2">
+                        <button
+                          onClick={() => setExpandedLogId(expanded ? null : l.id)}
+                          className="w-full flex items-center justify-between"
+                        >
+                          <span className="text-xs font-medium text-gray-900">{l.exercise}</span>
+                          <div className="flex items-center gap-3">
+                            <span className="text-xs text-gray-500 tabular-nums">{logSetCount(l)} sets</span>
+                            <ChevronDown className={`w-3.5 h-3.5 text-gray-400 transition-transform ${expanded ? 'rotate-180' : ''}`} />
+                          </div>
                         </button>
+                        {expanded && (
+                          <div className="mt-2 space-y-1">
+                            {sets.map((s, i) => (
+                              <EditableSetRow
+                                key={i}
+                                set={s}
+                                onChange={updated => updateLogSet(l.id, i, updated)}
+                                onDelete={() => deleteLogSet(l.id, i)}
+                              />
+                            ))}
+                            <button
+                              onClick={() => updateStrengthLogs(strengthLogs.filter(x => x.id !== l.id))}
+                              className="w-full text-[11px] text-red-500 flex items-center justify-center gap-1 py-1.5"
+                            >
+                              <Trash2 className="w-3 h-3" /> Delete exercise entry
+                            </button>
+                          </div>
+                        )}
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </div>
             ))}
