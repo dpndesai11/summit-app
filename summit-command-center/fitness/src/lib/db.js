@@ -63,3 +63,14 @@ export async function dbSet(key, value) {
   clearTimeout(flushTimer);
   flushTimer = setTimeout(flushToGitHub, 800);
 }
+
+// Forces the next dbGet to refetch from GitHub instead of serving the
+// in-memory cache — lets an open tab pick up changes made elsewhere
+// (another device, another tab) without a full reload. Flushes any pending
+// local write first so an in-flight edit isn't lost by the refetch.
+export async function dbRefresh() {
+  clearTimeout(flushTimer);
+  await flushToGitHub();
+  cache = null;
+  sha = null;
+}

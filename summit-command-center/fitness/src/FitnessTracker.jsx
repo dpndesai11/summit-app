@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react';
 import {
   Dumbbell, CalendarDays, History, Flame, Timer, Trash2, Plus,
-  Check, Minus, Moon, ChevronDown, Activity, X, Loader2, AlertTriangle, Lock
+  Check, Minus, Moon, ChevronDown, Activity, X, Loader2, AlertTriangle, Lock, RefreshCw
 } from 'lucide-react';
-import { dbGet, dbSet } from './lib/db';
+import { dbGet, dbSet, dbRefresh } from './lib/db';
 
 // ---------------------------------------------------------------------------
 // Summit — Fitness Tracker (mobile-first, single file)
@@ -162,6 +162,7 @@ export default function FitnessTracker() {
   const [toast, setToast] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState(null);
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   // Per-exercise input state, keyed `${template}::${exercise}` so shared
   // exercise names across templates don't collide.
@@ -217,37 +218,57 @@ export default function FitnessTracker() {
     });
   };
 
-  useEffect(() => {
-    const load = async () => {
-      const loadData = async (storageKey, fallback) => {
-        try {
-          const val = await dbGet(storageKey);
-          return val ?? fallback;
-        } catch {
-          return fallback;
-        }
-      };
+  const loadAll = async () => {
+    const loadData = async (storageKey, fallback) => {
       try {
-        const [sl, cl, wt, wwp, as] = await Promise.all([
-          loadData(STORAGE_KEYS.strengthLogs, []),
-          loadData(STORAGE_KEYS.cardioLogs, []),
-          loadData(STORAGE_KEYS.workoutTemplates, DEFAULT_TEMPLATES),
-          loadData(STORAGE_KEYS.weeklyWorkoutPlan, DEFAULT_PLAN),
-          loadData(STORAGE_KEYS.activeSession, null),
-        ]);
-        setStrengthLogs(sl);
-        setCardioLogs(cl);
-        setTemplates(wt);
-        setPlan(wwp);
-        setActiveSession(as);
+        const val = await dbGet(storageKey);
+        return val ?? fallback;
+      } catch {
+        return fallback;
+      }
+    };
+    const [sl, cl, wt, wwp, as] = await Promise.all([
+      loadData(STORAGE_KEYS.strengthLogs, []),
+      loadData(STORAGE_KEYS.cardioLogs, []),
+      loadData(STORAGE_KEYS.workoutTemplates, DEFAULT_TEMPLATES),
+      loadData(STORAGE_KEYS.weeklyWorkoutPlan, DEFAULT_PLAN),
+      loadData(STORAGE_KEYS.activeSession, null),
+    ]);
+    setStrengthLogs(sl);
+    setCardioLogs(cl);
+    setTemplates(wt);
+    setPlan(wwp);
+    setActiveSession(as);
+  };
+
+  useEffect(() => {
+    (async () => {
+      try {
+        await loadAll();
       } catch {
         setLoadError('Could not load saved data. Starting fresh — new entries will still try to save.');
       } finally {
         setIsLoading(false);
       }
-    };
-    load();
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Manual refresh — the GitHub-backed store is cached in memory per page
+  // load, so changes made elsewhere (another device/tab) aren't picked up
+  // until now without a full app reload.
+  const refreshFromRemote = async () => {
+    setIsRefreshing(true);
+    try {
+      await dbRefresh();
+      await loadAll();
+      showToast('Refreshed');
+    } catch {
+      showToast('Refresh failed — check your connection', true);
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
 
   // Write-through setters: update state and persist in one call.
   const updateStrengthLogs = (next) => { setStrengthLogs(next); saveToStorage(STORAGE_KEYS.strengthLogs, next); };
@@ -914,7 +935,17 @@ export default function FitnessTracker() {
           <h1 className="text-xl font-bold text-gray-900">
             {tab === 'today' ? 'Today' : tab === 'plan' ? 'Plan' : 'History'}
           </h1>
-          <span className="text-xs text-gray-400">{formatSwiss(toISO(new Date()))}</span>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={refreshFromRemote}
+              disabled={isRefreshing}
+              aria-label="Refresh data"
+              className="text-gray-400 active:text-gray-600 disabled:opacity-40"
+            >
+              <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+            </button>
+            <span className="text-xs text-gray-400">{formatSwiss(toISO(new Date()))}</span>
+          </div>
         </div>
       </div>
 
