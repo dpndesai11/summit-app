@@ -181,19 +181,24 @@ export default function FitnessTracker() {
   // Manual cardio
   const [cardioForm, setCardioForm] = useState({ activity: 'Running', duration: 30, distance: 5 });
 
+  const todayISO = toISO(new Date());
   const todayName = new Date().toLocaleDateString('en-US', { weekday: 'long' });
   const todayTemplateName = plan[todayName];
   const todayTemplate = templates.find(t => t.name === todayTemplateName);
   const key = (t, e) => `${t}::${e}`;
 
   // The workout currently being worked through — either today's fresh session,
-  // or a leftover unfinished session from an earlier day (see stale banner below).
+  // or a leftover/outdated session that no longer matches today's plan (see
+  // stale banner below).
   const sessionTemplate = activeSession
     ? (templates.find(t => t.name === activeSession.templateName) || todayTemplate)
     : todayTemplate;
 
+  const sessionMatchesPlan = !!activeSession && activeSession.date === todayISO && activeSession.templateName === todayTemplateName;
+  const sessionHasProgress = !!activeSession && Object.values(activeSession.exercises).some(ex => ex.sets.length > 0);
+  const isDifferentDay = !!activeSession && activeSession.date !== todayISO;
   const staleKey = activeSession ? `${activeSession.date}::${activeSession.templateName}` : null;
-  const showStaleBanner = !!activeSession && activeSession.date !== toISO(new Date()) && dismissedStale !== staleKey;
+  const showStaleBanner = !!activeSession && !sessionMatchesPlan && sessionHasProgress && dismissedStale !== staleKey;
 
   const showToast = (msg, isError = false) => {
     setToast({ message: msg, isError });
@@ -251,21 +256,32 @@ export default function FitnessTracker() {
   const updatePlan = (next) => { setPlan(next); saveToStorage(STORAGE_KEYS.weeklyWorkoutPlan, next); };
   const updateActiveSession = (next) => { setActiveSession(next); saveToStorage(STORAGE_KEYS.activeSession, next); };
 
-  // Auto-start today's session the first time a workout day loads and nothing
-  // is already in progress. A leftover session from a previous day is left
-  // alone (see stale banner) rather than silently overwritten.
+  // Keep the session in sync with today's plan. Starts a fresh session the
+  // first time a workout day loads, and also follows the Plan page: if the
+  // day's assigned workout changes and nothing has been logged against the
+  // old one yet, swap seamlessly. If sets are already recorded, leave the
+  // session alone — the stale banner offers an explicit Resume/Discard so
+  // in-progress data is never silently dropped.
   useEffect(() => {
-    if (isLoading || activeSession || !todayTemplate) return;
-    const firstGym = todayTemplate.exercises.find(e => e.type !== 'cardio');
-    if (!firstGym) return;
-    updateActiveSession({
-      date: toISO(new Date()),
-      templateName: todayTemplate.name,
-      exercises: {},
-      activeExercise: firstGym.name
-    });
+    if (isLoading) return;
+    const freshSessionFor = (tpl) => {
+      const firstGym = tpl?.exercises.find(e => e.type !== 'cardio');
+      return firstGym
+        ? { date: todayISO, templateName: tpl.name, exercises: {}, activeExercise: firstGym.name }
+        : null;
+    };
+    if (!activeSession) {
+      const fresh = freshSessionFor(todayTemplate);
+      if (fresh) updateActiveSession(fresh);
+      return;
+    }
+    const matchesPlan = activeSession.date === todayISO && activeSession.templateName === todayTemplateName;
+    if (matchesPlan) return;
+    const hasProgress = Object.values(activeSession.exercises).some(ex => ex.sets.length > 0);
+    if (hasProgress) return;
+    updateActiveSession(freshSessionFor(todayTemplate));
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isLoading, todayTemplate?.name, activeSession]);
+  }, [isLoading, todayTemplateName, activeSession]);
 
   // --- Session actions (Add Set / Lock Set / Complete) ------------------------
   const addSet = (exerciseName) => {
@@ -562,7 +578,9 @@ export default function FitnessTracker() {
             <span className="text-sm font-semibold text-amber-800">Unfinished workout</span>
           </div>
           <div className="text-xs text-amber-700 mb-3">
-            {activeSession.templateName} from {formatSwiss(activeSession.date)} was never completed.
+            {isDifferentDay
+              ? <>{activeSession.templateName} from {formatSwiss(activeSession.date)} was never completed.</>
+              : <>You have unfinished sets for {activeSession.templateName}, but today's plan now shows {todayTemplateName}.</>}
           </div>
           <div className="flex gap-2">
             <button onClick={resumeStaleSession}
@@ -581,7 +599,7 @@ export default function FitnessTracker() {
         <>
           <div className="bg-blue-600 rounded-2xl p-4 text-white">
             <div className="text-[11px] uppercase tracking-wide text-blue-200">
-              {activeSession && activeSession.date !== toISO(new Date()) ? formatSwiss(activeSession.date) : todayName}
+              {isDifferentDay ? formatSwiss(activeSession.date) : todayName}
             </div>
             <div className="text-lg font-bold">{sessionTemplate.name}</div>
             <div className="text-xs text-blue-200">{sessionTemplate.exercises.length} exercises</div>
