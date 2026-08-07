@@ -39,14 +39,16 @@ const DEFAULT_WORKOUT_TEMPLATES = [
   ]}
 ];
 
+// Each day maps to a list of workout names (the fitness sub-app supports
+// multiple workouts per day); [] means rest. Legacy single-string values are
+// normalized on read via lib/planUtils.
 const DEFAULT_WEEKLY_WORKOUT_PLAN = {
-  Monday: 'Lower Deck Alpha', Tuesday: 'Rest Day', Wednesday: 'Upper Deck Prime',
-  Thursday: 'Rest Day', Friday: 'Lower Deck Alpha', Saturday: 'Rest Day', Sunday: 'Rest Day'
+  Monday: ['Lower Deck Alpha'], Tuesday: [], Wednesday: ['Upper Deck Prime'],
+  Thursday: [], Friday: ['Lower Deck Alpha'], Saturday: [], Sunday: []
 };
 
 const REST_WEEK = {
-  Monday: 'Rest Day', Tuesday: 'Rest Day', Wednesday: 'Rest Day',
-  Thursday: 'Rest Day', Friday: 'Rest Day', Saturday: 'Rest Day', Sunday: 'Rest Day'
+  Monday: [], Tuesday: [], Wednesday: [], Thursday: [], Friday: [], Saturday: [], Sunday: []
 };
 
 export default function App() {
@@ -405,7 +407,9 @@ export default function App() {
   };
 
   const handleUpdateWeeklyWorkout = (day, templateName) => {
-    const updated = { ...weeklyWorkoutPlan, [day]: templateName };
+    // Keeps the list-per-day shape: this single-select editor assigns one
+    // workout; the fitness sub-app can stack multiple on a day.
+    const updated = { ...weeklyWorkoutPlan, [day]: templateName === 'Rest Day' ? [] : [templateName] };
     setWeeklyWorkoutPlan(updated);
     saveToStorage(STORAGE_KEYS.weeklyWorkoutPlan, updated);
   };

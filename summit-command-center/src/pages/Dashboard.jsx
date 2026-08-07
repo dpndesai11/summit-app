@@ -1,5 +1,6 @@
 import { Calendar, CheckSquare, Dumbbell, AlertTriangle, Activity } from 'lucide-react';
 import TodaysWorkoutPanel from '../components/TodaysWorkoutPanel';
+import { dayWorkoutLabel } from '../lib/planUtils';
 
 export default function Dashboard({
   tasks,
@@ -43,7 +44,7 @@ export default function Dashboard({
             <div className="bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-lg p-3 flex flex-col justify-between gap-2">
               <div>
                 <span className="text-xs text-gray-400 dark:text-gray-500 block mb-0.5">Training today</span>
-                <span className="font-medium text-gray-800 dark:text-gray-200 text-sm">{weeklyWorkoutPlan[todayDayName] || 'Rest Day'}</span>
+                <span className="font-medium text-gray-800 dark:text-gray-200 text-sm">{dayWorkoutLabel(weeklyWorkoutPlan[todayDayName])}</span>
               </div>
               <button onClick={() => setCurrentPage('Fitness Dashboard')} className="text-xs font-medium text-blue-600 hover:text-blue-700 text-left">
                 Open fitness →
@@ -193,7 +194,7 @@ export default function Dashboard({
               const nextDayName = nextDateObj.toLocaleDateString('en-US', { weekday: 'long' });
               const nextDateStr = nextDateObj.toISOString().split('T')[0];
 
-              const assignedWorkout = weeklyWorkoutPlan[nextDayName] || 'Rest Day';
+              const assignedWorkout = dayWorkoutLabel(weeklyWorkoutPlan[nextDayName]);
               const activeMilestonesCount = getDistributedMilestonesCount(nextDateStr);
 
               return (

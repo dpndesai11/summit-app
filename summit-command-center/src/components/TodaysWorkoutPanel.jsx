@@ -1,4 +1,6 @@
 
+import { dayWorkoutList } from '../lib/planUtils';
+
 export default function TodaysWorkoutPanel({
   weeklyWorkoutPlan,
   workoutTemplates,
@@ -13,9 +15,10 @@ export default function TodaysWorkoutPanel({
   onLog,
   onLogCardio
 }) {
-  const todaysRoutine = weeklyWorkoutPlan[todayDayName];
+  // A day can hold several workouts (list shape); render each in turn.
+  const todaysRoutines = dayWorkoutList(weeklyWorkoutPlan[todayDayName]);
 
-  if (!todaysRoutine || todaysRoutine === 'None' || todaysRoutine === 'Rest Day') {
+  if (todaysRoutines.length === 0) {
     return (
       <div className="text-center py-6">
         <span className="text-sm font-medium text-gray-700 dark:text-gray-300 block">Rest day</span>
@@ -24,20 +27,22 @@ export default function TodaysWorkoutPanel({
     );
   }
 
-  const activeTemplate = workoutTemplates.find(t => t.name === todaysRoutine);
-  if (!activeTemplate || !activeTemplate.exercises.length) {
-    return (
-      <div className="text-center py-4 text-sm text-gray-500 dark:text-gray-400">
-        No exercises found in "{todaysRoutine}"
-      </div>
-    );
-  }
-
   const normalizeEx = (ex) => typeof ex === 'string' ? { name: ex, type: 'gym' } : ex;
-  const isCardio = (type) => ['run', 'swim', 'bike'].includes(type);
+  const isCardio = (type) => ['run', 'swim', 'bike', 'cardio'].includes(type);
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-4">
+      {todaysRoutines.map(todaysRoutine => {
+        const activeTemplate = workoutTemplates.find(t => t.name === todaysRoutine);
+        if (!activeTemplate || !activeTemplate.exercises.length) {
+          return (
+            <div key={todaysRoutine} className="text-center py-4 text-sm text-gray-500 dark:text-gray-400">
+              No exercises found in "{todaysRoutine}"
+            </div>
+          );
+        }
+        return (
+    <div key={todaysRoutine} className="space-y-3">
       <div className="bg-blue-50 dark:bg-blue-500/10 border border-blue-200 dark:border-blue-500/20 rounded-lg px-3 py-2 flex justify-between items-center">
         <span className="text-sm font-medium text-blue-900 dark:text-blue-300">{todaysRoutine}</span>
         <span className="bg-blue-600 text-white text-[10px] font-semibold px-2 py-0.5 rounded-full uppercase tracking-wide">Today</span>
@@ -113,6 +118,9 @@ export default function TodaysWorkoutPanel({
           );
         })}
       </div>
+    </div>
+        );
+      })}
     </div>
   );
 }

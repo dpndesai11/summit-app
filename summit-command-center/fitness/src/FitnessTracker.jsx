@@ -1,14 +1,25 @@
 import { useState, useEffect } from 'react';
 import {
   Dumbbell, CalendarDays, History, Flame, Timer, Trash2, Plus,
-  Check, Minus, Moon, ChevronDown, Activity, X, Loader2, AlertTriangle, Lock, RefreshCw
+  Check, Minus, Moon, ChevronDown, Activity, X, Loader2, AlertTriangle,
+  Lock, RefreshCw, MapPin, ClipboardList
 } from 'lucide-react';
 import { dbGet, dbSet, dbRefresh } from './lib/db';
+import { routeDistanceKm } from './lib/geo';
+import RoutePlanner from './RoutePlanner';
 
 // ---------------------------------------------------------------------------
-// Summit — Fitness Tracker (mobile-first, single file)
-// Persists through lib/db (summit.db) using the same keys as the original
+// Summit — Fitness Tracker (mobile-first)
+// Persists through lib/db (summit-data.json) using the same keys as the main
 // App.jsx, so existing logs/templates/plan carry over unchanged.
+//
+// The weekly plan maps each day to a LIST of template names (multiple
+// workouts per day, e.g. a lift + an evening run). Older data stored a single
+// string per day — normalizePlan upgrades that shape on read.
+//
+// In-progress workouts live as an array of sessions (one per date::template),
+// kept separate from permanent history: sets are logged live, exercises lock
+// as you finish them, and only Complete Workout commits into strengthLogs.
 // ---------------------------------------------------------------------------
 
 const STORAGE_KEYS = {
@@ -16,7 +27,8 @@ const STORAGE_KEYS = {
   cardioLogs: 'summit_cardio_logs',
   workoutTemplates: 'summit_workout_templates',
   weeklyWorkoutPlan: 'summit_weekly_workout_plan',
-  activeSession: 'summit_active_session'
+  activeSession: 'summit_active_session',
+  cardioRoutes: 'summit_cardio_routes'
 };
 
 const DEFAULT_TEMPLATES = [
@@ -30,13 +42,12 @@ const DEFAULT_TEMPLATES = [
 ];
 
 const DEFAULT_PLAN = {
-  Monday: 'Lower Deck Alpha', Tuesday: 'Rest Day', Wednesday: 'Upper Deck Prime',
-  Thursday: 'Rest Day', Friday: 'Lower Deck Alpha', Saturday: 'Rest Day', Sunday: 'Rest Day'
+  Monday: ['Lower Deck Alpha'], Tuesday: [], Wednesday: ['Upper Deck Prime'],
+  Thursday: [], Friday: ['Lower Deck Alpha'], Saturday: [], Sunday: []
 };
 
 const REST_WEEK = {
-  Monday: 'Rest Day', Tuesday: 'Rest Day', Wednesday: 'Rest Day',
-  Thursday: 'Rest Day', Friday: 'Rest Day', Saturday: 'Rest Day', Sunday: 'Rest Day'
+  Monday: [], Tuesday: [], Wednesday: [], Thursday: [], Friday: [], Saturday: [], Sunday: []
 };
 
 const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
@@ -64,6 +75,21 @@ const startOfWeekISO = () => {
   return toISO(d);
 };
 
+// --- Plan shape helpers ------------------------------------------------------
+// A day's value may be an array of template names (current shape) or a single
+// string / 'Rest Day' (legacy shape). Everything reads through dayList.
+const dayList = (v) => {
+  if (Array.isArray(v)) return v.filter(n => typeof n === 'string' && n && n !== 'Rest Day');
+  if (typeof v === 'string' && v && v !== 'Rest Day' && v !== 'None') return [v];
+  return [];
+};
+
+const normalizePlan = (raw) => {
+  const plan = {};
+  DAYS.forEach(d => { plan[d] = dayList(raw?.[d]); });
+  return plan;
+};
+
 // --- Per-set helpers ---------------------------------------------------------
 // Older strength logs are a single aggregate record: { weight, sets: <count>, reps }
 // covering N identical sets. Newer records carry `setDetails`, an array of
@@ -83,6 +109,14 @@ const logSetCount = (log) => (Array.isArray(log.setDetails) ? log.setDetails.len
 const logVolume = (log) => expandLogSets(log).reduce(
   (a, s) => a + (Number(s.weight) || 0) * (Number(s.reps) || 0), 0
 );
+
+// --- Session helpers ---------------------------------------------------------
+// A session's identity is date::templateName — the same template can run on
+// two different dates, or two templates on the same date, but not the same
+// template twice in one day.
+const sessionKey = (s) => `${s.date}::${s.templateName}`;
+const sessionHasProgress = (s) => Object.values(s.exercises).some(ex => ex.sets.length > 0);
+const sessionSetCount = (s) => Object.values(s.exercises).reduce((a, ex) => a + ex.sets.length, 0);
 
 // --- Small mobile-friendly stepper input (big tap targets beat tiny inputs) --
 function Stepper({ label, value, onChange, step = 1, min = 0, unit }) {
@@ -152,54 +186,88 @@ function EditableSetRow({ set, onChange, onDelete }) {
   );
 }
 
+// Tiny SVG polyline preview of a saved route — no map tiles needed.
+function RouteThumb({ waypoints }) {
+  const w = 72, h = 48, pad = 6;
+  if (!waypoints || waypoints.length < 2) {
+    return <div className="w-[72px] h-12 bg-gray-100 rounded-lg" />;
+  }
+  const lats = waypoints.map(p => p.latitude);
+  const lngs = waypoints.map(p => p.longitude);
+  const minLat = Math.min(...lats), maxLat = Math.max(...lats);
+  const minLng = Math.min(...lngs), maxLng = Math.max(...lngs);
+  const spanLat = maxLat - minLat || 1e-6;
+  const spanLng = maxLng - minLng || 1e-6;
+  const pts = waypoints.map(p => {
+    const x = pad + ((p.longitude - minLng) / spanLng) * (w - 2 * pad);
+    const y = pad + ((maxLat - p.latitude) / spanLat) * (h - 2 * pad);
+    return [x, y];
+  });
+  const [sx, sy] = pts[0];
+  const [ex, ey] = pts[pts.length - 1];
+  return (
+    <svg width={w} height={h} viewBox={`0 0 ${w} ${h}`} className="bg-blue-50 rounded-lg flex-shrink-0">
+      <polyline
+        points={pts.map(([x, y]) => `${x},${y}`).join(' ')}
+        fill="none" stroke="#2563eb" strokeWidth="2" strokeLinejoin="round" strokeLinecap="round"
+      />
+      <circle cx={sx} cy={sy} r="3" fill="#16a34a" />
+      <circle cx={ex} cy={ey} r="3" fill="#dc2626" />
+    </svg>
+  );
+}
+
 export default function FitnessTracker() {
   const [tab, setTab] = useState('today');
   const [templates, setTemplates] = useState(DEFAULT_TEMPLATES);
   const [plan, setPlan] = useState(DEFAULT_PLAN);
   const [strengthLogs, setStrengthLogs] = useState([]);
   const [cardioLogs, setCardioLogs] = useState([]);
-  const [activeSession, setActiveSession] = useState(null);
+  const [sessions, setSessions] = useState([]);
+  const [routes, setRoutes] = useState([]);
   const [toast, setToast] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
 
-  // Per-exercise input state, keyed `${template}::${exercise}` so shared
-  // exercise names across templates don't collide.
+  // Per-exercise input state, keyed `${sessionKey}::${exercise}` so the same
+  // exercise in two sessions (or templates) never collides.
   const [strengthInputs, setStrengthInputs] = useState({});
   const [cardioInputs, setCardioInputs] = useState({});
   const [justLogged, setJustLogged] = useState({});
 
   // Which history entry is expanded for per-set editing.
   const [expandedLogId, setExpandedLogId] = useState(null);
-  // Marks a stale (different-day) session's banner as dismissed, keyed by "date::templateName".
-  const [dismissedStale, setDismissedStale] = useState(null);
+  // Which Today workout cards are expanded (collapsed by default), keyed by session key.
+  const [expandedWorkouts, setExpandedWorkouts] = useState({});
+  // Stray-session recovery cards: dismissed hides the card for now, resumed
+  // shows the session's full logging UI alongside today's workouts.
+  const [dismissedStray, setDismissedStray] = useState({});
+  const [resumedStray, setResumedStray] = useState({});
 
-  // Template builder
-  const [builder, setBuilder] = useState({ name: '', exercises: [], draftName: '', draftType: 'gym' });
+  // Template builder. Bulk "paste a list" mode is the default — typing 5-8
+  // exercises one at a time was a genuine reported pain point.
+  const [builder, setBuilder] = useState({
+    name: '', exercises: [], mode: 'list',
+    bulkText: '', bulkType: 'gym',
+    draftName: '', draftType: 'gym'
+  });
   const [builderOpen, setBuilderOpen] = useState(false);
 
-  // Manual cardio
-  const [cardioForm, setCardioForm] = useState({ activity: 'Running', duration: 30, distance: 5 });
+  // Quick cardio sheet (floating action, not a permanently-visible card).
+  const [cardioSheetOpen, setCardioSheetOpen] = useState(false);
+  const [cardioForm, setCardioForm] = useState({ activity: 'Running', duration: 30, distance: 5, routeId: '' });
+  const [plannerOpen, setPlannerOpen] = useState(false);
 
   const todayISO = toISO(new Date());
   const todayName = new Date().toLocaleDateString('en-US', { weekday: 'long' });
-  const todayTemplateName = plan[todayName];
-  const todayTemplate = templates.find(t => t.name === todayTemplateName);
-  const key = (t, e) => `${t}::${e}`;
+  const plannedNames = dayList(plan[todayName]);
+  // "Today" is always derived live from the plan — never stored separately.
+  const plannedTemplates = plannedNames
+    .map(n => templates.find(t => t.name === n))
+    .filter(Boolean);
 
-  // The workout currently being worked through — either today's fresh session,
-  // or a leftover/outdated session that no longer matches today's plan (see
-  // stale banner below).
-  const sessionTemplate = activeSession
-    ? (templates.find(t => t.name === activeSession.templateName) || todayTemplate)
-    : todayTemplate;
-
-  const sessionMatchesPlan = !!activeSession && activeSession.date === todayISO && activeSession.templateName === todayTemplateName;
-  const sessionHasProgress = !!activeSession && Object.values(activeSession.exercises).some(ex => ex.sets.length > 0);
-  const isDifferentDay = !!activeSession && activeSession.date !== todayISO;
-  const staleKey = activeSession ? `${activeSession.date}::${activeSession.templateName}` : null;
-  const showStaleBanner = !!activeSession && !sessionMatchesPlan && sessionHasProgress && dismissedStale !== staleKey;
+  const inputKey = (sKey, e) => `${sKey}::${e}`;
 
   const showToast = (msg, isError = false) => {
     setToast({ message: msg, isError });
@@ -211,7 +279,7 @@ export default function FitnessTracker() {
     setTimeout(() => setJustLogged(p => ({ ...p, [k]: false })), 1500);
   };
 
-  // --- Persistence (summit.db via lib/db) ------------------------------------
+  // --- Persistence (summit-data.json via lib/db) -----------------------------
   const saveToStorage = (storageKey, data) => {
     dbSet(storageKey, data).catch(() => {
       showToast('Save failed — change may not persist.', true);
@@ -227,18 +295,21 @@ export default function FitnessTracker() {
         return fallback;
       }
     };
-    const [sl, cl, wt, wwp, as] = await Promise.all([
+    const [sl, cl, wt, wwp, as, rt] = await Promise.all([
       loadData(STORAGE_KEYS.strengthLogs, []),
       loadData(STORAGE_KEYS.cardioLogs, []),
       loadData(STORAGE_KEYS.workoutTemplates, DEFAULT_TEMPLATES),
       loadData(STORAGE_KEYS.weeklyWorkoutPlan, DEFAULT_PLAN),
-      loadData(STORAGE_KEYS.activeSession, null),
+      loadData(STORAGE_KEYS.activeSession, []),
+      loadData(STORAGE_KEYS.cardioRoutes, []),
     ]);
     setStrengthLogs(sl);
     setCardioLogs(cl);
     setTemplates(wt);
-    setPlan(wwp);
-    setActiveSession(as);
+    setPlan(normalizePlan(wwp));
+    // Legacy shape stored a single session object; now it's an array.
+    setSessions(Array.isArray(as) ? as : as ? [as] : []);
+    setRoutes(rt);
   };
 
   useEffect(() => {
@@ -275,41 +346,49 @@ export default function FitnessTracker() {
   const updateCardioLogs = (next) => { setCardioLogs(next); saveToStorage(STORAGE_KEYS.cardioLogs, next); };
   const updateTemplates = (next) => { setTemplates(next); saveToStorage(STORAGE_KEYS.workoutTemplates, next); };
   const updatePlan = (next) => { setPlan(next); saveToStorage(STORAGE_KEYS.weeklyWorkoutPlan, next); };
-  const updateActiveSession = (next) => { setActiveSession(next); saveToStorage(STORAGE_KEYS.activeSession, next); };
+  const updateSessions = (next) => { setSessions(next); saveToStorage(STORAGE_KEYS.activeSession, next); };
+  const updateRoutes = (next) => { setRoutes(next); saveToStorage(STORAGE_KEYS.cardioRoutes, next); };
 
-  // Keep the session in sync with today's plan. Starts a fresh session the
-  // first time a workout day loads, and also follows the Plan page: if the
-  // day's assigned workout changes and nothing has been logged against the
-  // old one yet, swap seamlessly. If sets are already recorded, leave the
-  // session alone — the stale banner offers an explicit Resume/Discard so
-  // in-progress data is never silently dropped.
+  // Reconcile sessions against today's plan:
+  //  - every planned template today with at least one gym exercise gets a
+  //    session (so picking a workout in Plan is instantly reflected in Today),
+  //  - sessions that no longer match the plan and have no progress are
+  //    dropped silently (stale leftovers from an old plan),
+  //  - sessions with progress are never removed here — they surface as
+  //    dismissible recovery cards instead of vanishing.
   useEffect(() => {
     if (isLoading) return;
-    const freshSessionFor = (tpl) => {
-      const firstGym = tpl?.exercises.find(e => e.type !== 'cardio');
-      return firstGym
-        ? { date: todayISO, templateName: tpl.name, exercises: {}, activeExercise: firstGym.name }
-        : null;
-    };
-    if (!activeSession) {
-      const fresh = freshSessionFor(todayTemplate);
-      if (fresh) updateActiveSession(fresh);
-      return;
-    }
-    const matchesPlan = activeSession.date === todayISO && activeSession.templateName === todayTemplateName;
-    if (matchesPlan) return;
-    const hasProgress = Object.values(activeSession.exercises).some(ex => ex.sets.length > 0);
-    if (hasProgress) return;
-    updateActiveSession(freshSessionFor(todayTemplate));
+    let next = sessions.filter(s =>
+      (s.date === todayISO && plannedNames.includes(s.templateName)) || sessionHasProgress(s)
+    );
+    plannedTemplates.forEach(tpl => {
+      const firstGym = tpl.exercises.find(e => e.type !== 'cardio');
+      if (!firstGym) return;
+      if (!next.some(s => s.date === todayISO && s.templateName === tpl.name)) {
+        next = [...next, { date: todayISO, templateName: tpl.name, exercises: {}, activeExercise: firstGym.name }];
+      }
+    });
+    const keysOf = (arr) => arr.map(sessionKey).sort().join('|');
+    if (keysOf(next) !== keysOf(sessions)) updateSessions(next);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isLoading, todayTemplateName, activeSession]);
+  }, [isLoading, plan, templates, sessions]);
+
+  // Sessions with progress that no longer match today's plan — candidates for
+  // the Resume/Discard recovery flow.
+  const straySessions = sessions.filter(s =>
+    !(s.date === todayISO && plannedNames.includes(s.templateName)) && sessionHasProgress(s)
+  );
 
   // --- Session actions (Add Set / Lock Set / Complete) ------------------------
-  const addSet = (exerciseName) => {
-    if (!activeSession) return;
-    const ik = key(activeSession.templateName, exerciseName);
+  const patchSession = (sKey, fn) => {
+    updateSessions(sessions.map(s => (sessionKey(s) === sKey ? fn(s) : s)));
+  };
+
+  const addSet = (session, exerciseName) => {
+    const sKey = sessionKey(session);
+    const ik = inputKey(sKey, exerciseName);
     const inp = strengthInputs[ik] || { weight: 40, reps: 8 };
-    const ex = activeSession.exercises[exerciseName] || { sets: [], locked: false };
+    const ex = session.exercises[exerciseName] || { sets: [], locked: false };
     if (ex.locked) return;
     const newSet = {
       setNumber: ex.sets.length + 1,
@@ -317,46 +396,45 @@ export default function FitnessTracker() {
       weight: Number(inp.weight) || 0,
       timestamp: Date.now()
     };
-    updateActiveSession({
-      ...activeSession,
-      exercises: { ...activeSession.exercises, [exerciseName]: { ...ex, sets: [...ex.sets, newSet] } }
-    });
-    setStrengthInputs(p => ({ ...p, [ik]: { weight: 40, reps: 8 } }));
+    patchSession(sKey, s => ({
+      ...s,
+      exercises: { ...s.exercises, [exerciseName]: { ...ex, sets: [...ex.sets, newSet] } }
+    }));
   };
 
-  const removeSetFromSession = (exerciseName, index) => {
-    if (!activeSession) return;
-    const ex = activeSession.exercises[exerciseName];
+  const removeSetFromSession = (session, exerciseName, index) => {
+    const ex = session.exercises[exerciseName];
     if (!ex || ex.locked) return;
     const sets = ex.sets.filter((_, i) => i !== index).map((s, i) => ({ ...s, setNumber: i + 1 }));
-    updateActiveSession({
-      ...activeSession,
-      exercises: { ...activeSession.exercises, [exerciseName]: { ...ex, sets } }
-    });
+    patchSession(sessionKey(session), s => ({
+      ...s,
+      exercises: { ...s.exercises, [exerciseName]: { ...ex, sets } }
+    }));
   };
 
-  const lockExercise = (exerciseName) => {
-    if (!activeSession || !sessionTemplate) return;
-    const ex = activeSession.exercises[exerciseName] || { sets: [], locked: false };
+  const lockExercise = (session, template, exerciseName) => {
+    const ex = session.exercises[exerciseName] || { sets: [], locked: false };
     if (ex.sets.length === 0) return;
-    const gymExercises = sessionTemplate.exercises.filter(e => e.type !== 'cardio');
+    const gymExercises = template.exercises.filter(e => e.type !== 'cardio');
+    const remaining = gymExercises.filter(e =>
+      e.name !== exerciseName && !session.exercises[e.name]?.locked
+    );
     const idx = gymExercises.findIndex(e => e.name === exerciseName);
-    const nextEx = gymExercises[idx + 1];
-    updateActiveSession({
-      ...activeSession,
-      exercises: { ...activeSession.exercises, [exerciseName]: { ...ex, locked: true } },
+    const nextEx = gymExercises.slice(idx + 1).find(e => !session.exercises[e.name]?.locked) || remaining[0];
+    patchSession(sessionKey(session), s => ({
+      ...s,
+      exercises: { ...s.exercises, [exerciseName]: { ...ex, locked: true } },
       activeExercise: nextEx ? nextEx.name : null
-    });
+    }));
     showToast(nextEx ? `${exerciseName} locked — next up: ${nextEx.name}` : `${exerciseName} locked`);
   };
 
-  const completeWorkout = () => {
-    if (!activeSession) return;
-    const entries = Object.entries(activeSession.exercises)
+  const completeWorkout = (session) => {
+    const entries = Object.entries(session.exercises)
       .filter(([, ex]) => ex.sets.length > 0)
       .map(([exercise, ex]) => ({
         id: Date.now() + Math.random(),
-        date: activeSession.date,
+        date: session.date,
         exercise,
         setDetails: ex.sets
       }));
@@ -365,16 +443,16 @@ export default function FitnessTracker() {
       return;
     }
     updateStrengthLogs([...strengthLogs, ...entries]);
-    updateActiveSession(null);
+    updateSessions(sessions.filter(s => sessionKey(s) !== sessionKey(session)));
+    setResumedStray(p => ({ ...p, [sessionKey(session)]: false }));
+    setExpandedWorkouts(p => ({ ...p, [sessionKey(session)]: false }));
     showToast('Workout complete!');
   };
 
-  const discardSession = () => {
-    updateActiveSession(null);
-    setDismissedStale(null);
+  const discardSession = (session) => {
+    updateSessions(sessions.filter(s => sessionKey(s) !== sessionKey(session)));
+    setResumedStray(p => ({ ...p, [sessionKey(session)]: false }));
   };
-
-  const resumeStaleSession = () => setDismissedStale(staleKey);
 
   // --- History editing (works on both legacy and per-set records) ------------
   const updateLogSet = (logId, setIndex, updatedSet) => {
@@ -397,8 +475,9 @@ export default function FitnessTracker() {
     }
   };
 
-  const logCardioFromPlan = (templateName, exercise) => {
-    const k = key(templateName, exercise);
+  // --- Cardio ----------------------------------------------------------------
+  const logCardioFromPlan = (sKey, exercise) => {
+    const k = inputKey(sKey, exercise);
     const mins = Number(cardioInputs[k] ?? 30);
     if (!mins || mins <= 0) return;
     updateCardioLogs([...cardioLogs, {
@@ -410,18 +489,35 @@ export default function FitnessTracker() {
     showToast(`${exercise} logged`);
   };
 
-  const logManualCardio = () => {
+  // Quick cardio: either manual entry, or from a saved route — the route
+  // pre-fills activity + distance so only duration needs entering.
+  const selectedRoute = cardioForm.routeId
+    ? routes.find(r => String(r.id) === String(cardioForm.routeId))
+    : null;
+
+  const logQuickCardio = () => {
     const duration = Number(cardioForm.duration);
     if (!duration || duration <= 0) return;
+    const activity = selectedRoute ? selectedRoute.activity : cardioForm.activity;
+    const distance = selectedRoute
+      ? Number(routeDistanceKm(selectedRoute).toFixed(2))
+      : Number(cardioForm.distance) || 0;
     updateCardioLogs([...cardioLogs, {
       id: Date.now(),
       date: toISO(new Date()),
-      activity: cardioForm.activity,
-      duration,
-      distance: Number(cardioForm.distance) || 0
+      activity, duration, distance
     }]);
-    showToast('Cardio session logged');
+    setCardioSheetOpen(false);
+    showToast(selectedRoute ? `${selectedRoute.name} logged` : 'Cardio session logged');
   };
+
+  const saveRoute = (route) => {
+    updateRoutes([...routes, route]);
+    setPlannerOpen(false);
+    showToast(`Route saved · ${(route.distanceMeters / 1000).toFixed(2)} km`);
+  };
+
+  const deleteRoute = (id) => updateRoutes(routes.filter(r => r.id !== id));
 
   // --- Template actions ------------------------------------------------------
   const addDraftExercise = () => {
@@ -429,14 +525,29 @@ export default function FitnessTracker() {
     setBuilder(p => ({
       ...p,
       exercises: [...p.exercises, { name: p.draftName.trim(), type: p.draftType }],
-      draftName: '', draftType: 'gym'
+      draftName: ''
+    }));
+  };
+
+  // Bulk entry: one exercise per line OR comma-separated (covers pasting from
+  // a notes app and typing a quick list), one type applied to the whole batch.
+  const addBulkExercises = () => {
+    const names = builder.bulkText
+      .split(/[\n,]+/)
+      .map(s => s.trim())
+      .filter(Boolean);
+    if (names.length === 0) return;
+    setBuilder(p => ({
+      ...p,
+      exercises: [...p.exercises, ...names.map(name => ({ name, type: p.bulkType }))],
+      bulkText: ''
     }));
   };
 
   const createTemplate = () => {
     if (!builder.name.trim() || builder.exercises.length === 0) return;
     updateTemplates([...templates, { id: Date.now(), name: builder.name.trim(), exercises: builder.exercises }]);
-    setBuilder({ name: '', exercises: [], draftName: '', draftType: 'gym' });
+    setBuilder({ name: '', exercises: [], mode: 'list', bulkText: '', bulkType: 'gym', draftName: '', draftType: 'gym' });
     setBuilderOpen(false);
     showToast('Workout created');
   };
@@ -447,9 +558,19 @@ export default function FitnessTracker() {
     // Un-assign it from any day it was scheduled on
     if (tpl) {
       const next = { ...plan };
-      DAYS.forEach(d => { if (next[d] === tpl.name) next[d] = 'Rest Day'; });
+      DAYS.forEach(d => { next[d] = dayList(next[d]).filter(n => n !== tpl.name); });
       updatePlan(next);
     }
+  };
+
+  // --- Plan actions ----------------------------------------------------------
+  const addWorkoutToDay = (day, name) => {
+    if (!name || dayList(plan[day]).includes(name)) return;
+    updatePlan({ ...plan, [day]: [...dayList(plan[day]), name] });
+  };
+
+  const removeWorkoutFromDay = (day, name) => {
+    updatePlan({ ...plan, [day]: dayList(plan[day]).filter(n => n !== name) });
   };
 
   // --- Stats -----------------------------------------------------------------
@@ -466,10 +587,13 @@ export default function FitnessTracker() {
     return Object.entries(map).sort((a, b) => b[0].localeCompare(a[0]));
   };
 
-  // --- Shared bits -----------------------------------------------------------
-  const renderExerciseCard = (templateName, ex) => {
-    const k = key(templateName, ex.name);
+  // --- Exercise card inside an expanded workout ------------------------------
+  const renderExerciseCard = (session, template, ex) => {
+    const sKey = sessionKey(session);
+    const k = inputKey(sKey, ex.name);
     const logged = justLogged[k];
+
+    // Cardio inside a template: duration input + log, outside the set/lock flow.
     if (ex.type === 'cardio') {
       return (
         <div key={k} className="bg-white rounded-2xl border border-gray-200 p-4">
@@ -482,9 +606,9 @@ export default function FitnessTracker() {
             <Stepper label="Minutes" value={cardioInputs[k] ?? 30} step={5}
               onChange={v => setCardioInputs(p => ({ ...p, [k]: v }))} />
             <button
-              onClick={() => logCardioFromPlan(templateName, ex.name)}
+              onClick={() => logCardioFromPlan(sKey, ex.name)}
               className={`h-11 px-5 rounded-xl text-sm font-semibold transition-colors flex items-center gap-1.5 ${
-                logged ? 'bg-green-500 text-white' : 'bg-blue-600 text-white active:bg-blue-700'
+                logged ? 'bg-green-500 text-white' : 'bg-orange-500 text-white active:bg-orange-600'
               }`}
             >
               {logged ? <Check className="w-4 h-4" /> : null}
@@ -495,10 +619,9 @@ export default function FitnessTracker() {
       );
     }
 
-    if (!activeSession) return null;
-    const exSession = activeSession.exercises[ex.name] || { sets: [], locked: false };
+    const exSession = session.exercises[ex.name] || { sets: [], locked: false };
     const isLocked = exSession.locked;
-    const isActive = activeSession.activeExercise === ex.name && !isLocked;
+    const isActive = session.activeExercise === ex.name && !isLocked;
 
     if (isLocked) {
       return (
@@ -523,13 +646,15 @@ export default function FitnessTracker() {
       return (
         <button
           key={k}
-          onClick={() => updateActiveSession({ ...activeSession, activeExercise: ex.name })}
+          onClick={() => patchSession(sKey, s => ({ ...s, activeExercise: ex.name }))}
           className="w-full text-left bg-white rounded-2xl border border-dashed border-gray-200 p-4 opacity-60"
         >
           <div className="flex items-center gap-2">
             <Dumbbell className="w-4 h-4 text-gray-300" />
             <span className="font-medium text-gray-400 text-sm">{ex.name}</span>
-            <span className="text-[10px] text-gray-300 ml-auto">Not started</span>
+            <span className="text-[10px] text-gray-300 ml-auto">
+              {exSession.sets.length > 0 ? `${exSession.sets.length} sets` : 'Not started'}
+            </span>
           </div>
         </button>
       );
@@ -552,7 +677,7 @@ export default function FitnessTracker() {
             {exSession.sets.map((s, i) => (
               <span key={s.setNumber} className="text-[11px] bg-gray-100 rounded-full pl-2 pr-1 py-0.5 text-gray-600 flex items-center gap-1">
                 {s.weight}kg × {s.reps}
-                <button onClick={() => removeSetFromSession(ex.name, i)} className="text-gray-400 active:text-red-500">
+                <button onClick={() => removeSetFromSession(session, ex.name, i)} className="text-gray-400 active:text-red-500">
                   <X className="w-3 h-3" />
                 </button>
               </span>
@@ -566,13 +691,13 @@ export default function FitnessTracker() {
         </div>
         <div className="flex gap-2">
           <button
-            onClick={() => addSet(ex.name)}
+            onClick={() => addSet(session, ex.name)}
             className="flex-1 h-11 rounded-xl text-sm font-semibold bg-blue-600 text-white active:bg-blue-700 flex items-center justify-center gap-1.5"
           >
             <Plus className="w-4 h-4" /> Add set
           </button>
           <button
-            onClick={() => lockExercise(ex.name)}
+            onClick={() => lockExercise(session, template, ex.name)}
             disabled={exSession.sets.length === 0}
             className="flex-1 h-11 rounded-xl text-sm font-semibold bg-gray-900 text-white active:bg-gray-700 disabled:opacity-30 flex items-center justify-center gap-1.5"
           >
@@ -583,7 +708,68 @@ export default function FitnessTracker() {
     );
   };
 
+  // --- Collapsible workout card on Today -------------------------------------
+  // Collapsed by default (name + status only) so a multi-workout day stays
+  // scannable; expand-on-demand reveals the full logging UI.
+  const renderWorkoutCard = (session, { stray = false } = {}) => {
+    const sKey = sessionKey(session);
+    const template = templates.find(t => t.name === session.templateName) || {
+      // Template was deleted mid-session — synthesize enough to keep logging.
+      name: session.templateName,
+      exercises: Object.keys(session.exercises).map(name => ({ name, type: 'gym' }))
+    };
+    const expanded = !!expandedWorkouts[sKey];
+    const gymCount = template.exercises.filter(e => e.type !== 'cardio').length;
+    const lockedCount = template.exercises.filter(e => session.exercises[e.name]?.locked).length;
+    const setCount = sessionSetCount(session);
+
+    return (
+      <div key={sKey} className={`rounded-2xl overflow-hidden ${stray ? 'ring-2 ring-amber-300' : ''}`}>
+        <button
+          onClick={() => setExpandedWorkouts(p => ({ ...p, [sKey]: !expanded }))}
+          className="w-full bg-blue-600 p-4 text-white text-left"
+        >
+          <div className="flex items-center justify-between">
+            <div className="min-w-0">
+              <div className="text-[11px] uppercase tracking-wide text-blue-200">
+                {stray ? `Resumed · ${formatSwiss(session.date)}` : todayName}
+              </div>
+              <div className="text-lg font-bold truncate">{template.name}</div>
+              <div className="text-xs text-blue-200">
+                {template.exercises.length} exercises
+                {setCount > 0 ? ` · ${setCount} sets logged` : ''}
+                {lockedCount > 0 ? ` · ${lockedCount}/${gymCount} done` : ''}
+              </div>
+            </div>
+            <ChevronDown className={`w-5 h-5 text-blue-200 flex-shrink-0 transition-transform ${expanded ? 'rotate-180' : ''}`} />
+          </div>
+        </button>
+        {expanded && (
+          <div className="space-y-3 bg-transparent pt-3">
+            {template.exercises.map(ex => renderExerciseCard(session, template, ex))}
+            <button
+              onClick={() => completeWorkout(session)}
+              className="w-full h-12 rounded-xl text-sm font-bold bg-green-600 text-white active:bg-green-700 flex items-center justify-center gap-2"
+            >
+              <Check className="w-4 h-4" /> Complete workout
+            </button>
+          </div>
+        )}
+      </div>
+    );
+  };
+
   // --- Pages -----------------------------------------------------------------
+  const visibleStrays = straySessions.filter(s => !dismissedStray[sessionKey(s)]);
+  const resumedSessions = straySessions.filter(s => resumedStray[sessionKey(s)]);
+  const todaySessions = plannedTemplates
+    .map(tpl => sessions.find(s => s.date === todayISO && s.templateName === tpl.name))
+    .filter(Boolean);
+  // Cardio-only templates have no session — render them as a simple card.
+  const cardioOnlyTemplates = plannedTemplates.filter(
+    tpl => !tpl.exercises.some(e => e.type !== 'cardio')
+  );
+
   const TodayPage = (
     <div className="space-y-3">
       <div className="flex gap-2">
@@ -592,83 +778,77 @@ export default function FitnessTracker() {
         <StatCard icon={CalendarDays} label="This week" value={sessionsThisWeek} sub="active days" />
       </div>
 
-      {showStaleBanner && (
-        <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4">
-          <div className="flex items-center gap-2 mb-1">
-            <AlertTriangle className="w-4 h-4 text-amber-500" />
-            <span className="text-sm font-semibold text-amber-800">Unfinished workout</span>
-          </div>
-          <div className="text-xs text-amber-700 mb-3">
-            {isDifferentDay
-              ? <>{activeSession.templateName} from {formatSwiss(activeSession.date)} was never completed.</>
-              : <>You have unfinished sets for {activeSession.templateName}, but today's plan now shows {todayTemplateName}.</>}
-          </div>
-          <div className="flex gap-2">
-            <button onClick={resumeStaleSession}
-              className="flex-1 h-9 rounded-lg bg-amber-600 text-white text-xs font-semibold active:bg-amber-700">
-              Resume
-            </button>
-            <button onClick={discardSession}
-              className="flex-1 h-9 rounded-lg bg-white border border-amber-300 text-amber-700 text-xs font-semibold active:bg-amber-100">
-              Discard
-            </button>
-          </div>
-        </div>
-      )}
-
-      {sessionTemplate ? (
-        <>
-          <div className="bg-blue-600 rounded-2xl p-4 text-white">
-            <div className="text-[11px] uppercase tracking-wide text-blue-200">
-              {isDifferentDay ? formatSwiss(activeSession.date) : todayName}
+      {/* Stray in-progress sessions: small, dismissible recovery cards rather
+          than one big blocking banner. */}
+      {visibleStrays.filter(s => !resumedStray[sessionKey(s)]).map(s => {
+        const sKey = sessionKey(s);
+        return (
+          <div key={sKey} className="bg-amber-50 border border-amber-200 rounded-2xl p-3">
+            <div className="flex items-start gap-2">
+              <AlertTriangle className="w-4 h-4 text-amber-500 mt-0.5 flex-shrink-0" />
+              <div className="min-w-0 flex-1">
+                <div className="text-xs font-semibold text-amber-800">
+                  {s.templateName} · {formatSwiss(s.date)}
+                </div>
+                <div className="text-[11px] text-amber-700">
+                  {sessionSetCount(s)} sets logged, never completed.
+                </div>
+              </div>
+              <button
+                onClick={() => setDismissedStray(p => ({ ...p, [sKey]: true }))}
+                className="text-amber-400 active:text-amber-600 flex-shrink-0"
+                aria-label="Dismiss"
+              >
+                <X className="w-4 h-4" />
+              </button>
             </div>
-            <div className="text-lg font-bold">{sessionTemplate.name}</div>
-            <div className="text-xs text-blue-200">{sessionTemplate.exercises.length} exercises</div>
+            <div className="flex gap-2 mt-2.5">
+              <button
+                onClick={() => {
+                  setResumedStray(p => ({ ...p, [sKey]: true }));
+                  setExpandedWorkouts(p => ({ ...p, [sKey]: true }));
+                }}
+                className="flex-1 h-8 rounded-lg bg-amber-600 text-white text-xs font-semibold active:bg-amber-700"
+              >
+                Resume
+              </button>
+              <button
+                onClick={() => discardSession(s)}
+                className="flex-1 h-8 rounded-lg bg-white border border-amber-300 text-amber-700 text-xs font-semibold active:bg-amber-100"
+              >
+                Discard
+              </button>
+            </div>
           </div>
-          {sessionTemplate.exercises.map(ex => renderExerciseCard(sessionTemplate.name, ex))}
-          {activeSession && sessionTemplate.exercises.some(e => e.type !== 'cardio') && (
-            <button
-              onClick={completeWorkout}
-              className="w-full h-12 rounded-xl text-sm font-bold bg-green-600 text-white active:bg-green-700 flex items-center justify-center gap-2"
-            >
-              <Check className="w-4 h-4" /> Complete workout
-            </button>
-          )}
-        </>
-      ) : (
+        );
+      })}
+
+      {resumedSessions.map(s => renderWorkoutCard(s, { stray: true }))}
+
+      {todaySessions.map(s => renderWorkoutCard(s))}
+
+      {cardioOnlyTemplates.map(tpl => {
+        // No session for cardio-only workouts — log each activity directly.
+        const pseudo = { date: todayISO, templateName: tpl.name, exercises: {}, activeExercise: null };
+        return (
+          <div key={tpl.name} className="space-y-3">
+            <div className="bg-orange-500 rounded-2xl p-4 text-white">
+              <div className="text-[11px] uppercase tracking-wide text-orange-100">{todayName}</div>
+              <div className="text-lg font-bold">{tpl.name}</div>
+              <div className="text-xs text-orange-100">{tpl.exercises.length} cardio exercises</div>
+            </div>
+            {tpl.exercises.map(ex => renderExerciseCard(pseudo, tpl, ex))}
+          </div>
+        );
+      })}
+
+      {plannedTemplates.length === 0 && resumedSessions.length === 0 && (
         <div className="bg-white rounded-2xl border border-gray-200 p-6 text-center">
           <Moon className="w-6 h-6 text-gray-300 mx-auto mb-2" />
           <div className="font-semibold text-gray-900 text-sm">Rest day</div>
           <div className="text-xs text-gray-400 mt-1">Nothing scheduled for {todayName}. Recovery counts too.</div>
         </div>
       )}
-
-      <div className="bg-white rounded-2xl border border-gray-200 p-4">
-        <div className="flex items-center gap-2 mb-3">
-          <Activity className="w-4 h-4 text-orange-500" />
-          <span className="font-semibold text-gray-900 text-sm">Quick cardio</span>
-        </div>
-        <div className="relative mb-3">
-          <select
-            value={cardioForm.activity}
-            onChange={e => setCardioForm(p => ({ ...p, activity: e.target.value }))}
-            className="w-full appearance-none bg-gray-100 rounded-xl px-4 py-3 text-sm text-gray-900 outline-none"
-          >
-            {CARDIO_ACTIVITIES.map(a => <option key={a} value={a}>{a}</option>)}
-          </select>
-          <ChevronDown className="w-4 h-4 text-gray-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
-        </div>
-        <div className="flex gap-2 mb-3">
-          <Stepper label="Minutes" value={cardioForm.duration} step={5}
-            onChange={v => setCardioForm(p => ({ ...p, duration: v }))} />
-          <Stepper label="Distance" unit="km" value={cardioForm.distance}
-            onChange={v => setCardioForm(p => ({ ...p, distance: v }))} />
-        </div>
-        <button onClick={logManualCardio}
-          className="w-full h-11 bg-orange-500 text-white rounded-xl text-sm font-semibold active:bg-orange-600">
-          Log cardio
-        </button>
-      </div>
     </div>
   );
 
@@ -689,27 +869,47 @@ export default function FitnessTracker() {
           </div>
         </div>
         <div className="space-y-1.5">
-          {DAYS.map(day => (
-            <div key={day}
-              className={`flex items-center gap-3 rounded-xl px-3 py-2 ${day === todayName ? 'bg-blue-50' : ''}`}>
-              <span className={`text-xs w-20 flex-shrink-0 ${day === todayName ? 'font-bold text-blue-600' : 'text-gray-500'}`}>
-                {day.slice(0, 3)}{day === todayName ? ' •' : ''}
-              </span>
-              <div className="relative flex-1">
-                <select
-                  value={plan[day]}
-                  onChange={e => updatePlan({ ...plan, [day]: e.target.value })}
-                  className={`w-full appearance-none rounded-lg px-3 py-2 text-xs outline-none ${
-                    plan[day] === 'Rest Day' ? 'bg-gray-100 text-gray-400' : 'bg-white border border-gray-200 text-gray-900 font-medium'
-                  }`}
-                >
-                  <option value="Rest Day">Rest Day</option>
-                  {templates.map(t => <option key={t.id} value={t.name}>{t.name}</option>)}
-                </select>
-                <ChevronDown className="w-3.5 h-3.5 text-gray-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+          {DAYS.map(day => {
+            const assigned = dayList(plan[day]);
+            const available = templates.filter(t => !assigned.includes(t.name));
+            return (
+              <div key={day}
+                className={`flex items-start gap-3 rounded-xl px-3 py-2 ${day === todayName ? 'bg-blue-50' : ''}`}>
+                <span className={`text-xs w-12 flex-shrink-0 pt-1.5 ${day === todayName ? 'font-bold text-blue-600' : 'text-gray-500'}`}>
+                  {day.slice(0, 3)}{day === todayName ? ' •' : ''}
+                </span>
+                <div className="flex-1 min-w-0 flex flex-wrap items-center gap-1.5">
+                  {assigned.length === 0 && (
+                    <span className="text-[11px] text-gray-300 py-1">Rest day</span>
+                  )}
+                  {assigned.map(name => (
+                    <span key={name}
+                      className="text-[11px] bg-blue-100 text-blue-700 rounded-full pl-2.5 pr-1 py-1 flex items-center gap-1 font-medium">
+                      {name}
+                      <button onClick={() => removeWorkoutFromDay(day, name)}
+                        className="text-blue-400 active:text-red-500" aria-label={`Remove ${name} from ${day}`}>
+                        <X className="w-3 h-3" />
+                      </button>
+                    </span>
+                  ))}
+                  {available.length > 0 && (
+                    <div className="relative">
+                      <select
+                        value=""
+                        onChange={e => addWorkoutToDay(day, e.target.value)}
+                        className="appearance-none bg-gray-100 text-gray-500 rounded-full pl-2.5 pr-6 py-1 text-[11px] outline-none"
+                        aria-label={`Add workout to ${day}`}
+                      >
+                        <option value="" disabled>+ Add</option>
+                        {available.map(t => <option key={t.id} value={t.name}>{t.name}</option>)}
+                      </select>
+                      <ChevronDown className="w-3 h-3 text-gray-400 absolute right-1.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                    </div>
+                  )}
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </div>
 
@@ -731,27 +931,70 @@ export default function FitnessTracker() {
               placeholder="Workout name"
               className="w-full bg-white border border-gray-200 rounded-lg px-3 py-2.5 text-sm outline-none focus:border-blue-500"
             />
-            <div className="flex gap-2">
-              <input
-                value={builder.draftName}
-                onChange={e => setBuilder(p => ({ ...p, draftName: e.target.value }))}
-                onKeyDown={e => e.key === 'Enter' && addDraftExercise()}
-                placeholder="Exercise"
-                className="flex-1 min-w-0 bg-white border border-gray-200 rounded-lg px-3 py-2.5 text-sm outline-none focus:border-blue-500"
-              />
-              <button
-                onClick={() => setBuilder(p => ({ ...p, draftType: p.draftType === 'gym' ? 'cardio' : 'gym' }))}
-                className={`px-3 rounded-lg text-[11px] font-medium flex-shrink-0 ${
-                  builder.draftType === 'gym' ? 'bg-blue-100 text-blue-600' : 'bg-orange-100 text-orange-600'
-                }`}
-              >
-                {builder.draftType}
-              </button>
-              <button onClick={addDraftExercise}
-                className="bg-gray-900 text-white rounded-lg px-3 flex-shrink-0 active:bg-gray-700">
-                <Plus className="w-4 h-4" />
-              </button>
+
+            {/* Entry mode toggle — bulk list is the default */}
+            <div className="flex bg-gray-200/60 rounded-lg p-0.5">
+              {[['list', 'Paste a list'], ['single', 'One at a time']].map(([mode, label]) => (
+                <button key={mode}
+                  onClick={() => setBuilder(p => ({ ...p, mode }))}
+                  className={`flex-1 text-[11px] font-medium py-1.5 rounded-md ${
+                    builder.mode === mode ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500'
+                  }`}
+                >
+                  {label}
+                </button>
+              ))}
             </div>
+
+            {builder.mode === 'list' ? (
+              <>
+                <textarea
+                  value={builder.bulkText}
+                  onChange={e => setBuilder(p => ({ ...p, bulkText: e.target.value }))}
+                  placeholder={'One exercise per line, or comma-separated:\nSquat\nLeg Press, Calf Raise'}
+                  rows={4}
+                  className="w-full bg-white border border-gray-200 rounded-lg px-3 py-2.5 text-sm outline-none focus:border-blue-500 resize-none"
+                />
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => setBuilder(p => ({ ...p, bulkType: p.bulkType === 'gym' ? 'cardio' : 'gym' }))}
+                    className={`px-3 py-2 rounded-lg text-[11px] font-medium flex-shrink-0 ${
+                      builder.bulkType === 'gym' ? 'bg-blue-100 text-blue-600' : 'bg-orange-100 text-orange-600'
+                    }`}
+                  >
+                    {builder.bulkType}
+                  </button>
+                  <button onClick={addBulkExercises}
+                    disabled={!builder.bulkText.trim()}
+                    className="flex-1 bg-gray-900 text-white rounded-lg py-2 text-xs font-semibold disabled:opacity-40 active:bg-gray-700 flex items-center justify-center gap-1">
+                    <ClipboardList className="w-3.5 h-3.5" /> Add list
+                  </button>
+                </div>
+              </>
+            ) : (
+              <div className="flex gap-2">
+                <input
+                  value={builder.draftName}
+                  onChange={e => setBuilder(p => ({ ...p, draftName: e.target.value }))}
+                  onKeyDown={e => e.key === 'Enter' && addDraftExercise()}
+                  placeholder="Exercise"
+                  className="flex-1 min-w-0 bg-white border border-gray-200 rounded-lg px-3 py-2.5 text-sm outline-none focus:border-blue-500"
+                />
+                <button
+                  onClick={() => setBuilder(p => ({ ...p, draftType: p.draftType === 'gym' ? 'cardio' : 'gym' }))}
+                  className={`px-3 rounded-lg text-[11px] font-medium flex-shrink-0 ${
+                    builder.draftType === 'gym' ? 'bg-blue-100 text-blue-600' : 'bg-orange-100 text-orange-600'
+                  }`}
+                >
+                  {builder.draftType}
+                </button>
+                <button onClick={addDraftExercise}
+                  className="bg-gray-900 text-white rounded-lg px-3 flex-shrink-0 active:bg-gray-700">
+                  <Plus className="w-4 h-4" />
+                </button>
+              </div>
+            )}
+
             {builder.exercises.length > 0 && (
               <div className="flex flex-wrap gap-1.5">
                 {builder.exercises.map((ex, i) => (
@@ -798,6 +1041,39 @@ export default function FitnessTracker() {
             <p className="text-xs text-gray-400 text-center py-2">No workouts yet — create one above.</p>
           )}
         </div>
+      </div>
+
+      {/* Saved cardio routes */}
+      <div className="bg-white rounded-2xl border border-gray-200 p-4">
+        <div className="flex items-center justify-between mb-3">
+          <span className="font-semibold text-gray-900 text-sm">Routes</span>
+          <button onClick={() => setPlannerOpen(true)}
+            className="flex items-center gap-1 text-[11px] font-medium text-blue-600 bg-blue-50 px-2.5 py-1 rounded-lg active:bg-blue-100">
+            <MapPin className="w-3 h-3" /> Plan route
+          </button>
+        </div>
+        {routes.length === 0 ? (
+          <p className="text-xs text-gray-400 text-center py-2">
+            No routes yet — plan one to make logging repeat runs a two-tap action.
+          </p>
+        ) : (
+          <div className="space-y-2">
+            {routes.map(r => (
+              <div key={r.id} className="flex items-center gap-3 border border-gray-200 rounded-xl p-2.5">
+                <RouteThumb waypoints={r.waypoints} />
+                <div className="min-w-0 flex-1">
+                  <div className="text-sm font-medium text-gray-900 truncate">{r.name}</div>
+                  <div className="text-[11px] text-gray-400">
+                    {r.activity} · {routeDistanceKm(r).toFixed(2)} km · {r.waypoints.length} points
+                  </div>
+                </div>
+                <button onClick={() => deleteRoute(r.id)} className="text-gray-300 active:text-red-500 p-1 flex-shrink-0">
+                  <Trash2 className="w-4 h-4" />
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );
@@ -921,7 +1197,7 @@ export default function FitnessTracker() {
   return (
     <div className="min-h-screen bg-[#f7f7f5] text-[#37352f] font-sans antialiased">
       {toast && (
-        <div className={`fixed top-4 left-1/2 -translate-x-1/2 z-50 text-xs px-4 py-2.5 rounded-full shadow-lg flex items-center gap-1.5 whitespace-nowrap ${
+        <div className={`fixed top-4 left-1/2 -translate-x-1/2 z-[60] text-xs px-4 py-2.5 rounded-full shadow-lg flex items-center gap-1.5 whitespace-nowrap ${
           toast.isError ? 'bg-red-600 text-white' : 'bg-gray-900 text-white'
         }`}>
           {toast.isError ? <AlertTriangle className="w-3.5 h-3.5" /> : <Check className="w-3.5 h-3.5" />}
@@ -944,7 +1220,7 @@ export default function FitnessTracker() {
             >
               <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
             </button>
-            <span className="text-xs text-gray-400">{formatSwiss(toISO(new Date()))}</span>
+            <span className="text-xs text-gray-400">{formatSwiss(todayISO)}</span>
           </div>
         </div>
       </div>
@@ -961,6 +1237,98 @@ export default function FitnessTracker() {
         {tab === 'plan' && PlanPage}
         {tab === 'history' && HistoryPage}
       </div>
+
+      {/* Floating quick-cardio action (Today only) */}
+      {tab === 'today' && (
+        <button
+          onClick={() => {
+            setCardioForm(p => ({ ...p, routeId: '' }));
+            setCardioSheetOpen(true);
+          }}
+          aria-label="Log quick cardio"
+          className="fixed bottom-20 right-4 z-40 w-14 h-14 bg-orange-500 text-white rounded-full shadow-lg shadow-orange-500/30 flex items-center justify-center active:bg-orange-600"
+        >
+          <Activity className="w-6 h-6" />
+        </button>
+      )}
+
+      {/* Quick cardio bottom sheet */}
+      {cardioSheetOpen && (
+        <div className="fixed inset-0 z-50">
+          <div className="absolute inset-0 bg-black/40" onClick={() => setCardioSheetOpen(false)} />
+          <div className="absolute bottom-0 inset-x-0 bg-white rounded-t-2xl p-4 pb-[max(1rem,env(safe-area-inset-bottom))] max-w-md mx-auto">
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-2">
+                <Activity className="w-4 h-4 text-orange-500" />
+                <span className="font-semibold text-gray-900 text-sm">Quick cardio</span>
+              </div>
+              <button onClick={() => setCardioSheetOpen(false)} className="text-gray-400 active:text-gray-600 p-1" aria-label="Close">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Route picker — a saved route turns "log today's run" into two taps */}
+            {routes.length > 0 && (
+              <div className="relative mb-2">
+                <select
+                  value={cardioForm.routeId}
+                  onChange={e => setCardioForm(p => ({ ...p, routeId: e.target.value }))}
+                  className="w-full appearance-none bg-blue-50 text-blue-700 rounded-xl px-4 py-3 text-sm font-medium outline-none"
+                >
+                  <option value="">Manual entry (no route)</option>
+                  {routes.map(r => (
+                    <option key={r.id} value={r.id}>
+                      {r.name} · {r.activity} · {routeDistanceKm(r).toFixed(2)} km
+                    </option>
+                  ))}
+                </select>
+                <ChevronDown className="w-4 h-4 text-blue-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+              </div>
+            )}
+
+            {!selectedRoute && (
+              <div className="relative mb-2">
+                <select
+                  value={cardioForm.activity}
+                  onChange={e => setCardioForm(p => ({ ...p, activity: e.target.value }))}
+                  className="w-full appearance-none bg-gray-100 rounded-xl px-4 py-3 text-sm text-gray-900 outline-none"
+                >
+                  {CARDIO_ACTIVITIES.map(a => <option key={a} value={a}>{a}</option>)}
+                </select>
+                <ChevronDown className="w-4 h-4 text-gray-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+              </div>
+            )}
+
+            <div className="flex gap-2 mb-3">
+              <Stepper label="Minutes" value={cardioForm.duration} step={5}
+                onChange={v => setCardioForm(p => ({ ...p, duration: v }))} />
+              {selectedRoute ? (
+                <div className="flex-1 min-w-0">
+                  <div className="text-[10px] uppercase tracking-wide text-gray-400 mb-1 text-center">Distance (km)</div>
+                  <div className="bg-blue-50 rounded-xl py-3 text-center text-sm font-semibold text-blue-700 tabular-nums">
+                    {routeDistanceKm(selectedRoute).toFixed(2)}
+                  </div>
+                </div>
+              ) : (
+                <Stepper label="Distance" unit="km" value={cardioForm.distance}
+                  onChange={v => setCardioForm(p => ({ ...p, distance: v }))} />
+              )}
+            </div>
+            <button onClick={logQuickCardio}
+              className="w-full h-11 bg-orange-500 text-white rounded-xl text-sm font-semibold active:bg-orange-600">
+              Log {selectedRoute ? selectedRoute.name : 'cardio'}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {plannerOpen && (
+        <RoutePlanner
+          activities={CARDIO_ACTIVITIES}
+          onSave={saveRoute}
+          onClose={() => setPlannerOpen(false)}
+        />
+      )}
 
       {/* Bottom tab bar */}
       <nav className="fixed bottom-0 inset-x-0 z-40 bg-white border-t border-gray-200 pb-[env(safe-area-inset-bottom)]">

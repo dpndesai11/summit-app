@@ -1,4 +1,5 @@
 import { Trash2 } from 'lucide-react';
+import { dayWorkoutList } from '../lib/planUtils';
 
 export default function FitnessDeck({
   strengthLogs,
@@ -178,7 +179,7 @@ export default function FitnessDeck({
                   <span className="text-gray-800 dark:text-gray-200 font-medium">{day}</span>
                   <select
                     className="bg-white dark:bg-[#2c2c2c] border border-gray-200 dark:border-white/10 text-gray-700 dark:text-gray-300 rounded-md px-2 py-1 text-sm focus:outline-none"
-                    value={weeklyWorkoutPlan[day] || 'Rest Day'}
+                    value={dayWorkoutList(weeklyWorkoutPlan[day])[0] || 'Rest Day'}
                     onChange={(e) => handleUpdateWeeklyWorkout(day, e.target.value)}
                   >
                     <option value="Rest Day">Rest Day</option>
