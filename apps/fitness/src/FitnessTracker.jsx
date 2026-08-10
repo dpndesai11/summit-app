@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import {
   Dumbbell, CalendarDays, History, Flame, Timer, Trash2, Plus,
   Check, Minus, Moon, ChevronDown, Activity, X, Loader2, AlertTriangle,
-  Lock, RefreshCw, MapPin, ClipboardList
+  Lock, RefreshCw, MapPin, ClipboardList, PersonStanding
 } from 'lucide-react';
 import { dbGet, dbSet, dbRefresh } from './lib/db';
 import { routeDistanceKm } from './lib/geo';
@@ -33,13 +33,56 @@ const STORAGE_KEYS = {
 
 const DEFAULT_TEMPLATES = [
   { id: 1, name: 'Lower Deck Alpha', exercises: [
-    { name: 'Squat', type: 'gym' }, { name: 'Leg Press', type: 'gym' }, { name: 'Calf Raise', type: 'gym' }
+    { name: 'Squat', type: 'weight' }, { name: 'Leg Press', type: 'weight' }, { name: 'Calf Raise', type: 'weight' }
   ]},
   { id: 2, name: 'Upper Deck Prime', exercises: [
-    { name: 'Bench Press', type: 'gym' }, { name: 'Lat Pulldown', type: 'gym' },
-    { name: 'Shoulder Press', type: 'gym' }, { name: 'Bicep Curl', type: 'gym' }
+    { name: 'Bench Press', type: 'weight' }, { name: 'Lat Pulldown', type: 'weight' },
+    { name: 'Shoulder Press', type: 'weight' }, { name: 'Bicep Curl', type: 'weight' }
   ]}
 ];
+
+// --- Exercise types -----------------------------------------------------
+// Every exercise is one of three types, each with its own logging fields and
+// color treatment throughout the app. 'gym' from older data means a weighted
+// lift, so it normalizes to 'weight' (see normalizeExerciseType).
+const EXERCISE_TYPE_ORDER = ['weight', 'bodyweight', 'cardio'];
+
+const TYPE_META = {
+  weight: {
+    label: 'Weight', icon: Dumbbell,
+    badge: 'bg-blue-50 text-blue-600',
+    chip: 'bg-blue-100 text-blue-700',
+    iconText: 'text-blue-500',
+    cardBorder: 'border-blue-200',
+    cardBadge: 'text-blue-500 bg-blue-50',
+    logBtn: 'bg-blue-600 active:bg-blue-700',
+  },
+  bodyweight: {
+    label: 'Bodyweight', icon: PersonStanding,
+    badge: 'bg-teal-50 text-teal-600',
+    chip: 'bg-teal-100 text-teal-700',
+    iconText: 'text-teal-500',
+    cardBorder: 'border-teal-200',
+    cardBadge: 'text-teal-500 bg-teal-50',
+    logBtn: 'bg-teal-600 active:bg-teal-700',
+  },
+  cardio: {
+    label: 'Cardio', icon: Activity,
+    badge: 'bg-orange-50 text-orange-600',
+    chip: 'bg-orange-100 text-orange-700',
+    iconText: 'text-orange-500',
+    cardBorder: 'border-orange-200',
+    cardBadge: 'text-orange-500 bg-orange-50',
+    logBtn: 'bg-orange-500 active:bg-orange-600',
+  },
+};
+
+const normalizeExerciseType = (t) => (t === 'bodyweight' || t === 'cardio' ? t : 'weight');
+const cycleExerciseType = (t) => EXERCISE_TYPE_ORDER[(EXERCISE_TYPE_ORDER.indexOf(normalizeExerciseType(t)) + 1) % EXERCISE_TYPE_ORDER.length];
+const normalizeTemplateExercises = (tpl) => ({
+  ...tpl,
+  exercises: (tpl.exercises || []).map(e => ({ ...e, type: normalizeExerciseType(e.type) }))
+});
 
 const DEFAULT_PLAN = {
   Monday: ['Lower Deck Alpha'], Tuesday: [], Wednesday: ['Upper Deck Prime'],
@@ -110,6 +153,11 @@ const logVolume = (log) => expandLogSets(log).reduce(
   (a, s) => a + (Number(s.weight) || 0) * (Number(s.reps) || 0), 0
 );
 
+// Strength logs carry a `type` ('weight' | 'bodyweight') set at completion
+// time from the template's exercise definition. Older logs predate the
+// field, and were always weighted lifts, so they default to 'weight'.
+const logType = (log) => (log.type === 'bodyweight' ? 'bodyweight' : 'weight');
+
 // --- Session helpers ---------------------------------------------------------
 // A session's identity is date::templateName — the same template can run on
 // two different dates, or two templates on the same date, but not the same
@@ -159,18 +207,23 @@ function StatCard({ icon: Icon, label, value, sub }) {
 }
 
 // Compact editable row for one set within an expanded history entry.
-function EditableSetRow({ set, onChange, onDelete }) {
+function EditableSetRow({ set, type = 'weight', onChange, onDelete }) {
+  const isBodyweight = type === 'bodyweight';
   return (
     <div className="flex items-center gap-2 bg-white rounded-lg px-2.5 py-1.5 border border-gray-100">
       <span className="text-[10px] text-gray-400 w-10 flex-shrink-0">Set {set.setNumber}</span>
-      <input
-        type="number"
-        inputMode="decimal"
-        value={set.weight}
-        onChange={e => onChange({ ...set, weight: e.target.value === '' ? '' : Number(e.target.value) })}
-        className="w-14 bg-gray-50 border border-gray-200 rounded-md text-center text-xs py-1 outline-none focus:border-blue-400"
-      />
-      <span className="text-[10px] text-gray-400 flex-shrink-0">kg ×</span>
+      {!isBodyweight && (
+        <>
+          <input
+            type="number"
+            inputMode="decimal"
+            value={set.weight}
+            onChange={e => onChange({ ...set, weight: e.target.value === '' ? '' : Number(e.target.value) })}
+            className="w-14 bg-gray-50 border border-gray-200 rounded-md text-center text-xs py-1 outline-none focus:border-blue-400"
+          />
+          <span className="text-[10px] text-gray-400 flex-shrink-0">kg ×</span>
+        </>
+      )}
       <input
         type="number"
         inputMode="numeric"
@@ -249,8 +302,8 @@ export default function FitnessTracker() {
   // exercises one at a time was a genuine reported pain point.
   const [builder, setBuilder] = useState({
     name: '', exercises: [], mode: 'list',
-    bulkText: '', bulkType: 'gym',
-    draftName: '', draftType: 'gym'
+    bulkText: '', bulkType: 'weight',
+    draftName: '', draftType: 'weight'
   });
   const [builderOpen, setBuilderOpen] = useState(false);
 
@@ -305,7 +358,8 @@ export default function FitnessTracker() {
     ]);
     setStrengthLogs(sl);
     setCardioLogs(cl);
-    setTemplates(wt);
+    // Legacy 'gym' exercises (and anything else unrecognized) normalize to 'weight'.
+    setTemplates((Array.isArray(wt) ? wt : []).map(normalizeTemplateExercises));
     setPlan(normalizePlan(wwp));
     // Legacy shape stored a single session object; now it's an array.
     setSessions(Array.isArray(as) ? as : as ? [as] : []);
@@ -384,21 +438,24 @@ export default function FitnessTracker() {
     updateSessions(sessions.map(s => (sessionKey(s) === sKey ? fn(s) : s)));
   };
 
-  const addSet = (session, exerciseName) => {
+  // exDef is the template's exercise definition ({ name, type }) — the type
+  // decides whether a weight is recorded at all.
+  const addSet = (session, exDef) => {
     const sKey = sessionKey(session);
-    const ik = inputKey(sKey, exerciseName);
-    const inp = strengthInputs[ik] || { weight: 40, reps: 8 };
-    const ex = session.exercises[exerciseName] || { sets: [], locked: false };
+    const ik = inputKey(sKey, exDef.name);
+    const isBodyweight = exDef.type === 'bodyweight';
+    const inp = strengthInputs[ik] || (isBodyweight ? { reps: 8 } : { weight: 40, reps: 8 });
+    const ex = session.exercises[exDef.name] || { sets: [], locked: false };
     if (ex.locked) return;
     const newSet = {
       setNumber: ex.sets.length + 1,
       reps: Number(inp.reps) || 0,
-      weight: Number(inp.weight) || 0,
+      weight: isBodyweight ? 0 : (Number(inp.weight) || 0),
       timestamp: Date.now()
     };
     patchSession(sKey, s => ({
       ...s,
-      exercises: { ...s.exercises, [exerciseName]: { ...ex, sets: [...ex.sets, newSet] } }
+      exercises: { ...s.exercises, [exDef.name]: { ...ex, sets: [...ex.sets, newSet] } }
     }));
   };
 
@@ -430,12 +487,14 @@ export default function FitnessTracker() {
   };
 
   const completeWorkout = (session) => {
+    const template = templates.find(t => t.name === session.templateName);
     const entries = Object.entries(session.exercises)
       .filter(([, ex]) => ex.sets.length > 0)
       .map(([exercise, ex]) => ({
         id: Date.now() + Math.random(),
         date: session.date,
         exercise,
+        type: template?.exercises.find(e => e.name === exercise)?.type === 'bodyweight' ? 'bodyweight' : 'weight',
         setDetails: ex.sets
       }));
     if (entries.length === 0) {
@@ -547,9 +606,22 @@ export default function FitnessTracker() {
   const createTemplate = () => {
     if (!builder.name.trim() || builder.exercises.length === 0) return;
     updateTemplates([...templates, { id: Date.now(), name: builder.name.trim(), exercises: builder.exercises }]);
-    setBuilder({ name: '', exercises: [], mode: 'list', bulkText: '', bulkType: 'gym', draftName: '', draftType: 'gym' });
+    setBuilder({ name: '', exercises: [], mode: 'list', bulkText: '', bulkType: 'weight', draftName: '', draftType: 'weight' });
     setBuilderOpen(false);
     showToast('Workout created');
+  };
+
+  // Lets an exercise's type be changed after the fact — both while still
+  // drafting in the builder and on an already-saved template — without
+  // deleting and re-adding it.
+  const cycleTemplateExerciseType = (templateId, exerciseIndex) => {
+    updateTemplates(templates.map(t => {
+      if (t.id !== templateId) return t;
+      return {
+        ...t,
+        exercises: t.exercises.map((e, i) => i === exerciseIndex ? { ...e, type: cycleExerciseType(e.type) } : e)
+      };
+    }));
   };
 
   const deleteTemplate = (id) => {
@@ -592,15 +664,17 @@ export default function FitnessTracker() {
     const sKey = sessionKey(session);
     const k = inputKey(sKey, ex.name);
     const logged = justLogged[k];
+    const meta = TYPE_META[ex.type] || TYPE_META.weight;
+    const Icon = meta.icon;
 
     // Cardio inside a template: duration input + log, outside the set/lock flow.
     if (ex.type === 'cardio') {
       return (
         <div key={k} className="bg-white rounded-2xl border border-gray-200 p-4">
           <div className="flex items-center gap-2 mb-3">
-            <Activity className="w-4 h-4 text-orange-500" />
+            <Icon className={`w-4 h-4 ${meta.iconText}`} />
             <span className="font-semibold text-gray-900 text-sm">{ex.name}</span>
-            <span className="text-[10px] uppercase tracking-wide text-orange-500 bg-orange-50 px-2 py-0.5 rounded-full ml-auto">cardio</span>
+            <span className={`text-[10px] uppercase tracking-wide px-2 py-0.5 rounded-full ml-auto ${meta.badge}`}>cardio</span>
           </div>
           <div className="flex items-end gap-3">
             <Stepper label="Minutes" value={cardioInputs[k] ?? 30} step={5}
@@ -608,7 +682,7 @@ export default function FitnessTracker() {
             <button
               onClick={() => logCardioFromPlan(sKey, ex.name)}
               className={`h-11 px-5 rounded-xl text-sm font-semibold transition-colors flex items-center gap-1.5 ${
-                logged ? 'bg-green-500 text-white' : 'bg-orange-500 text-white active:bg-orange-600'
+                logged ? 'bg-green-500 text-white' : `${meta.logBtn} text-white`
               }`}
             >
               {logged ? <Check className="w-4 h-4" /> : null}
@@ -619,6 +693,8 @@ export default function FitnessTracker() {
       );
     }
 
+    const isBodyweight = ex.type === 'bodyweight';
+    const formatSet = (s) => (isBodyweight ? `${s.reps} reps` : `${s.weight}kg × ${s.reps}`);
     const exSession = session.exercises[ex.name] || { sets: [], locked: false };
     const isLocked = exSession.locked;
     const isActive = session.activeExercise === ex.name && !isLocked;
@@ -634,7 +710,7 @@ export default function FitnessTracker() {
           <div className="flex flex-wrap gap-1.5">
             {exSession.sets.map(s => (
               <span key={s.setNumber} className="text-[11px] bg-white border border-gray-200 rounded-full px-2 py-0.5 text-gray-500">
-                {s.weight}kg × {s.reps}
+                {formatSet(s)}
               </span>
             ))}
           </div>
@@ -650,7 +726,7 @@ export default function FitnessTracker() {
           className="w-full text-left bg-white rounded-2xl border border-dashed border-gray-200 p-4 opacity-60"
         >
           <div className="flex items-center gap-2">
-            <Dumbbell className="w-4 h-4 text-gray-300" />
+            <Icon className="w-4 h-4 text-gray-300" />
             <span className="font-medium text-gray-400 text-sm">{ex.name}</span>
             <span className="text-[10px] text-gray-300 ml-auto">
               {exSession.sets.length > 0 ? `${exSession.sets.length} sets` : 'Not started'}
@@ -660,14 +736,14 @@ export default function FitnessTracker() {
       );
     }
 
-    const inp = strengthInputs[k] || { weight: 40, reps: 8 };
+    const inp = strengthInputs[k] || (isBodyweight ? { reps: 8 } : { weight: 40, reps: 8 });
     const setInp = (field, v) => setStrengthInputs(p => ({ ...p, [k]: { ...inp, [field]: v } }));
     return (
-      <div key={k} className="bg-white rounded-2xl border border-blue-200 p-4">
+      <div key={k} className={`bg-white rounded-2xl border p-4 ${meta.cardBorder}`}>
         <div className="flex items-center gap-2 mb-3">
-          <Dumbbell className="w-4 h-4 text-blue-500" />
+          <Icon className={`w-4 h-4 ${meta.iconText}`} />
           <span className="font-semibold text-gray-900 text-sm">{ex.name}</span>
-          <span className="text-[10px] text-blue-500 bg-blue-50 px-2 py-0.5 rounded-full ml-auto">
+          <span className={`text-[10px] px-2 py-0.5 rounded-full ml-auto ${meta.cardBadge}`}>
             {exSession.sets.length} set{exSession.sets.length === 1 ? '' : 's'} logged
           </span>
         </div>
@@ -676,7 +752,7 @@ export default function FitnessTracker() {
           <div className="flex flex-wrap gap-1.5 mb-3">
             {exSession.sets.map((s, i) => (
               <span key={s.setNumber} className="text-[11px] bg-gray-100 rounded-full pl-2 pr-1 py-0.5 text-gray-600 flex items-center gap-1">
-                {s.weight}kg × {s.reps}
+                {formatSet(s)}
                 <button onClick={() => removeSetFromSession(session, ex.name, i)} className="text-gray-400 active:text-red-500">
                   <X className="w-3 h-3" />
                 </button>
@@ -686,13 +762,15 @@ export default function FitnessTracker() {
         )}
 
         <div className="flex gap-2 mb-3">
-          <Stepper label="Weight" unit="kg" value={inp.weight} step={2.5} onChange={v => setInp('weight', v)} />
+          {!isBodyweight && (
+            <Stepper label="Weight" unit="kg" value={inp.weight} step={2.5} onChange={v => setInp('weight', v)} />
+          )}
           <Stepper label="Reps" value={inp.reps} onChange={v => setInp('reps', v)} />
         </div>
         <div className="flex gap-2">
           <button
-            onClick={() => addSet(session, ex.name)}
-            className="flex-1 h-11 rounded-xl text-sm font-semibold bg-blue-600 text-white active:bg-blue-700 flex items-center justify-center gap-1.5"
+            onClick={() => addSet(session, ex)}
+            className={`flex-1 h-11 rounded-xl text-sm font-semibold text-white flex items-center justify-center gap-1.5 ${meta.logBtn}`}
           >
             <Plus className="w-4 h-4" /> Add set
           </button>
@@ -716,7 +794,7 @@ export default function FitnessTracker() {
     const template = templates.find(t => t.name === session.templateName) || {
       // Template was deleted mid-session — synthesize enough to keep logging.
       name: session.templateName,
-      exercises: Object.keys(session.exercises).map(name => ({ name, type: 'gym' }))
+      exercises: Object.keys(session.exercises).map(name => ({ name, type: 'weight' }))
     };
     const expanded = !!expandedWorkouts[sKey];
     const gymCount = template.exercises.filter(e => e.type !== 'cardio').length;
@@ -957,12 +1035,12 @@ export default function FitnessTracker() {
                 />
                 <div className="flex gap-2">
                   <button
-                    onClick={() => setBuilder(p => ({ ...p, bulkType: p.bulkType === 'gym' ? 'cardio' : 'gym' }))}
-                    className={`px-3 py-2 rounded-lg text-[11px] font-medium flex-shrink-0 ${
-                      builder.bulkType === 'gym' ? 'bg-blue-100 text-blue-600' : 'bg-orange-100 text-orange-600'
-                    }`}
+                    onClick={() => setBuilder(p => ({ ...p, bulkType: cycleExerciseType(p.bulkType) }))}
+                    className={`px-3 py-2 rounded-lg text-[11px] font-medium flex-shrink-0 flex items-center gap-1 ${TYPE_META[builder.bulkType].chip}`}
+                    title="Tap to change type for the whole list"
                   >
-                    {builder.bulkType}
+                    {(() => { const Icon = TYPE_META[builder.bulkType].icon; return <Icon className="w-3.5 h-3.5" />; })()}
+                    {TYPE_META[builder.bulkType].label}
                   </button>
                   <button onClick={addBulkExercises}
                     disabled={!builder.bulkText.trim()}
@@ -981,12 +1059,11 @@ export default function FitnessTracker() {
                   className="flex-1 min-w-0 bg-white border border-gray-200 rounded-lg px-3 py-2.5 text-sm outline-none focus:border-blue-500"
                 />
                 <button
-                  onClick={() => setBuilder(p => ({ ...p, draftType: p.draftType === 'gym' ? 'cardio' : 'gym' }))}
-                  className={`px-3 rounded-lg text-[11px] font-medium flex-shrink-0 ${
-                    builder.draftType === 'gym' ? 'bg-blue-100 text-blue-600' : 'bg-orange-100 text-orange-600'
-                  }`}
+                  onClick={() => setBuilder(p => ({ ...p, draftType: cycleExerciseType(p.draftType) }))}
+                  className={`px-3 rounded-lg text-[11px] font-medium flex-shrink-0 flex items-center gap-1 ${TYPE_META[builder.draftType].chip}`}
                 >
-                  {builder.draftType}
+                  {(() => { const Icon = TYPE_META[builder.draftType].icon; return <Icon className="w-3.5 h-3.5" />; })()}
+                  {TYPE_META[builder.draftType].label}
                 </button>
                 <button onClick={addDraftExercise}
                   className="bg-gray-900 text-white rounded-lg px-3 flex-shrink-0 active:bg-gray-700">
@@ -997,16 +1074,32 @@ export default function FitnessTracker() {
 
             {builder.exercises.length > 0 && (
               <div className="flex flex-wrap gap-1.5">
-                {builder.exercises.map((ex, i) => (
-                  <button key={i}
-                    onClick={() => setBuilder(p => ({ ...p, exercises: p.exercises.filter((_, j) => j !== i) }))}
-                    className={`text-[11px] px-2.5 py-1 rounded-full flex items-center gap-1 ${
-                      ex.type === 'cardio' ? 'bg-orange-100 text-orange-700' : 'bg-blue-100 text-blue-700'
-                    }`}
-                  >
-                    {ex.name} <X className="w-3 h-3" />
-                  </button>
-                ))}
+                {/* Each exercise keeps its own type after being added — tap the
+                    name to cycle Weight → Bodyweight → Cardio, tap × to remove. */}
+                {builder.exercises.map((ex, i) => {
+                  const meta = TYPE_META[ex.type] || TYPE_META.weight;
+                  return (
+                    <div key={i} className={`text-[11px] pl-2.5 pr-1 py-1 rounded-full flex items-center gap-1 ${meta.chip}`}>
+                      <button
+                        onClick={() => setBuilder(p => ({
+                          ...p,
+                          exercises: p.exercises.map((e, j) => j === i ? { ...e, type: cycleExerciseType(e.type) } : e)
+                        }))}
+                        className="flex items-center gap-1"
+                        title="Tap to change type"
+                      >
+                        {ex.name}
+                        <span className="opacity-70">· {meta.label}</span>
+                      </button>
+                      <button
+                        onClick={() => setBuilder(p => ({ ...p, exercises: p.exercises.filter((_, j) => j !== i) }))}
+                        aria-label={`Remove ${ex.name}`}
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                    </div>
+                  );
+                })}
               </div>
             )}
             <button onClick={createTemplate}
@@ -1027,12 +1120,16 @@ export default function FitnessTracker() {
                 </button>
               </div>
               <div className="flex flex-wrap gap-1">
+                {/* Tap an exercise to cycle its type — stays editable after the
+                    workout is saved, no need to delete and re-add. */}
                 {t.exercises.map((ex, i) => (
-                  <span key={i} className={`text-[10px] px-2 py-0.5 rounded-full ${
-                    ex.type === 'cardio' ? 'bg-orange-50 text-orange-600' : 'bg-gray-100 text-gray-500'
-                  }`}>
+                  <button key={i}
+                    onClick={() => cycleTemplateExerciseType(t.id, i)}
+                    className={`text-[10px] px-2 py-0.5 rounded-full ${(TYPE_META[ex.type] || TYPE_META.weight).badge}`}
+                    title="Tap to change type"
+                  >
                     {ex.name}
-                  </span>
+                  </button>
                 ))}
               </div>
             </div>
@@ -1101,13 +1198,19 @@ export default function FitnessTracker() {
                   {logs.map(l => {
                     const sets = expandLogSets(l);
                     const expanded = expandedLogId === l.id;
+                    const type = logType(l);
                     return (
                       <div key={l.id} className="bg-gray-50 rounded-lg px-3 py-2">
                         <button
                           onClick={() => setExpandedLogId(expanded ? null : l.id)}
                           className="w-full flex items-center justify-between"
                         >
-                          <span className="text-xs font-medium text-gray-900">{l.exercise}</span>
+                          <div className="flex items-center gap-1.5 min-w-0">
+                            <span className="text-xs font-medium text-gray-900 truncate">{l.exercise}</span>
+                            {type === 'bodyweight' && (
+                              <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-teal-50 text-teal-600 flex-shrink-0">BW</span>
+                            )}
+                          </div>
                           <div className="flex items-center gap-3">
                             <span className="text-xs text-gray-500 tabular-nums">{logSetCount(l)} sets</span>
                             <ChevronDown className={`w-3.5 h-3.5 text-gray-400 transition-transform ${expanded ? 'rotate-180' : ''}`} />
@@ -1119,6 +1222,7 @@ export default function FitnessTracker() {
                               <EditableSetRow
                                 key={i}
                                 set={s}
+                                type={type}
                                 onChange={updated => updateLogSet(l.id, i, updated)}
                                 onDelete={() => deleteLogSet(l.id, i)}
                               />
