@@ -44,9 +44,18 @@ jobs:
           VITE_GITHUB_OWNER: ${{ secrets.VITE_GITHUB_OWNER }}
           VITE_GITHUB_REPO: ${{ secrets.VITE_GITHUB_REPO }}
           VITE_GITHUB_TOKEN: ${{ secrets.VITE_GITHUB_TOKEN }}
+      - run: npm ci
+        working-directory: apps/eat
+      - run: npm run build
+        working-directory: apps/eat
+        env:
+          VITE_GITHUB_OWNER: ${{ secrets.VITE_GITHUB_OWNER }}
+          VITE_GITHUB_REPO: ${{ secrets.VITE_GITHUB_REPO }}
+          VITE_GITHUB_TOKEN: ${{ secrets.VITE_GITHUB_TOKEN }}
       - run: |
-          mkdir -p apps/tasks/dist/fitness
+          mkdir -p apps/tasks/dist/fitness apps/tasks/dist/eat
           cp -r apps/fitness/dist/. apps/tasks/dist/fitness/
+          cp -r apps/eat/dist/. apps/tasks/dist/eat/
       - uses: actions/upload-pages-artifact@v3
         with:
           path: apps/tasks/dist
