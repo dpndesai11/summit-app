@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import {
   CalendarDays, ShoppingCart, ChefHat, Coffee, Apple, Sandwich, Cookie, CookingPot,
-  Plus, X, Trash2, Check, ChevronDown, Loader2, AlertTriangle, RefreshCw, ClipboardList
+  Plus, X, Trash2, Check, ChevronDown, Loader2, AlertTriangle, RefreshCw, ClipboardList, Pencil
 } from 'lucide-react';
 import { dbGet, dbSet, dbRefresh } from './lib/db';
 
@@ -40,22 +40,29 @@ const SLOT_META = {
   dinner: { label: 'Dinner', icon: CookingPot, text: 'text-purple-600', badge: 'bg-purple-50 text-purple-700', bg: 'bg-purple-600' },
 };
 
-const EMPTY_DAY = { breakfast: null, snack1: null, lunch: null, snack2: null, dinner: null };
-const EMPTY_PLAN = DAYS.reduce((acc, d) => ({ ...acc, [d]: { ...EMPTY_DAY } }), {});
+// Each slot holds a LIST of recipe names — not just one — so a slot can
+// carry a meal plus a side, or several snacks, the same "list per day/slot"
+// pattern the fitness app uses for multi-workout days.
+const emptyDay = () => ({ breakfast: [], snack1: [], lunch: [], snack2: [], dinner: [] });
+const EMPTY_PLAN = DAYS.reduce((acc, d) => ({ ...acc, [d]: emptyDay() }), {});
 
 const DEFAULT_RECIPES = [
   { id: 1, name: 'Overnight Oats', ingredients: ['Rolled oats', 'Milk', 'Chia seeds', 'Honey', 'Berries'], notes: 'Mix and refrigerate overnight.' },
   { id: 2, name: 'Chicken Stir-fry', ingredients: ['Chicken breast', 'Broccoli', 'Bell pepper', 'Soy sauce', 'Garlic', 'Rice'], notes: '' },
 ];
 
-// A day's slots may predate this shape (missing keys, or a legacy string
-// value) — normalize on read so older data never crashes the UI.
+// A slot's value may be a list of recipe names (current shape) or a single
+// string / null (legacy shape, one recipe per slot) — normalize on read so
+// older data upgrades in place instead of crashing the UI.
+const slotList = (v) => {
+  if (Array.isArray(v)) return v.filter(n => typeof n === 'string' && n.trim());
+  if (typeof v === 'string' && v.trim()) return [v];
+  return [];
+};
+
 const normalizeDay = (raw) => {
-  const day = { ...EMPTY_DAY };
-  SLOTS.forEach(s => {
-    const v = raw?.[s];
-    day[s] = (typeof v === 'string' && v.trim()) ? v : null;
-  });
+  const day = emptyDay();
+  SLOTS.forEach(s => { day[s] = slotList(raw?.[s]); });
   return day;
 };
 
@@ -93,11 +100,14 @@ export default function NutritionPlanner() {
   const [expandedIngredient, setExpandedIngredient] = useState(null);
 
   // Recipe builder. Bulk "paste a list" is the default entry mode — pasting
-  // 5-8 ingredients at once beats typing them one at a time.
+  // 5-8 ingredients at once beats typing them one at a time. The same form
+  // is reused for editing: editingRecipeId set means Save updates that
+  // recipe in place instead of creating a new one.
   const [builder, setBuilder] = useState({
     name: '', ingredients: [], notes: '', mode: 'list', bulkText: '', draftName: ''
   });
   const [builderOpen, setBuilderOpen] = useState(false);
+  const [editingRecipeId, setEditingRecipeId] = useState(null);
 
   const [extraInput, setExtraInput] = useState('');
 
@@ -168,12 +178,20 @@ export default function NutritionPlanner() {
   const updateShoppingExtras = (next) => { setShoppingExtras(next); saveToStorage(STORAGE_KEYS.shoppingExtras, next); };
 
   // --- Plan actions ------------------------------------------------------------
-  const assignSlot = (day, slot, recipeName) => {
-    updatePlan({ ...plan, [day]: { ...plan[day], [slot]: recipeName || null } });
+  const addToSlot = (day, slot, recipeName) => {
+    if (!recipeName) return;
+    const current = plan[day]?.[slot] || [];
+    if (current.includes(recipeName)) return;
+    updatePlan({ ...plan, [day]: { ...plan[day], [slot]: [...current, recipeName] } });
+  };
+
+  const removeFromSlot = (day, slot, recipeName) => {
+    const current = plan[day]?.[slot] || [];
+    updatePlan({ ...plan, [day]: { ...plan[day], [slot]: current.filter(n => n !== recipeName) } });
   };
 
   const clearDay = (day) => {
-    updatePlan({ ...plan, [day]: { ...EMPTY_DAY } });
+    updatePlan({ ...plan, [day]: emptyDay() });
   };
 
   const clearWeek = () => {
@@ -216,14 +234,45 @@ export default function NutritionPlanner() {
     setBuilder(p => ({ ...p, ingredients: p.ingredients.filter((_, j) => j !== i) }));
   };
 
-  const createRecipe = () => {
-    if (!builder.name.trim() || builder.ingredients.length === 0) return;
-    updateRecipes([...recipes, {
-      id: Date.now(), name: builder.name.trim(), ingredients: builder.ingredients, notes: builder.notes.trim()
-    }]);
+  const resetBuilder = () => {
     setBuilder({ name: '', ingredients: [], notes: '', mode: 'list', bulkText: '', draftName: '' });
+    setEditingRecipeId(null);
     setBuilderOpen(false);
-    showToast('Recipe saved');
+  };
+
+  const startEditRecipe = (recipe) => {
+    setBuilder({ name: recipe.name, ingredients: [...recipe.ingredients], notes: recipe.notes || '', mode: 'list', bulkText: '', draftName: '' });
+    setEditingRecipeId(recipe.id);
+    setExpandedRecipeId(null);
+    setBuilderOpen(true);
+  };
+
+  // Creates a new recipe, or — when editingRecipeId is set — updates that
+  // recipe in place. A rename cascades into the weekly plan, since slots
+  // reference recipes by name.
+  const saveRecipe = () => {
+    const name = builder.name.trim();
+    if (!name || builder.ingredients.length === 0) return;
+
+    if (editingRecipeId) {
+      const prev = recipes.find(r => r.id === editingRecipeId);
+      updateRecipes(recipes.map(r => (
+        r.id === editingRecipeId ? { ...r, name, ingredients: builder.ingredients, notes: builder.notes.trim() } : r
+      )));
+      if (prev && prev.name !== name) {
+        const next = {};
+        DAYS.forEach(d => {
+          next[d] = { ...plan[d] };
+          SLOTS.forEach(s => { next[d][s] = (plan[d][s] || []).map(n => (n === prev.name ? name : n)); });
+        });
+        updatePlan(next);
+      }
+      showToast('Recipe updated');
+    } else {
+      updateRecipes([...recipes, { id: Date.now(), name, ingredients: builder.ingredients, notes: builder.notes.trim() }]);
+      showToast('Recipe saved');
+    }
+    resetBuilder();
   };
 
   const deleteRecipe = (id) => {
@@ -234,9 +283,10 @@ export default function NutritionPlanner() {
       const next = {};
       DAYS.forEach(d => {
         next[d] = { ...plan[d] };
-        SLOTS.forEach(s => { if (next[d][s] === recipe.name) next[d][s] = null; });
+        SLOTS.forEach(s => { next[d][s] = (plan[d][s] || []).filter(n => n !== recipe.name); });
       });
       updatePlan(next);
+      if (editingRecipeId === id) resetBuilder();
     }
   };
 
@@ -247,17 +297,17 @@ export default function NutritionPlanner() {
     const map = new Map();
     DAYS.forEach(day => {
       SLOTS.forEach(slot => {
-        const recipeName = plan[day]?.[slot];
-        if (!recipeName) return;
-        const recipe = recipes.find(r => r.name === recipeName);
-        if (!recipe) return;
-        recipe.ingredients.forEach(ing => {
-          const key = ingredientKey(ing);
-          if (!key) return;
-          const entry = map.get(key) || { key, name: normalizeIngredientName(ing), count: 0, uses: [] };
-          entry.count += 1;
-          entry.uses.push({ recipe: recipe.name, day, slot });
-          map.set(key, entry);
+        (plan[day]?.[slot] || []).forEach(recipeName => {
+          const recipe = recipes.find(r => r.name === recipeName);
+          if (!recipe) return;
+          recipe.ingredients.forEach(ing => {
+            const key = ingredientKey(ing);
+            if (!key) return;
+            const entry = map.get(key) || { key, name: normalizeIngredientName(ing), count: 0, uses: [] };
+            entry.count += 1;
+            entry.uses.push({ recipe: recipe.name, day, slot });
+            map.set(key, entry);
+          });
         });
       });
     });
@@ -289,7 +339,7 @@ export default function NutritionPlanner() {
 
   // --- Stats -----------------------------------------------------------------
   const mealsPlannedThisWeek = DAYS.reduce(
-    (a, d) => a + SLOTS.filter(s => plan[d]?.[s]).length, 0
+    (a, d) => a + SLOTS.reduce((b, s) => b + (plan[d]?.[s]?.length || 0), 0), 0
   );
   const shoppingItemCount = shoppingItems.length + shoppingExtras.length;
 
@@ -307,15 +357,13 @@ export default function NutritionPlanner() {
         <div className="text-lg font-bold">Today's meals</div>
       </div>
 
-      {SLOTS.map(slot => {
+      {SLOTS.flatMap(slot => {
         const meta = SLOT_META[slot];
         const Icon = meta.icon;
-        const recipeName = plan[todayName]?.[slot];
-        const recipe = recipeName ? recipes.find(r => r.name === recipeName) : null;
-        const eKey = `today::${slot}`;
-        const expanded = expandedIngredient === eKey;
-        if (!recipe) {
-          return (
+        const recipeNames = plan[todayName]?.[slot] || [];
+
+        if (recipeNames.length === 0) {
+          return [(
             <div key={slot} className="bg-white rounded-2xl border border-dashed border-gray-200 p-4 opacity-60">
               <div className="flex items-center gap-2">
                 <Icon className="w-4 h-4 text-gray-300" />
@@ -323,34 +371,41 @@ export default function NutritionPlanner() {
                 <span className="text-[10px] text-gray-300 ml-auto">Not planned</span>
               </div>
             </div>
-          );
+          )];
         }
-        return (
-          <div key={slot} className="bg-white rounded-2xl border border-gray-200 p-4">
-            <button
-              onClick={() => setExpandedIngredient(expanded ? null : eKey)}
-              className="w-full flex items-center gap-2"
-            >
-              <Icon className={`w-4 h-4 ${meta.text}`} />
-              <span className={`text-[10px] uppercase tracking-wide px-2 py-0.5 rounded-full ${meta.badge}`}>{meta.label}</span>
-              <span className="font-semibold text-gray-900 text-sm truncate">{recipe.name}</span>
-              <ChevronDown className={`w-3.5 h-3.5 text-gray-400 ml-auto flex-shrink-0 transition-transform ${expanded ? 'rotate-180' : ''}`} />
-            </button>
-            {expanded && (
-              <div className="mt-3 space-y-2">
-                <div className="flex flex-wrap gap-1">
-                  {recipe.ingredients.map((ing, i) => (
-                    <span key={i} className="text-[11px] bg-gray-100 text-gray-600 rounded-full px-2 py-0.5">{ing}</span>
-                  ))}
+
+        return recipeNames.map(recipeName => {
+          const recipe = recipes.find(r => r.name === recipeName);
+          if (!recipe) return null;
+          const eKey = `today::${slot}::${recipeName}`;
+          const expanded = expandedIngredient === eKey;
+          return (
+            <div key={eKey} className="bg-white rounded-2xl border border-gray-200 p-4">
+              <button
+                onClick={() => setExpandedIngredient(expanded ? null : eKey)}
+                className="w-full flex items-center gap-2"
+              >
+                <Icon className={`w-4 h-4 ${meta.text}`} />
+                <span className={`text-[10px] uppercase tracking-wide px-2 py-0.5 rounded-full ${meta.badge}`}>{meta.label}</span>
+                <span className="font-semibold text-gray-900 text-sm truncate">{recipe.name}</span>
+                <ChevronDown className={`w-3.5 h-3.5 text-gray-400 ml-auto flex-shrink-0 transition-transform ${expanded ? 'rotate-180' : ''}`} />
+              </button>
+              {expanded && (
+                <div className="mt-3 space-y-2">
+                  <div className="flex flex-wrap gap-1">
+                    {recipe.ingredients.map((ing, i) => (
+                      <span key={i} className="text-[11px] bg-gray-100 text-gray-600 rounded-full px-2 py-0.5">{ing}</span>
+                    ))}
+                  </div>
+                  {recipe.notes && <p className="text-xs text-gray-500 whitespace-pre-line">{recipe.notes}</p>}
                 </div>
-                {recipe.notes && <p className="text-xs text-gray-500">{recipe.notes}</p>}
-              </div>
-            )}
-          </div>
-        );
+              )}
+            </div>
+          );
+        }).filter(Boolean);
       })}
 
-      {SLOTS.every(s => !plan[todayName]?.[s]) && (
+      {SLOTS.every(s => (plan[todayName]?.[s] || []).length === 0) && (
         <div className="bg-white rounded-2xl border border-gray-200 p-6 text-center">
           <ChefHat className="w-6 h-6 text-gray-300 mx-auto mb-2" />
           <div className="font-semibold text-gray-900 text-sm">Nothing planned for today</div>
@@ -375,8 +430,8 @@ export default function NutritionPlanner() {
         </div>
         <div className="space-y-1.5">
           {DAYS.map(day => {
-            const dayPlan = plan[day] || EMPTY_DAY;
-            const plannedCount = SLOTS.filter(s => dayPlan[s]).length;
+            const dayPlan = plan[day] || emptyDay();
+            const plannedCount = SLOTS.reduce((a, s) => a + dayPlan[s].length, 0);
             const expanded = !!expandedDays[day];
             return (
               <div key={day} className={`rounded-xl overflow-hidden ${day === todayName ? 'ring-1 ring-green-200' : ''}`}>
@@ -387,30 +442,48 @@ export default function NutritionPlanner() {
                   <span className={`text-xs w-20 text-left flex-shrink-0 ${day === todayName ? 'font-bold text-green-700' : 'text-gray-500'}`}>
                     {day}{day === todayName ? ' •' : ''}
                   </span>
-                  <span className="text-[11px] text-gray-400">{plannedCount}/5 planned</span>
+                  <span className="text-[11px] text-gray-400">{plannedCount} planned</span>
                   <ChevronDown className={`w-3.5 h-3.5 text-gray-400 ml-auto transition-transform ${expanded ? 'rotate-180' : ''}`} />
                 </button>
                 {expanded && (
-                  <div className="bg-white p-3 space-y-2 border border-t-0 border-gray-100 rounded-b-xl">
+                  <div className="bg-white p-3 space-y-2.5 border border-t-0 border-gray-100 rounded-b-xl">
                     {SLOTS.map(slot => {
                       const meta = SLOT_META[slot];
                       const Icon = meta.icon;
+                      const assignedNames = dayPlan[slot];
+                      const available = recipes.filter(r => !assignedNames.includes(r.name));
                       return (
-                        <div key={slot} className="flex items-center gap-2">
-                          <Icon className={`w-3.5 h-3.5 flex-shrink-0 ${meta.text}`} />
-                          <span className="text-[11px] text-gray-500 w-16 flex-shrink-0">{meta.label}</span>
-                          <div className="relative flex-1 min-w-0">
-                            <select
-                              value={dayPlan[slot] || ''}
-                              onChange={e => assignSlot(day, slot, e.target.value)}
-                              className={`w-full appearance-none rounded-lg px-3 py-1.5 text-xs outline-none ${
-                                dayPlan[slot] ? 'bg-white border border-gray-200 text-gray-900 font-medium' : 'bg-gray-100 text-gray-400'
-                              }`}
-                            >
-                              <option value="">—</option>
-                              {recipes.map(r => <option key={r.id} value={r.name}>{r.name}</option>)}
-                            </select>
-                            <ChevronDown className="w-3 h-3 text-gray-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                        <div key={slot} className="flex items-start gap-2">
+                          <Icon className={`w-3.5 h-3.5 flex-shrink-0 mt-1.5 ${meta.text}`} />
+                          <span className="text-[11px] text-gray-500 w-16 flex-shrink-0 mt-1.5">{meta.label}</span>
+                          <div className="flex-1 min-w-0 flex flex-wrap items-center gap-1.5">
+                            {assignedNames.length === 0 && available.length === 0 && (
+                              <span className="text-[11px] text-gray-300 py-1">No recipes yet</span>
+                            )}
+                            {assignedNames.map(name => (
+                              <span key={name}
+                                className={`text-[11px] rounded-full pl-2.5 pr-1 py-1 flex items-center gap-1 font-medium ${meta.badge}`}>
+                                {name}
+                                <button onClick={() => removeFromSlot(day, slot, name)}
+                                  className="opacity-60 active:opacity-100" aria-label={`Remove ${name} from ${day} ${meta.label}`}>
+                                  <X className="w-3 h-3" />
+                                </button>
+                              </span>
+                            ))}
+                            {available.length > 0 && (
+                              <div className="relative">
+                                <select
+                                  value=""
+                                  onChange={e => addToSlot(day, slot, e.target.value)}
+                                  className="appearance-none bg-gray-100 text-gray-500 rounded-full pl-2.5 pr-6 py-1 text-[11px] outline-none"
+                                  aria-label={`Add to ${day} ${meta.label}`}
+                                >
+                                  <option value="" disabled>+ Add</option>
+                                  {available.map(r => <option key={r.id} value={r.name}>{r.name}</option>)}
+                                </select>
+                                <ChevronDown className="w-3 h-3 text-gray-400 absolute right-1.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                              </div>
+                            )}
                           </div>
                         </div>
                       );
@@ -431,7 +504,7 @@ export default function NutritionPlanner() {
       <div className="bg-white rounded-2xl border border-gray-200 p-4">
         <div className="flex items-center justify-between mb-3">
           <span className="font-semibold text-gray-900 text-sm">Recipes</span>
-          <button onClick={() => setBuilderOpen(o => !o)}
+          <button onClick={() => (builderOpen ? resetBuilder() : setBuilderOpen(true))}
             className="flex items-center gap-1 text-[11px] font-medium text-green-600 bg-green-50 px-2.5 py-1 rounded-lg active:bg-green-100">
             {builderOpen ? <X className="w-3 h-3" /> : <Plus className="w-3 h-3" />}
             {builderOpen ? 'Cancel' : 'New'}
@@ -440,6 +513,11 @@ export default function NutritionPlanner() {
 
         {builderOpen && (
           <div className="bg-gray-50 rounded-xl p-3 mb-3 space-y-2">
+            {editingRecipeId && (
+              <div className="text-[11px] font-medium text-green-700 bg-green-50 rounded-lg px-2.5 py-1.5 flex items-center gap-1">
+                <Pencil className="w-3 h-3" /> Editing recipe
+              </div>
+            )}
             <input
               value={builder.name}
               onChange={e => setBuilder(p => ({ ...p, name: e.target.value }))}
@@ -512,10 +590,10 @@ export default function NutritionPlanner() {
               className="w-full bg-white border border-gray-200 rounded-lg px-3 py-2.5 text-sm outline-none focus:border-green-500 resize-none"
             />
 
-            <button onClick={createRecipe}
+            <button onClick={saveRecipe}
               disabled={!builder.name.trim() || builder.ingredients.length === 0}
               className="w-full h-10 bg-green-600 text-white rounded-lg text-sm font-semibold disabled:opacity-40 active:bg-green-700">
-              Save recipe
+              {editingRecipeId ? 'Save changes' : 'Save recipe'}
             </button>
           </div>
         )}
@@ -542,10 +620,15 @@ export default function NutritionPlanner() {
                 </div>
                 {expanded && (
                   <div className="mt-2 pt-2 border-t border-gray-100">
-                    {r.notes && <p className="text-xs text-gray-500 mb-2">{r.notes}</p>}
-                    <button onClick={() => deleteRecipe(r.id)} className="text-[11px] text-red-500 flex items-center gap-1">
-                      <Trash2 className="w-3 h-3" /> Delete recipe
-                    </button>
+                    {r.notes && <p className="text-xs text-gray-500 mb-2 whitespace-pre-line">{r.notes}</p>}
+                    <div className="flex gap-3">
+                      <button onClick={() => startEditRecipe(r)} className="text-[11px] text-green-700 flex items-center gap-1">
+                        <Pencil className="w-3 h-3" /> Edit recipe
+                      </button>
+                      <button onClick={() => deleteRecipe(r.id)} className="text-[11px] text-red-500 flex items-center gap-1">
+                        <Trash2 className="w-3 h-3" /> Delete recipe
+                      </button>
+                    </div>
                   </div>
                 )}
               </div>
