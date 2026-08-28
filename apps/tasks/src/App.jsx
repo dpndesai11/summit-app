@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Loader2, AlertTriangle } from 'lucide-react';
+import { AlertTriangle } from 'lucide-react';
 import { dbGet, dbSet } from './lib/db';
 import { migrateTasksAndProjects, weightedCompletion, toISODate, startOfWeek } from './lib/taskUtils';
 import Sidebar from './components/Sidebar';
@@ -560,10 +560,21 @@ export default function App() {
   // ---------------------------------------------------------------------------
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-[#f7f7f5] flex items-center justify-center">
-        <div className="flex flex-col items-center gap-3 text-blue-600">
-          <Loader2 className="w-6 h-6 animate-spin" />
-          <span className="text-xs text-gray-400">Loading…</span>
+      <div className="min-h-screen bg-[#f7f7f5] dark:bg-[#191919] flex">
+        <div className="w-60 shrink-0 h-screen border-r border-black/8 dark:border-white/8 px-3 py-4 space-y-1">
+          <div className="skeleton h-6 w-24 mb-4" />
+          <div className="skeleton h-8 w-full" />
+          <div className="skeleton h-8 w-full" />
+          <div className="skeleton h-8 w-full" />
+        </div>
+        <div className="flex-1 max-w-6xl mx-auto px-6 lg:px-10 py-8 space-y-3">
+          <div className="skeleton h-7 w-40" />
+          <div className="skeleton h-32 w-full" />
+          <div className="flex gap-3">
+            <div className="skeleton h-40 flex-1" />
+            <div className="skeleton h-40 flex-1" />
+            <div className="skeleton h-40 flex-1" />
+          </div>
         </div>
       </div>
     );
@@ -584,7 +595,7 @@ export default function App() {
       <div className="flex-1 min-w-0">
         {toast && (
           <div
-            className={`fixed top-4 right-4 z-50 px-4 py-3 rounded-lg border text-sm shadow-lg flex items-center gap-2 ${
+            className={`fixed top-4 right-4 z-50 px-4 py-3 rounded-lg border text-sm shadow-lg flex items-center gap-2 animate-toast-in-right ${
               toast.isError
                 ? 'bg-red-50 border-red-200 text-red-600 dark:bg-red-500/10 dark:border-red-500/30 dark:text-red-400'
                 : 'bg-white border-gray-200 text-gray-700 dark:bg-[#252525] dark:border-white/10 dark:text-gray-200'

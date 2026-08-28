@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import {
   Dumbbell, CalendarDays, History, Flame, Timer, Trash2, Plus,
-  Check, Minus, Moon, ChevronDown, Activity, X, Loader2, AlertTriangle,
+  Check, Minus, Moon, ChevronDown, Activity, X, AlertTriangle,
   Lock, RefreshCw, MapPin, ClipboardList, PersonStanding
 } from 'lucide-react';
 import { dbGet, dbSet, dbRefresh } from './lib/db';
@@ -219,7 +219,7 @@ function EditableSetRow({ set, type = 'weight', onChange, onDelete }) {
             inputMode="decimal"
             value={set.weight}
             onChange={e => onChange({ ...set, weight: e.target.value === '' ? '' : Number(e.target.value) })}
-            className="w-14 bg-gray-50 border border-gray-200 rounded-md text-center text-xs py-1 outline-none focus:border-blue-400"
+            className="w-14 bg-gray-50 border border-gray-200 rounded-md text-center text-xs py-1 outline-none focus:border-orange-400"
           />
           <span className="text-[10px] text-gray-400 flex-shrink-0">kg ×</span>
         </>
@@ -229,7 +229,7 @@ function EditableSetRow({ set, type = 'weight', onChange, onDelete }) {
         inputMode="numeric"
         value={set.reps}
         onChange={e => onChange({ ...set, reps: e.target.value === '' ? '' : Number(e.target.value) })}
-        className="w-12 bg-gray-50 border border-gray-200 rounded-md text-center text-xs py-1 outline-none focus:border-blue-400"
+        className="w-12 bg-gray-50 border border-gray-200 rounded-md text-center text-xs py-1 outline-none focus:border-orange-400"
       />
       <span className="text-[10px] text-gray-400 flex-shrink-0">reps</span>
       <button onClick={onDelete} className="ml-auto text-gray-300 active:text-red-500 flex-shrink-0">
@@ -259,7 +259,7 @@ function RouteThumb({ waypoints }) {
   const [sx, sy] = pts[0];
   const [ex, ey] = pts[pts.length - 1];
   return (
-    <svg width={w} height={h} viewBox={`0 0 ${w} ${h}`} className="bg-blue-50 rounded-lg flex-shrink-0">
+    <svg width={w} height={h} viewBox={`0 0 ${w} ${h}`} className="bg-orange-50 rounded-lg flex-shrink-0">
       <polyline
         points={pts.map(([x, y]) => `${x},${y}`).join(' ')}
         fill="none" stroke="#2563eb" strokeWidth="2" strokeLinejoin="round" strokeLinecap="round"
@@ -682,7 +682,7 @@ export default function FitnessTracker() {
             <button
               onClick={() => logCardioFromPlan(sKey, ex.name)}
               className={`h-11 px-5 rounded-xl text-sm font-semibold transition-colors flex items-center gap-1.5 ${
-                logged ? 'bg-green-500 text-white' : `${meta.logBtn} text-white`
+                logged ? 'bg-green-500 text-white animate-success-pulse' : `${meta.logBtn} text-white`
               }`}
             >
               {logged ? <Check className="w-4 h-4" /> : null}
@@ -805,34 +805,36 @@ export default function FitnessTracker() {
       <div key={sKey} className={`rounded-2xl overflow-hidden ${stray ? 'ring-2 ring-amber-300' : ''}`}>
         <button
           onClick={() => setExpandedWorkouts(p => ({ ...p, [sKey]: !expanded }))}
-          className="w-full bg-blue-600 p-4 text-white text-left"
+          className="w-full bg-orange-600 p-4 text-white text-left"
         >
           <div className="flex items-center justify-between">
             <div className="min-w-0">
-              <div className="text-[11px] uppercase tracking-wide text-blue-200">
+              <div className="text-[11px] uppercase tracking-wide text-orange-200">
                 {stray ? `Resumed · ${formatSwiss(session.date)}` : todayName}
               </div>
               <div className="text-lg font-bold truncate">{template.name}</div>
-              <div className="text-xs text-blue-200">
+              <div className="text-xs text-orange-200">
                 {template.exercises.length} exercises
                 {setCount > 0 ? ` · ${setCount} sets logged` : ''}
                 {lockedCount > 0 ? ` · ${lockedCount}/${gymCount} done` : ''}
               </div>
             </div>
-            <ChevronDown className={`w-5 h-5 text-blue-200 flex-shrink-0 transition-transform ${expanded ? 'rotate-180' : ''}`} />
+            <ChevronDown className={`w-5 h-5 text-orange-200 flex-shrink-0 transition-transform ${expanded ? 'rotate-180' : ''}`} />
           </div>
         </button>
-        {expanded && (
-          <div className="space-y-3 bg-transparent pt-3">
-            {template.exercises.map(ex => renderExerciseCard(session, template, ex))}
-            <button
-              onClick={() => completeWorkout(session)}
-              className="w-full h-12 rounded-xl text-sm font-bold bg-green-600 text-white active:bg-green-700 flex items-center justify-center gap-2"
-            >
-              <Check className="w-4 h-4" /> Complete workout
-            </button>
+        <div className={`grid transition-[grid-template-rows] duration-300 ease-out ${expanded ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]'}`}>
+          <div className="overflow-hidden">
+            <div className="space-y-3 bg-transparent pt-3">
+              {template.exercises.map(ex => renderExerciseCard(session, template, ex))}
+              <button
+                onClick={() => completeWorkout(session)}
+                className="w-full h-12 rounded-xl text-sm font-bold bg-green-600 text-white active:bg-green-700 flex items-center justify-center gap-2"
+              >
+                <Check className="w-4 h-4" /> Complete workout
+              </button>
+            </div>
           </div>
-        )}
+        </div>
       </div>
     );
   };
@@ -937,7 +939,7 @@ export default function FitnessTracker() {
           <span className="font-semibold text-gray-900 text-sm">Weekly plan</span>
           <div className="flex gap-2">
             <button onClick={() => updatePlan(DEFAULT_PLAN)}
-              className="text-[11px] font-medium text-blue-600 bg-blue-50 px-2.5 py-1 rounded-lg active:bg-blue-100">
+              className="text-[11px] font-medium text-orange-600 bg-orange-50 px-2.5 py-1 rounded-lg active:bg-orange-100">
               Default
             </button>
             <button onClick={() => updatePlan(REST_WEEK)}
@@ -952,8 +954,8 @@ export default function FitnessTracker() {
             const available = templates.filter(t => !assigned.includes(t.name));
             return (
               <div key={day}
-                className={`flex items-start gap-3 rounded-xl px-3 py-2 ${day === todayName ? 'bg-blue-50' : ''}`}>
-                <span className={`text-xs w-12 flex-shrink-0 pt-1.5 ${day === todayName ? 'font-bold text-blue-600' : 'text-gray-500'}`}>
+                className={`flex items-start gap-3 rounded-xl px-3 py-2 ${day === todayName ? 'bg-orange-50' : ''}`}>
+                <span className={`text-xs w-12 flex-shrink-0 pt-1.5 ${day === todayName ? 'font-bold text-orange-600' : 'text-gray-500'}`}>
                   {day.slice(0, 3)}{day === todayName ? ' •' : ''}
                 </span>
                 <div className="flex-1 min-w-0 flex flex-wrap items-center gap-1.5">
@@ -962,10 +964,10 @@ export default function FitnessTracker() {
                   )}
                   {assigned.map(name => (
                     <span key={name}
-                      className="text-[11px] bg-blue-100 text-blue-700 rounded-full pl-2.5 pr-1 py-1 flex items-center gap-1 font-medium">
+                      className="text-[11px] bg-orange-100 text-orange-700 rounded-full pl-2.5 pr-1 py-1 flex items-center gap-1 font-medium">
                       {name}
                       <button onClick={() => removeWorkoutFromDay(day, name)}
-                        className="text-blue-400 active:text-red-500" aria-label={`Remove ${name} from ${day}`}>
+                        className="text-orange-400 active:text-red-500" aria-label={`Remove ${name} from ${day}`}>
                         <X className="w-3 h-3" />
                       </button>
                     </span>
@@ -995,7 +997,7 @@ export default function FitnessTracker() {
         <div className="flex items-center justify-between mb-3">
           <span className="font-semibold text-gray-900 text-sm">Workouts</span>
           <button onClick={() => setBuilderOpen(o => !o)}
-            className="flex items-center gap-1 text-[11px] font-medium text-blue-600 bg-blue-50 px-2.5 py-1 rounded-lg active:bg-blue-100">
+            className="flex items-center gap-1 text-[11px] font-medium text-orange-600 bg-orange-50 px-2.5 py-1 rounded-lg active:bg-orange-100">
             {builderOpen ? <X className="w-3 h-3" /> : <Plus className="w-3 h-3" />}
             {builderOpen ? 'Cancel' : 'New'}
           </button>
@@ -1007,7 +1009,7 @@ export default function FitnessTracker() {
               value={builder.name}
               onChange={e => setBuilder(p => ({ ...p, name: e.target.value }))}
               placeholder="Workout name"
-              className="w-full bg-white border border-gray-200 rounded-lg px-3 py-2.5 text-sm outline-none focus:border-blue-500"
+              className="w-full bg-white border border-gray-200 rounded-lg px-3 py-2.5 text-sm outline-none focus:border-orange-500"
             />
 
             {/* Entry mode toggle — bulk list is the default */}
@@ -1031,7 +1033,7 @@ export default function FitnessTracker() {
                   onChange={e => setBuilder(p => ({ ...p, bulkText: e.target.value }))}
                   placeholder={'One exercise per line, or comma-separated:\nSquat\nLeg Press, Calf Raise'}
                   rows={4}
-                  className="w-full bg-white border border-gray-200 rounded-lg px-3 py-2.5 text-sm outline-none focus:border-blue-500 resize-none"
+                  className="w-full bg-white border border-gray-200 rounded-lg px-3 py-2.5 text-sm outline-none focus:border-orange-500 resize-none"
                 />
                 <div className="flex gap-2">
                   <button
@@ -1056,7 +1058,7 @@ export default function FitnessTracker() {
                   onChange={e => setBuilder(p => ({ ...p, draftName: e.target.value }))}
                   onKeyDown={e => e.key === 'Enter' && addDraftExercise()}
                   placeholder="Exercise"
-                  className="flex-1 min-w-0 bg-white border border-gray-200 rounded-lg px-3 py-2.5 text-sm outline-none focus:border-blue-500"
+                  className="flex-1 min-w-0 bg-white border border-gray-200 rounded-lg px-3 py-2.5 text-sm outline-none focus:border-orange-500"
                 />
                 <button
                   onClick={() => setBuilder(p => ({ ...p, draftType: cycleExerciseType(p.draftType) }))}
@@ -1104,7 +1106,7 @@ export default function FitnessTracker() {
             )}
             <button onClick={createTemplate}
               disabled={!builder.name.trim() || builder.exercises.length === 0}
-              className="w-full h-10 bg-blue-600 text-white rounded-lg text-sm font-semibold disabled:opacity-40 active:bg-blue-700">
+              className="w-full h-10 bg-orange-600 text-white rounded-lg text-sm font-semibold disabled:opacity-40 active:bg-orange-700">
               Create workout
             </button>
           </div>
@@ -1145,7 +1147,7 @@ export default function FitnessTracker() {
         <div className="flex items-center justify-between mb-3">
           <span className="font-semibold text-gray-900 text-sm">Routes</span>
           <button onClick={() => setPlannerOpen(true)}
-            className="flex items-center gap-1 text-[11px] font-medium text-blue-600 bg-blue-50 px-2.5 py-1 rounded-lg active:bg-blue-100">
+            className="flex items-center gap-1 text-[11px] font-medium text-orange-600 bg-orange-50 px-2.5 py-1 rounded-lg active:bg-orange-100">
             <MapPin className="w-3 h-3" /> Plan route
           </button>
         </div>
@@ -1184,7 +1186,7 @@ export default function FitnessTracker() {
 
       <div className="bg-white rounded-2xl border border-gray-200 p-4">
         <div className="flex items-center gap-2 mb-3">
-          <Dumbbell className="w-4 h-4 text-blue-500" />
+          <Dumbbell className="w-4 h-4 text-orange-500" />
           <span className="font-semibold text-gray-900 text-sm">Strength</span>
         </div>
         {strengthLogs.length === 0 ? (
@@ -1216,25 +1218,27 @@ export default function FitnessTracker() {
                             <ChevronDown className={`w-3.5 h-3.5 text-gray-400 transition-transform ${expanded ? 'rotate-180' : ''}`} />
                           </div>
                         </button>
-                        {expanded && (
-                          <div className="mt-2 space-y-1">
-                            {sets.map((s, i) => (
-                              <EditableSetRow
-                                key={i}
-                                set={s}
-                                type={type}
-                                onChange={updated => updateLogSet(l.id, i, updated)}
-                                onDelete={() => deleteLogSet(l.id, i)}
-                              />
-                            ))}
-                            <button
-                              onClick={() => updateStrengthLogs(strengthLogs.filter(x => x.id !== l.id))}
-                              className="w-full text-[11px] text-red-500 flex items-center justify-center gap-1 py-1.5"
-                            >
-                              <Trash2 className="w-3 h-3" /> Delete exercise entry
-                            </button>
+                        <div className={`grid transition-[grid-template-rows] duration-250 ease-out ${expanded ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]'}`}>
+                          <div className="overflow-hidden">
+                            <div className="mt-2 space-y-1">
+                              {sets.map((s, i) => (
+                                <EditableSetRow
+                                  key={i}
+                                  set={s}
+                                  type={type}
+                                  onChange={updated => updateLogSet(l.id, i, updated)}
+                                  onDelete={() => deleteLogSet(l.id, i)}
+                                />
+                              ))}
+                              <button
+                                onClick={() => updateStrengthLogs(strengthLogs.filter(x => x.id !== l.id))}
+                                className="w-full text-[11px] text-red-500 flex items-center justify-center gap-1 py-1.5"
+                              >
+                                <Trash2 className="w-3 h-3" /> Delete exercise entry
+                              </button>
+                            </div>
                           </div>
-                        )}
+                        </div>
                       </div>
                     );
                   })}
@@ -1289,10 +1293,17 @@ export default function FitnessTracker() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-[#f7f7f5] flex items-center justify-center">
-        <div className="flex flex-col items-center gap-3 text-blue-600">
-          <Loader2 className="w-6 h-6 animate-spin" />
-          <span className="text-xs text-gray-400">Loading…</span>
+      <div className="min-h-screen bg-[#f7f7f5]">
+        <div className="max-w-md mx-auto px-4 pt-5 pb-28 space-y-3">
+          <div className="skeleton h-6 w-24" />
+          <div className="flex gap-2">
+            <div className="skeleton h-[74px] flex-1" />
+            <div className="skeleton h-[74px] flex-1" />
+            <div className="skeleton h-[74px] flex-1" />
+          </div>
+          <div className="skeleton h-24 w-full" />
+          <div className="skeleton h-16 w-full" />
+          <div className="skeleton h-16 w-full" />
         </div>
       </div>
     );
@@ -1301,7 +1312,7 @@ export default function FitnessTracker() {
   return (
     <div className="min-h-screen bg-[#f7f7f5] text-[#37352f] font-sans antialiased">
       {toast && (
-        <div className={`fixed top-4 left-1/2 -translate-x-1/2 z-[60] text-xs px-4 py-2.5 rounded-full shadow-lg flex items-center gap-1.5 whitespace-nowrap ${
+        <div className={`fixed top-4 left-1/2 -translate-x-1/2 z-[60] text-xs px-4 py-2.5 rounded-full shadow-lg flex items-center gap-1.5 whitespace-nowrap animate-toast-in ${
           toast.isError ? 'bg-red-600 text-white' : 'bg-gray-900 text-white'
         }`}>
           {toast.isError ? <AlertTriangle className="w-3.5 h-3.5" /> : <Check className="w-3.5 h-3.5" />}
@@ -1377,7 +1388,7 @@ export default function FitnessTracker() {
                 <select
                   value={cardioForm.routeId}
                   onChange={e => setCardioForm(p => ({ ...p, routeId: e.target.value }))}
-                  className="w-full appearance-none bg-blue-50 text-blue-700 rounded-xl px-4 py-3 text-sm font-medium outline-none"
+                  className="w-full appearance-none bg-orange-50 text-orange-700 rounded-xl px-4 py-3 text-sm font-medium outline-none"
                 >
                   <option value="">Manual entry (no route)</option>
                   {routes.map(r => (
@@ -1386,7 +1397,7 @@ export default function FitnessTracker() {
                     </option>
                   ))}
                 </select>
-                <ChevronDown className="w-4 h-4 text-blue-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                <ChevronDown className="w-4 h-4 text-orange-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
               </div>
             )}
 
@@ -1409,7 +1420,7 @@ export default function FitnessTracker() {
               {selectedRoute ? (
                 <div className="flex-1 min-w-0">
                   <div className="text-[10px] uppercase tracking-wide text-gray-400 mb-1 text-center">Distance (km)</div>
-                  <div className="bg-blue-50 rounded-xl py-3 text-center text-sm font-semibold text-blue-700 tabular-nums">
+                  <div className="bg-orange-50 rounded-xl py-3 text-center text-sm font-semibold text-orange-700 tabular-nums">
                     {routeDistanceKm(selectedRoute).toFixed(2)}
                   </div>
                 </div>
@@ -1440,7 +1451,7 @@ export default function FitnessTracker() {
           {TABS.map(({ id, label, icon: Icon }) => (
             <button key={id} onClick={() => setTab(id)}
               className={`flex-1 flex flex-col items-center gap-0.5 py-2.5 ${
-                tab === id ? 'text-blue-600' : 'text-gray-400'
+                tab === id ? 'text-orange-600' : 'text-gray-400'
               }`}
             >
               <Icon className="w-5 h-5" />

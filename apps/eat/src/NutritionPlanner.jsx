@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import {
   CalendarDays, ShoppingCart, ChefHat, Coffee, Apple, Sandwich, Cookie, CookingPot,
-  Plus, X, Trash2, Check, ChevronDown, Loader2, AlertTriangle, RefreshCw, ClipboardList, Pencil
+  Plus, X, Trash2, Check, ChevronDown, AlertTriangle, RefreshCw, ClipboardList, Pencil
 } from 'lucide-react';
 import { dbGet, dbSet, dbRefresh } from './lib/db';
 
@@ -390,16 +390,18 @@ export default function NutritionPlanner() {
                 <span className="font-semibold text-gray-900 text-sm truncate">{recipe.name}</span>
                 <ChevronDown className={`w-3.5 h-3.5 text-gray-400 ml-auto flex-shrink-0 transition-transform ${expanded ? 'rotate-180' : ''}`} />
               </button>
-              {expanded && (
-                <div className="mt-3 space-y-2">
-                  <div className="flex flex-wrap gap-1">
-                    {recipe.ingredients.map((ing, i) => (
-                      <span key={i} className="text-[11px] bg-gray-100 text-gray-600 rounded-full px-2 py-0.5">{ing}</span>
-                    ))}
+              <div className={`grid transition-[grid-template-rows] duration-250 ease-out ${expanded ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]'}`}>
+                <div className="overflow-hidden">
+                  <div className="mt-3 space-y-2">
+                    <div className="flex flex-wrap gap-1">
+                      {recipe.ingredients.map((ing, i) => (
+                        <span key={i} className="text-[11px] bg-gray-100 text-gray-600 rounded-full px-2 py-0.5">{ing}</span>
+                      ))}
+                    </div>
+                    {recipe.notes && <p className="text-xs text-gray-500 whitespace-pre-line">{recipe.notes}</p>}
                   </div>
-                  {recipe.notes && <p className="text-xs text-gray-500 whitespace-pre-line">{recipe.notes}</p>}
                 </div>
-              )}
+              </div>
             </div>
           );
         }).filter(Boolean);
@@ -445,7 +447,8 @@ export default function NutritionPlanner() {
                   <span className="text-[11px] text-gray-400">{plannedCount} planned</span>
                   <ChevronDown className={`w-3.5 h-3.5 text-gray-400 ml-auto transition-transform ${expanded ? 'rotate-180' : ''}`} />
                 </button>
-                {expanded && (
+                <div className={`grid transition-[grid-template-rows] duration-300 ease-out ${expanded ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]'}`}>
+                  <div className="overflow-hidden">
                   <div className="bg-white p-3 space-y-2.5 border border-t-0 border-gray-100 rounded-b-xl">
                     {SLOTS.map(slot => {
                       const meta = SLOT_META[slot];
@@ -494,7 +497,8 @@ export default function NutritionPlanner() {
                       </button>
                     )}
                   </div>
-                )}
+                  </div>
+                </div>
               </div>
             );
           })}
@@ -618,19 +622,21 @@ export default function NutritionPlanner() {
                     <span className="text-[10px] px-2 py-0.5 text-gray-400">+{r.ingredients.length - 6} more</span>
                   )}
                 </div>
-                {expanded && (
-                  <div className="mt-2 pt-2 border-t border-gray-100">
-                    {r.notes && <p className="text-xs text-gray-500 mb-2 whitespace-pre-line">{r.notes}</p>}
-                    <div className="flex gap-3">
-                      <button onClick={() => startEditRecipe(r)} className="text-[11px] text-green-700 flex items-center gap-1">
-                        <Pencil className="w-3 h-3" /> Edit recipe
-                      </button>
-                      <button onClick={() => deleteRecipe(r.id)} className="text-[11px] text-red-500 flex items-center gap-1">
-                        <Trash2 className="w-3 h-3" /> Delete recipe
-                      </button>
+                <div className={`grid transition-[grid-template-rows] duration-250 ease-out ${expanded ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]'}`}>
+                  <div className="overflow-hidden">
+                    <div className="mt-2 pt-2 border-t border-gray-100">
+                      {r.notes && <p className="text-xs text-gray-500 mb-2 whitespace-pre-line">{r.notes}</p>}
+                      <div className="flex gap-3">
+                        <button onClick={() => startEditRecipe(r)} className="text-[11px] text-green-700 flex items-center gap-1">
+                          <Pencil className="w-3 h-3" /> Edit recipe
+                        </button>
+                        <button onClick={() => deleteRecipe(r.id)} className="text-[11px] text-red-500 flex items-center gap-1">
+                          <Trash2 className="w-3 h-3" /> Delete recipe
+                        </button>
+                      </div>
                     </div>
                   </div>
-                )}
+                </div>
               </div>
             );
           })}
@@ -673,8 +679,8 @@ export default function NutritionPlanner() {
                   <div className="flex items-center gap-2">
                     <button
                       onClick={() => toggleChecked(item.key)}
-                      className={`w-5 h-5 rounded-md border flex items-center justify-center flex-shrink-0 ${
-                        checked ? 'bg-green-600 border-green-600' : 'border-gray-300 bg-white'
+                      className={`w-5 h-5 rounded-md border flex items-center justify-center flex-shrink-0 transition-colors ${
+                        checked ? 'bg-green-600 border-green-600 animate-success-pulse' : 'border-gray-300 bg-white'
                       }`}
                       aria-label={checked ? `Uncheck ${item.name}` : `Check ${item.name}`}
                     >
@@ -693,15 +699,17 @@ export default function NutritionPlanner() {
                       <ChevronDown className={`w-3 h-3 text-gray-400 transition-transform ${expanded ? 'rotate-180' : ''}`} />
                     </button>
                   </div>
-                  {expanded && (
-                    <div className="mt-1.5 pl-7 flex flex-wrap gap-1">
-                      {item.uses.map((u, i) => (
-                        <span key={i} className="text-[10px] text-gray-500 bg-white border border-gray-200 rounded-full px-2 py-0.5">
-                          {u.recipe} · {u.day.slice(0, 3)} {SLOT_META[u.slot].label}
-                        </span>
-                      ))}
+                  <div className={`grid transition-[grid-template-rows] duration-200 ease-out ${expanded ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]'}`}>
+                    <div className="overflow-hidden">
+                      <div className="mt-1.5 pl-7 flex flex-wrap gap-1">
+                        {item.uses.map((u, i) => (
+                          <span key={i} className="text-[10px] text-gray-500 bg-white border border-gray-200 rounded-full px-2 py-0.5">
+                            {u.recipe} · {u.day.slice(0, 3)} {SLOT_META[u.slot].label}
+                          </span>
+                        ))}
+                      </div>
                     </div>
-                  )}
+                  </div>
                 </div>
               );
             })}
@@ -731,8 +739,8 @@ export default function NutritionPlanner() {
               <div key={e.id} className="flex items-center gap-2 bg-gray-50 rounded-lg px-3 py-2">
                 <button
                   onClick={() => toggleExtra(e.id)}
-                  className={`w-5 h-5 rounded-md border flex items-center justify-center flex-shrink-0 ${
-                    e.checked ? 'bg-green-600 border-green-600' : 'border-gray-300 bg-white'
+                  className={`w-5 h-5 rounded-md border flex items-center justify-center flex-shrink-0 transition-colors ${
+                    e.checked ? 'bg-green-600 border-green-600 animate-success-pulse' : 'border-gray-300 bg-white'
                   }`}
                   aria-label={e.checked ? `Uncheck ${e.name}` : `Check ${e.name}`}
                 >
@@ -760,10 +768,17 @@ export default function NutritionPlanner() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-[#f7f7f5] flex items-center justify-center">
-        <div className="flex flex-col items-center gap-3 text-green-600">
-          <Loader2 className="w-6 h-6 animate-spin" />
-          <span className="text-xs text-gray-400">Loading…</span>
+      <div className="min-h-screen bg-[#f7f7f5]">
+        <div className="max-w-md mx-auto px-4 pt-5 pb-28 space-y-3">
+          <div className="skeleton h-6 w-24" />
+          <div className="flex gap-2">
+            <div className="skeleton h-[74px] flex-1" />
+            <div className="skeleton h-[74px] flex-1" />
+            <div className="skeleton h-[74px] flex-1" />
+          </div>
+          <div className="skeleton h-20 w-full" />
+          <div className="skeleton h-16 w-full" />
+          <div className="skeleton h-16 w-full" />
         </div>
       </div>
     );
@@ -772,7 +787,7 @@ export default function NutritionPlanner() {
   return (
     <div className="min-h-screen bg-[#f7f7f5] text-[#37352f] font-sans antialiased">
       {toast && (
-        <div className={`fixed top-4 left-1/2 -translate-x-1/2 z-[60] text-xs px-4 py-2.5 rounded-full shadow-lg flex items-center gap-1.5 whitespace-nowrap ${
+        <div className={`fixed top-4 left-1/2 -translate-x-1/2 z-[60] text-xs px-4 py-2.5 rounded-full shadow-lg flex items-center gap-1.5 whitespace-nowrap animate-toast-in ${
           toast.isError ? 'bg-red-600 text-white' : 'bg-gray-900 text-white'
         }`}>
           {toast.isError ? <AlertTriangle className="w-3.5 h-3.5" /> : <Check className="w-3.5 h-3.5" />}
