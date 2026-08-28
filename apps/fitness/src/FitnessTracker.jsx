@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import {
   Dumbbell, CalendarDays, History, Flame, Timer, Trash2, Plus,
   Check, Minus, Moon, ChevronDown, Activity, X, AlertTriangle,
-  Lock, RefreshCw, MapPin, ClipboardList, PersonStanding
+  Lock, RefreshCw, MapPin, ClipboardList, PersonStanding, Trophy
 } from 'lucide-react';
 import { dbGet, dbSet, dbRefresh } from './lib/db';
 import { routeDistanceKm } from './lib/geo';
@@ -109,13 +109,40 @@ const formatSwiss = (iso) => {
   return p.length === 3 ? `${p[2]}.${p[1]}.${p[0]}` : iso;
 };
 
-const startOfWeekISO = () => {
-  const d = new Date();
-  const day = d.getDay(); // 0 = Sunday
-  const diff = day === 0 ? 6 : day - 1; // Monday start
-  d.setDate(d.getDate() - diff);
-  d.setHours(0, 0, 0, 0);
-  return toISO(d);
+// --- Streak + consistency calendar helpers -----------------------------------
+// A day counts as "active" if it has any strength or cardio log. The current
+// streak counts backward from today; if today has nothing logged yet, it
+// starts from yesterday instead so the streak doesn't look broken before the
+// day is even over — it only actually breaks once a full day passes with
+// nothing logged.
+const calcCurrentStreak = (activeDates) => {
+  const cursor = new Date();
+  cursor.setHours(0, 0, 0, 0);
+  if (!activeDates.has(toISO(cursor))) cursor.setDate(cursor.getDate() - 1);
+  let count = 0;
+  while (activeDates.has(toISO(cursor))) {
+    count++;
+    cursor.setDate(cursor.getDate() - 1);
+  }
+  return count;
+};
+
+// Returns, for each exercise name, the best value ever logged: max weight
+// for weight-type exercises, max reps for bodyweight (no weight to compare).
+// Used both to badge all-time-best entries in History and to detect a fresh
+// PR the moment a workout is completed.
+const computeAllTimeBests = (strengthLogs) => {
+  const bests = {};
+  strengthLogs.forEach(log => {
+    const type = logType(log);
+    expandLogSets(log).forEach(s => {
+      const value = type === 'bodyweight' ? Number(s.reps) || 0 : Number(s.weight) || 0;
+      if (value > 0 && (!bests[log.exercise] || value > bests[log.exercise].value)) {
+        bests[log.exercise] = { value, type };
+      }
+    });
+  });
+  return bests;
 };
 
 // --- Plan shape helpers ------------------------------------------------------
@@ -270,6 +297,65 @@ function RouteThumb({ waypoints }) {
   );
 }
 
+// GitHub-style consistency heatmap: the last WEEKS weeks, Monday-start rows,
+// most recent week on the right. Colored by what kind of activity happened
+// that day (cardio / strength / both), not by volume — a simple presence
+// signal rather than a workout-intensity chart.
+const STREAK_WEEKS = 10;
+function StreakCalendar({ strengthLogs, cardioLogs }) {
+  const activity = {};
+  strengthLogs.forEach(l => { activity[l.date] = { ...(activity[l.date] || {}), strength: true }; });
+  cardioLogs.forEach(l => { activity[l.date] = { ...(activity[l.date] || {}), cardio: true }; });
+
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const dow = today.getDay();
+  const daysSinceMonday = dow === 0 ? 6 : dow - 1;
+  const endOfWeek = new Date(today);
+  endOfWeek.setDate(today.getDate() + (6 - daysSinceMonday));
+  const totalDays = STREAK_WEEKS * 7;
+  const start = new Date(endOfWeek);
+  start.setDate(endOfWeek.getDate() - totalDays + 1);
+
+  const weeks = Array.from({ length: STREAK_WEEKS }, (_, w) => (
+    Array.from({ length: 7 }, (_, d) => {
+      const date = new Date(start);
+      date.setDate(start.getDate() + w * 7 + d);
+      const iso = toISO(date);
+      return { iso, day: activity[iso], isFuture: date > today };
+    })
+  ));
+
+  const cellClass = (cell) => {
+    if (cell.isFuture) return 'bg-transparent';
+    if (!cell.day) return 'bg-gray-100';
+    if (cell.day.strength && cell.day.cardio) return 'bg-orange-600';
+    if (cell.day.strength) return 'bg-orange-400';
+    return 'bg-orange-200';
+  };
+
+  const dayLabels = ['', 'M', '', 'W', '', 'F', ''];
+
+  return (
+    <div className="flex gap-1.5 items-start">
+      <div className="flex flex-col gap-[3px]">
+        {dayLabels.map((l, i) => (
+          <div key={i} className="w-3 h-3 text-[8px] leading-3 text-gray-300">{l}</div>
+        ))}
+      </div>
+      <div className="flex gap-[3px] overflow-x-auto">
+        {weeks.map((week, wi) => (
+          <div key={wi} className="flex flex-col gap-[3px] flex-shrink-0">
+            {week.map(cell => (
+              <div key={cell.iso} title={formatSwiss(cell.iso)} className={`w-3 h-3 rounded-sm ${cellClass(cell)}`} />
+            ))}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export default function FitnessTracker() {
   const [tab, setTab] = useState('today');
   const [templates, setTemplates] = useState(DEFAULT_TEMPLATES);
@@ -322,9 +408,9 @@ export default function FitnessTracker() {
 
   const inputKey = (sKey, e) => `${sKey}::${e}`;
 
-  const showToast = (msg, isError = false) => {
-    setToast({ message: msg, isError });
-    setTimeout(() => setToast(null), 2200);
+  const showToast = (msg, isError = false, isPR = false) => {
+    setToast({ message: msg, isError, isPR });
+    setTimeout(() => setToast(null), isPR ? 3600 : 2200);
   };
 
   const flash = (k) => {
@@ -501,11 +587,29 @@ export default function FitnessTracker() {
       showToast('No sets recorded — nothing to complete', true);
       return;
     }
+    // Compare each newly-logged exercise's best set against its all-time
+    // best BEFORE this commit — only an improvement over existing history
+    // counts as a PR, not just the first time an exercise is logged.
+    const prMessages = entries
+      .map(entry => {
+        const bestNow = entry.setDetails.reduce((m, s) => Math.max(m,
+          entry.type === 'bodyweight' ? (Number(s.reps) || 0) : (Number(s.weight) || 0)
+        ), 0);
+        const prior = allTimeBests[entry.exercise];
+        if (!prior || bestNow <= prior.value) return null;
+        return `${entry.exercise} ${entry.type === 'bodyweight' ? `${bestNow} reps` : `${bestNow}kg`}`;
+      })
+      .filter(Boolean);
+
     updateStrengthLogs([...strengthLogs, ...entries]);
     updateSessions(sessions.filter(s => sessionKey(s) !== sessionKey(session)));
     setResumedStray(p => ({ ...p, [sessionKey(session)]: false }));
     setExpandedWorkouts(p => ({ ...p, [sessionKey(session)]: false }));
-    showToast('Workout complete!');
+    if (prMessages.length > 0) {
+      showToast(`New PR! ${prMessages.join(', ')}`, false, true);
+    } else {
+      showToast('Workout complete!');
+    }
   };
 
   const discardSession = (session) => {
@@ -648,10 +752,9 @@ export default function FitnessTracker() {
   // --- Stats -----------------------------------------------------------------
   const totalVolume = strengthLogs.reduce((a, l) => a + logVolume(l), 0);
   const totalCardioMin = cardioLogs.reduce((a, l) => a + l.duration, 0);
-  const weekStart = startOfWeekISO();
-  const sessionsThisWeek = new Set(
-    [...strengthLogs, ...cardioLogs].filter(l => l.date >= weekStart).map(l => l.date)
-  ).size;
+  const activeDates = new Set([...strengthLogs, ...cardioLogs].map(l => l.date));
+  const currentStreak = calcCurrentStreak(activeDates);
+  const allTimeBests = computeAllTimeBests(strengthLogs);
 
   const groupByDate = (logs) => {
     const map = {};
@@ -853,9 +956,9 @@ export default function FitnessTracker() {
   const TodayPage = (
     <div className="space-y-3">
       <div className="flex gap-2">
-        <StatCard icon={Flame} label="Volume" value={`${(totalVolume / 1000).toFixed(1)}t`} sub="lifetime lifted" />
+        <StatCard icon={Dumbbell} label="Volume" value={`${(totalVolume / 1000).toFixed(1)}t`} sub="lifetime lifted" />
         <StatCard icon={Timer} label="Cardio" value={`${totalCardioMin}m`} sub="lifetime" />
-        <StatCard icon={CalendarDays} label="This week" value={sessionsThisWeek} sub="active days" />
+        <StatCard icon={Flame} label="Streak" value={currentStreak} sub={currentStreak === 1 ? 'day' : 'days'} />
       </div>
 
       {/* Stray in-progress sessions: small, dismissible recovery cards rather
@@ -1180,8 +1283,23 @@ export default function FitnessTracker() {
   const HistoryPage = (
     <div className="space-y-3">
       <div className="flex gap-2">
-        <StatCard icon={Flame} label="Total volume" value={`${totalVolume.toLocaleString()} kg`} />
+        <StatCard icon={Dumbbell} label="Total volume" value={`${totalVolume.toLocaleString()} kg`} />
         <StatCard icon={Timer} label="Cardio" value={`${totalCardioMin} min`} />
+        <StatCard icon={Flame} label="Streak" value={currentStreak} sub={currentStreak === 1 ? 'day' : 'days'} />
+      </div>
+
+      <div className="bg-white rounded-2xl border border-gray-200 p-4">
+        <div className="flex items-center justify-between mb-3">
+          <span className="font-semibold text-gray-900 text-sm">Consistency</span>
+          <span className="text-[11px] text-gray-400">last {STREAK_WEEKS} weeks</span>
+        </div>
+        <StreakCalendar strengthLogs={strengthLogs} cardioLogs={cardioLogs} />
+        <div className="flex items-center gap-3 mt-3 text-[10px] text-gray-400">
+          <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-sm bg-gray-100 inline-block" /> None</span>
+          <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-sm bg-orange-200 inline-block" /> Cardio</span>
+          <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-sm bg-orange-400 inline-block" /> Strength</span>
+          <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-sm bg-orange-600 inline-block" /> Both</span>
+        </div>
       </div>
 
       <div className="bg-white rounded-2xl border border-gray-200 p-4">
@@ -1201,6 +1319,8 @@ export default function FitnessTracker() {
                     const sets = expandLogSets(l);
                     const expanded = expandedLogId === l.id;
                     const type = logType(l);
+                    const best = allTimeBests[l.exercise];
+                    const isPR = !!best && sets.some(s => (type === 'bodyweight' ? Number(s.reps) : Number(s.weight)) === best.value);
                     return (
                       <div key={l.id} className="bg-gray-50 rounded-lg px-3 py-2">
                         <button
@@ -1211,6 +1331,11 @@ export default function FitnessTracker() {
                             <span className="text-xs font-medium text-gray-900 truncate">{l.exercise}</span>
                             {type === 'bodyweight' && (
                               <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-teal-50 text-teal-600 flex-shrink-0">BW</span>
+                            )}
+                            {isPR && (
+                              <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-amber-50 text-amber-600 flex items-center gap-0.5 flex-shrink-0">
+                                <Trophy className="w-2.5 h-2.5" /> PR
+                              </span>
                             )}
                           </div>
                           <div className="flex items-center gap-3">
@@ -1312,10 +1437,10 @@ export default function FitnessTracker() {
   return (
     <div className="min-h-screen bg-[#f7f7f5] text-[#37352f] font-sans antialiased">
       {toast && (
-        <div className={`fixed top-4 left-1/2 -translate-x-1/2 z-[60] text-xs px-4 py-2.5 rounded-full shadow-lg flex items-center gap-1.5 whitespace-nowrap animate-toast-in ${
-          toast.isError ? 'bg-red-600 text-white' : 'bg-gray-900 text-white'
+        <div className={`fixed top-4 left-1/2 -translate-x-1/2 z-[60] text-xs px-4 py-2.5 rounded-full shadow-lg flex items-center gap-1.5 whitespace-nowrap animate-toast-in animate-success-pulse ${
+          toast.isError ? 'bg-red-600 text-white' : toast.isPR ? 'bg-amber-500 text-white' : 'bg-gray-900 text-white'
         }`}>
-          {toast.isError ? <AlertTriangle className="w-3.5 h-3.5" /> : <Check className="w-3.5 h-3.5" />}
+          {toast.isError ? <AlertTriangle className="w-3.5 h-3.5" /> : toast.isPR ? <Trophy className="w-3.5 h-3.5" /> : <Check className="w-3.5 h-3.5" />}
           {toast.message}
         </div>
       )}
