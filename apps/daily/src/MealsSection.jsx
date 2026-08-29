@@ -43,11 +43,20 @@ const PRE_WORKOUT_FUEL = {
 
 const SLOTS = ['breakfast', 'snack1', 'lunch', 'snack2', 'dinner'];
 const SLOT_META = {
-  breakfast: { label: 'Breakfast', icon: Coffee, text: 'text-amber-600', badge: 'bg-amber-50 text-amber-700', bg: 'bg-amber-500', defaultTime: '08:00' },
-  snack1: { label: 'Snack 1', icon: Apple, text: 'text-rose-500', badge: 'bg-rose-50 text-rose-600', bg: 'bg-rose-500', defaultTime: '11:00' },
-  lunch: { label: 'Lunch', icon: Sandwich, text: 'text-blue-600', badge: 'bg-blue-50 text-blue-700', bg: 'bg-blue-600', defaultTime: '13:00' },
-  snack2: { label: 'Snack 2', icon: Cookie, text: 'text-rose-500', badge: 'bg-rose-50 text-rose-600', bg: 'bg-rose-500', defaultTime: '16:00' },
-  dinner: { label: 'Dinner', icon: CookingPot, text: 'text-purple-600', badge: 'bg-purple-50 text-purple-700', bg: 'bg-purple-600', defaultTime: '19:00' },
+  breakfast: { label: 'Breakfast', icon: Coffee, text: 'text-amber-600', badge: 'bg-amber-50 text-amber-700', bg: 'bg-amber-500', defaultTime: '08:00', defaultDuration: 20 },
+  snack1: { label: 'Snack 1', icon: Apple, text: 'text-rose-500', badge: 'bg-rose-50 text-rose-600', bg: 'bg-rose-500', defaultTime: '11:00', defaultDuration: 10 },
+  lunch: { label: 'Lunch', icon: Sandwich, text: 'text-blue-600', badge: 'bg-blue-50 text-blue-700', bg: 'bg-blue-600', defaultTime: '13:00', defaultDuration: 30 },
+  snack2: { label: 'Snack 2', icon: Cookie, text: 'text-rose-500', badge: 'bg-rose-50 text-rose-600', bg: 'bg-rose-500', defaultTime: '16:00', defaultDuration: 10 },
+  dinner: { label: 'Dinner', icon: CookingPot, text: 'text-purple-600', badge: 'bg-purple-50 text-purple-700', bg: 'bg-purple-600', defaultTime: '19:00', defaultDuration: 45 },
+};
+
+// A mealTimes entry may be the current shape ({time, duration}) or the
+// older plain-string shape (just a time, no duration) — normalize on read
+// so existing schedules keep their time and just pick up a default length.
+const normalizeTimeEntry = (v, defaultTime, defaultDuration) => {
+  if (v && typeof v === 'object') return { time: v.time || defaultTime, duration: Number(v.duration) > 0 ? Number(v.duration) : defaultDuration };
+  if (typeof v === 'string' && v) return { time: v, duration: defaultDuration };
+  return { time: defaultTime, duration: defaultDuration };
 };
 
 const emptyDay = () => ({ breakfast: [], snack1: [], lunch: [], snack2: [], dinner: [] });
@@ -286,9 +295,17 @@ export default function MealsSection() {
   // Time-of-day the Dashboard places this day/slot at. Each slot has a
   // sensible default (breakfast=08:00 etc.) so meals show up on the timeline
   // without any manual setup — this only overrides a specific day's slot.
-  const getMealTime = (day, slot) => mealTimes[day]?.[slot] || SLOT_META[slot].defaultTime;
+  const getMealEntry = (day, slot) => normalizeTimeEntry(mealTimes[day]?.[slot], SLOT_META[slot].defaultTime, SLOT_META[slot].defaultDuration);
+  const getMealTime = (day, slot) => getMealEntry(day, slot).time;
+  const getMealDuration = (day, slot) => getMealEntry(day, slot).duration;
   const setMealTime = (day, slot, time) => {
-    updateMealTimes({ ...mealTimes, [day]: { ...mealTimes[day], [slot]: time } });
+    const entry = getMealEntry(day, slot);
+    updateMealTimes({ ...mealTimes, [day]: { ...mealTimes[day], [slot]: { ...entry, time } } });
+  };
+  const setMealDuration = (day, slot, duration) => {
+    const entry = getMealEntry(day, slot);
+    const clamped = Math.max(5, Number(duration) || SLOT_META[slot].defaultDuration);
+    updateMealTimes({ ...mealTimes, [day]: { ...mealTimes[day], [slot]: { ...entry, duration: clamped } } });
   };
 
   const addToSlot = (day, slot, recipeName) => {
@@ -624,7 +641,7 @@ export default function MealsSection() {
                       return (
                         <div key={slot} className="flex items-start gap-2">
                           <Icon className={`w-3.5 h-3.5 flex-shrink-0 mt-1.5 ${meta.text}`} />
-                          <div className="w-16 flex-shrink-0 mt-1">
+                          <div className="w-20 flex-shrink-0 mt-1">
                             <div className="text-[11px] text-gray-500">{meta.label}</div>
                             <div className="flex items-center gap-0.5 -ml-0.5">
                               <Clock className="w-2.5 h-2.5 text-gray-300" />
@@ -635,6 +652,16 @@ export default function MealsSection() {
                                 className="bg-transparent text-[9px] text-gray-400 outline-none w-[42px]"
                                 aria-label={`Time for ${meta.label} on ${day}`}
                               />
+                            </div>
+                            <div className="flex items-center gap-0.5 -ml-0.5">
+                              <input
+                                type="number" inputMode="numeric" min="5" step="5"
+                                value={getMealDuration(day, slot)}
+                                onChange={e => setMealDuration(day, slot, e.target.value)}
+                                className="bg-transparent text-[9px] text-gray-400 outline-none w-[22px]"
+                                aria-label={`Duration for ${meta.label} on ${day}, in minutes`}
+                              />
+                              <span className="text-[8px] text-gray-300">min</span>
                             </div>
                           </div>
                           <div className="flex-1 min-w-0 flex flex-wrap items-center gap-1.5">

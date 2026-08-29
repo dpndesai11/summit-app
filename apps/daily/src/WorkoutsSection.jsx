@@ -89,9 +89,20 @@ const REST_WEEK = {
 const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
 const CARDIO_ACTIVITIES = ['Running', 'Cycling', 'Rowing', 'Swimming', 'Walking', 'Elliptical'];
 
-// Default time-of-day a newly-assigned workout gets on the Dashboard timeline
-// until someone sets a real one. Workouts default to early morning.
+// Default time-of-day (and duration, in minutes) a newly-assigned workout
+// gets on the Dashboard timeline until someone sets real ones. Workouts
+// default to early morning, one hour long.
 export const DEFAULT_WORKOUT_TIME = '07:00';
+export const DEFAULT_WORKOUT_DURATION = 60;
+
+// A workoutTimes entry may be the current shape ({time, duration}) or the
+// older plain-string shape (just a time, no duration) — normalize on read
+// so existing schedules keep their time and just pick up a default length.
+const normalizeTimeEntry = (v, defaultTime, defaultDuration) => {
+  if (v && typeof v === 'object') return { time: v.time || defaultTime, duration: Number(v.duration) > 0 ? Number(v.duration) : defaultDuration };
+  if (typeof v === 'string' && v) return { time: v, duration: defaultDuration };
+  return { time: defaultTime, duration: defaultDuration };
+};
 
 const toISO = (d) => {
   const y = d.getFullYear();
@@ -443,9 +454,17 @@ export default function WorkoutsSection() {
   // Time-of-day the Dashboard should place this day/workout at. Falls back
   // to DEFAULT_WORKOUT_TIME until someone sets one explicitly, so the
   // timeline always has something to position it with.
-  const getWorkoutTime = (day, name) => workoutTimes[day]?.[name] || DEFAULT_WORKOUT_TIME;
+  const getWorkoutEntry = (day, name) => normalizeTimeEntry(workoutTimes[day]?.[name], DEFAULT_WORKOUT_TIME, DEFAULT_WORKOUT_DURATION);
+  const getWorkoutTime = (day, name) => getWorkoutEntry(day, name).time;
+  const getWorkoutDuration = (day, name) => getWorkoutEntry(day, name).duration;
   const setWorkoutTime = (day, name, time) => {
-    updateWorkoutTimes({ ...workoutTimes, [day]: { ...workoutTimes[day], [name]: time } });
+    const entry = getWorkoutEntry(day, name);
+    updateWorkoutTimes({ ...workoutTimes, [day]: { ...workoutTimes[day], [name]: { ...entry, time } } });
+  };
+  const setWorkoutDuration = (day, name, duration) => {
+    const entry = getWorkoutEntry(day, name);
+    const clamped = Math.max(5, Number(duration) || DEFAULT_WORKOUT_DURATION);
+    updateWorkoutTimes({ ...workoutTimes, [day]: { ...workoutTimes[day], [name]: { ...entry, duration: clamped } } });
   };
 
   useEffect(() => {
@@ -1003,6 +1022,16 @@ export default function WorkoutsSection() {
                           className="bg-transparent text-[10px] text-orange-700 outline-none w-[52px]"
                           aria-label={`Time for ${name} on ${day}`}
                         />
+                      </span>
+                      <span className="flex items-center gap-0.5 bg-white/60 rounded-full pl-1.5 pr-0.5">
+                        <input
+                          type="number" inputMode="numeric" min="5" step="5"
+                          value={getWorkoutDuration(day, name)}
+                          onChange={e => setWorkoutDuration(day, name, e.target.value)}
+                          className="bg-transparent text-[10px] text-orange-700 outline-none w-[26px]"
+                          aria-label={`Duration for ${name} on ${day}, in minutes`}
+                        />
+                        <span className="text-[9px] text-orange-500">min</span>
                       </span>
                       <button onClick={() => removeWorkoutFromDay(day, name)}
                         className="text-orange-400 active:text-red-500" aria-label={`Remove ${name} from ${day}`}>
