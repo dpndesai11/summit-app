@@ -1,4 +1,4 @@
-import { LayoutGrid, CheckSquare, Dumbbell, Sun, Moon, Mountain, Target, Folder, Activity, Salad, ExternalLink } from 'lucide-react';
+import { LayoutGrid, CheckSquare, Dumbbell, Sun, Moon, Mountain, Target, Folder, LayoutDashboard, ExternalLink } from 'lucide-react';
 
 const NAV_ITEMS = [
   { id: 'Main Hub', label: 'Home', icon: LayoutGrid },
@@ -8,11 +8,12 @@ const NAV_ITEMS = [
   { id: 'Fitness Dashboard', label: 'Fitness', icon: Dumbbell },
 ];
 
-// The other Summit apps, deployed as siblings under the same Pages site.
-// Absolute prod paths — they don't resolve in local dev, only deployed.
+// The other Summit app, deployed as a sibling under the same Pages site.
+// Fitness + Eat merged into one phone-oriented app ("Daily") with its own
+// Dashboard/Workouts/Meals sections — this used to be two links.
+// Absolute prod path — doesn't resolve in local dev, only deployed.
 const SUMMIT_APPS = [
-  { label: 'Fitness', href: '/summit-app/fitness/', icon: Activity, color: 'text-orange-500' },
-  { label: 'Eat', href: '/summit-app/eat/', icon: Salad, color: 'text-green-600' },
+  { label: 'Daily', href: '/summit-app/daily/', icon: LayoutDashboard, color: 'text-indigo-600' },
 ];
 
 export default function Sidebar({ currentPage, setCurrentPage, darkMode, setDarkMode }) {
