@@ -1,4 +1,4 @@
-import { LayoutGrid, CheckSquare, Dumbbell, Sun, Moon, Mountain, Target, Folder } from 'lucide-react';
+import { LayoutGrid, CheckSquare, Dumbbell, Sun, Moon, Mountain, Target, Folder, Activity, Salad, ExternalLink } from 'lucide-react';
 
 const NAV_ITEMS = [
   { id: 'Main Hub', label: 'Home', icon: LayoutGrid },
@@ -8,6 +8,13 @@ const NAV_ITEMS = [
   { id: 'Fitness Dashboard', label: 'Fitness', icon: Dumbbell },
 ];
 
+// The other Summit apps, deployed as siblings under the same Pages site.
+// Absolute prod paths — they don't resolve in local dev, only deployed.
+const SUMMIT_APPS = [
+  { label: 'Fitness', href: '/summit-app/fitness/', icon: Activity, color: 'text-orange-500' },
+  { label: 'Eat', href: '/summit-app/eat/', icon: Salad, color: 'text-green-600' },
+];
+
 export default function Sidebar({ currentPage, setCurrentPage, darkMode, setDarkMode }) {
   return (
     <aside className="w-60 shrink-0 h-screen sticky top-0 flex flex-col border-r border-black/8 dark:border-white/8 bg-[#fbfbfa] dark:bg-[#202020] px-3 py-4">
@@ -15,7 +22,10 @@ export default function Sidebar({ currentPage, setCurrentPage, darkMode, setDark
         <div className="w-6 h-6 rounded-md bg-blue-600 flex items-center justify-center shrink-0">
           <Mountain className="w-3.5 h-3.5 text-white" />
         </div>
-        <span className="font-semibold text-sm text-[#37352f] dark:text-[#e6e6e6]">Summit</span>
+        <div className="min-w-0">
+          <span className="font-semibold text-sm text-[#37352f] dark:text-[#e6e6e6] block leading-tight">Summit</span>
+          <span className="text-[10px] text-[#9b9b9b] block leading-tight">Command Center</span>
+        </div>
       </div>
 
       <nav className="flex flex-col gap-0.5">
@@ -37,6 +47,21 @@ export default function Sidebar({ currentPage, setCurrentPage, darkMode, setDark
           );
         })}
       </nav>
+
+      <div className="mt-6">
+        <div className="px-2.5 mb-1 text-[10px] font-semibold uppercase tracking-wider text-[#9b9b9b]">Apps</div>
+        {SUMMIT_APPS.map(({ label, href, icon: Icon, color }) => (
+          <a
+            key={label}
+            href={href}
+            className="flex items-center gap-2.5 px-2.5 py-1.5 rounded-md text-sm text-[#6b7280] dark:text-[#9b9b9b] hover:bg-black/5 dark:hover:bg-white/5 transition-colors"
+          >
+            <Icon className={`w-4 h-4 ${color}`} />
+            {label}
+            <ExternalLink className="w-3 h-3 ml-auto opacity-40" />
+          </a>
+        ))}
+      </div>
 
       <div className="flex-1" />
 

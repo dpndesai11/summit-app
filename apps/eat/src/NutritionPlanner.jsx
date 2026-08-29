@@ -173,6 +173,32 @@ const normalizeIngredient = (ing) => (
 );
 const normalizeRecipeIngredients = (ingredients) => (Array.isArray(ingredients) ? ingredients.map(normalizeIngredient) : []);
 
+// Summit Command Center strip: ties the three sibling apps together under
+// one identity, with one-tap jumps between them. Absolute prod paths — the
+// apps are only siblings when deployed under /summit-app/, not in local dev.
+const SUMMIT_APPS = [
+  { id: 'tasks', label: 'Tasks', href: '/summit-app/', active: 'bg-blue-600 text-white' },
+  { id: 'fitness', label: 'Fitness', href: '/summit-app/fitness/', active: 'bg-orange-600 text-white' },
+  { id: 'eat', label: 'Eat', href: '/summit-app/eat/', active: 'bg-green-600 text-white' },
+];
+
+function AppSwitcher({ current }) {
+  return (
+    <div className="flex items-center gap-1.5">
+      <span className="text-[10px] font-bold tracking-widest uppercase text-gray-400 mr-0.5">Summit</span>
+      {SUMMIT_APPS.map(a => (
+        a.id === current ? (
+          <span key={a.id} className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${a.active}`}>{a.label}</span>
+        ) : (
+          <a key={a.id} href={a.href} className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-gray-200/70 text-gray-500 active:bg-gray-300">
+            {a.label}
+          </a>
+        )
+      ))}
+    </div>
+  );
+}
+
 function StatCard({ icon: Icon, label, value, sub }) {
   return (
     <div className="bg-white rounded-2xl border border-gray-200 p-4 flex-1 min-w-0">
@@ -237,9 +263,12 @@ export default function NutritionPlanner() {
   // ingredients here have no quantity at all, so per-ingredient macros
   // aren't realistic; a whole-recipe estimate is. Left untracked, a recipe
   // just doesn't contribute to Today's target totals.
+  // `advanced` gates ALL nutrition UI in the builder (per-ingredient
+  // quantities, database matching, computed preview, manual override) —
+  // untucked, the form stays the simple name+ingredients+notes flow.
   const [builder, setBuilder] = useState({
     name: '', ingredients: [], notes: '', mode: 'list', bulkText: '', draftName: '',
-    nutritionEnabled: false, protein: '', carbs: '', fibre: ''
+    advanced: false, nutritionEnabled: false, protein: '', carbs: '', fibre: ''
   });
   const [builderOpen, setBuilderOpen] = useState(false);
   const [editingRecipeId, setEditingRecipeId] = useState(null);
@@ -456,16 +485,24 @@ export default function NutritionPlanner() {
   };
 
   const resetBuilder = () => {
-    setBuilder({ name: '', ingredients: [], notes: '', mode: 'list', bulkText: '', draftName: '', nutritionEnabled: false, protein: '', carbs: '', fibre: '' });
+    setBuilder({ name: '', ingredients: [], notes: '', mode: 'list', bulkText: '', draftName: '', advanced: false, nutritionEnabled: false, protein: '', carbs: '', fibre: '' });
     setEditingRecipeId(null);
     setBuilderOpen(false);
   };
 
   const startEditRecipe = (recipe) => {
+    // Was this recipe's nutrition a manual override or computed from
+    // quantities? `nutritionManual` records it going forward; recipes from
+    // before the flag existed fall back to a heuristic: nutrition present
+    // but nothing computable from its ingredients means it was typed in.
+    const manual = recipe.nutritionManual ?? (!!recipe.nutrition && !computeIngredientsNutrition(recipe.ingredients));
     setBuilder({
       name: recipe.name, ingredients: recipe.ingredients.map(i => ({ ...i })), notes: recipe.notes || '', mode: 'list', bulkText: '', draftName: '',
-      nutritionEnabled: !!recipe.nutrition,
-      protein: recipe.nutrition?.protein ?? '', carbs: recipe.nutrition?.carbs ?? '', fibre: recipe.nutrition?.fibre ?? ''
+      advanced: !!recipe.nutrition || recipe.ingredients.some(i => i.quantity),
+      nutritionEnabled: manual,
+      protein: manual ? (recipe.nutrition?.protein ?? '') : '',
+      carbs: manual ? (recipe.nutrition?.carbs ?? '') : '',
+      fibre: manual ? (recipe.nutrition?.fibre ?? '') : ''
     });
     setEditingRecipeId(recipe.id);
     setExpandedRecipeId(null);
@@ -491,12 +528,14 @@ export default function NutritionPlanner() {
   const saveRecipe = () => {
     const name = builder.name.trim();
     if (!name || builder.ingredients.length === 0) return;
-    const nutrition = builder.nutritionEnabled ? builderNutrition() : computeIngredientsNutrition(builder.ingredients);
+    const manualNutrition = builder.nutritionEnabled ? builderNutrition() : null;
+    const nutrition = manualNutrition ?? computeIngredientsNutrition(builder.ingredients);
+    const nutritionManual = !!manualNutrition;
 
     if (editingRecipeId) {
       const prev = recipes.find(r => r.id === editingRecipeId);
       updateRecipes(recipes.map(r => (
-        r.id === editingRecipeId ? { ...r, name, ingredients: builder.ingredients, notes: builder.notes.trim(), nutrition } : r
+        r.id === editingRecipeId ? { ...r, name, ingredients: builder.ingredients, notes: builder.notes.trim(), nutrition, nutritionManual } : r
       )));
       if (prev && prev.name !== name) {
         const next = {};
@@ -508,7 +547,7 @@ export default function NutritionPlanner() {
       }
       showToast('Recipe updated');
     } else {
-      updateRecipes([...recipes, { id: Date.now(), name, ingredients: builder.ingredients, notes: builder.notes.trim(), nutrition }]);
+      updateRecipes([...recipes, { id: Date.now(), name, ingredients: builder.ingredients, notes: builder.notes.trim(), nutrition, nutritionManual }]);
       showToast('Recipe saved');
     }
     resetBuilder();
@@ -870,57 +909,72 @@ export default function NutritionPlanner() {
             )}
 
             {builder.ingredients.length > 0 && (
-              <div className="space-y-1.5">
-                {builder.ingredients.map((ing, i) => {
-                  const db = findDbIngredient(ing.name);
-                  const contribution = db && ing.quantity ? {
-                    protein: Math.round(db.protein * ing.quantity / 100),
-                    carbs: Math.round(db.carbs * ing.quantity / 100),
-                    fibre: Math.round(db.fibre * ing.quantity / 100),
-                  } : null;
-                  return (
-                    <div key={i} className="flex items-center gap-1.5 bg-green-50 rounded-lg px-2 py-1.5">
-                      <span className="text-[11px] text-green-800 font-medium flex-1 min-w-0 truncate">{ing.name}</span>
-                      <input
-                        type="number" inputMode="numeric" min="0" placeholder="qty"
-                        value={ing.quantity ?? ''}
-                        onChange={e => setBuilderIngredientQuantity(i, e.target.value)}
-                        className="w-14 bg-white border border-green-200 rounded-md text-center text-[11px] py-1 outline-none focus:border-green-500"
-                      />
-                      <span className="text-[10px] text-green-700 flex-shrink-0">g</span>
-                      {contribution ? (
-                        <span className="text-[9px] text-green-600 flex-shrink-0 tabular-nums">P{contribution.protein}·C{contribution.carbs}·F{contribution.fibre}</span>
-                      ) : db ? (
-                        <span className="text-[9px] text-gray-400 flex-shrink-0">in DB</span>
-                      ) : (
-                        <button onClick={() => quickAddDbIngredient(ing.name)} className="text-[9px] text-gray-400 underline flex-shrink-0">
-                          not in DB
+              builder.advanced ? (
+                <div className="space-y-1.5">
+                  {builder.ingredients.map((ing, i) => {
+                    const db = findDbIngredient(ing.name);
+                    const contribution = db && ing.quantity ? {
+                      protein: Math.round(db.protein * ing.quantity / 100),
+                      carbs: Math.round(db.carbs * ing.quantity / 100),
+                      fibre: Math.round(db.fibre * ing.quantity / 100),
+                    } : null;
+                    return (
+                      <div key={i} className="flex items-center gap-1.5 bg-green-50 rounded-lg px-2 py-1.5">
+                        <span className="text-[11px] text-green-800 font-medium flex-1 min-w-0 truncate">{ing.name}</span>
+                        <input
+                          type="number" inputMode="numeric" min="0" placeholder="qty"
+                          value={ing.quantity ?? ''}
+                          onChange={e => setBuilderIngredientQuantity(i, e.target.value)}
+                          className="w-14 bg-white border border-green-200 rounded-md text-center text-[11px] py-1 outline-none focus:border-green-500"
+                        />
+                        <span className="text-[10px] text-green-700 flex-shrink-0">g</span>
+                        {contribution ? (
+                          <span className="text-[9px] text-green-600 flex-shrink-0 tabular-nums">P{contribution.protein}·C{contribution.carbs}·F{contribution.fibre}</span>
+                        ) : db ? (
+                          <span className="text-[9px] text-gray-400 flex-shrink-0">in DB</span>
+                        ) : (
+                          <button onClick={() => quickAddDbIngredient(ing.name)} className="text-[9px] text-gray-400 underline flex-shrink-0">
+                            not in DB
+                          </button>
+                        )}
+                        <button onClick={() => removeBuilderIngredient(i)} aria-label={`Remove ${ing.name}`} className="text-green-400 active:text-red-500 flex-shrink-0">
+                          <X className="w-3.5 h-3.5" />
                         </button>
-                      )}
-                      <button onClick={() => removeBuilderIngredient(i)} aria-label={`Remove ${ing.name}`} className="text-green-400 active:text-red-500 flex-shrink-0">
-                        <X className="w-3.5 h-3.5" />
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div className="flex flex-wrap gap-1.5">
+                  {builder.ingredients.map((ing, i) => (
+                    <span key={i} className="text-[11px] bg-green-100 text-green-700 px-2.5 py-1 rounded-full flex items-center gap-1">
+                      {ing.name}{ing.quantity ? ` · ${ing.quantity}g` : ''}
+                      <button onClick={() => removeBuilderIngredient(i)} aria-label={`Remove ${ing.name}`}>
+                        <X className="w-3 h-3" />
                       </button>
-                    </div>
-                  );
-                })}
-              </div>
+                    </span>
+                  ))}
+                </div>
+              )
             )}
 
-            <label className="flex items-center gap-2 py-1 cursor-pointer select-none">
-              <button
-                type="button"
-                onClick={() => setBuilder(p => ({ ...p, nutritionEnabled: !p.nutritionEnabled }))}
-                className={`w-5 h-5 rounded-md border flex items-center justify-center flex-shrink-0 ${
-                  builder.nutritionEnabled ? 'bg-green-600 border-green-600' : 'border-gray-300 bg-white'
-                }`}
-                aria-label={builder.nutritionEnabled ? 'Disable nutrition info' : 'Add nutrition info'}
-              >
-                {builder.nutritionEnabled && <Check className="w-3.5 h-3.5 text-white" />}
-              </button>
-              <span className="text-xs text-gray-600">Set a whole-recipe nutrition override</span>
-            </label>
+            {/* A single button, not a label wrapping a button — a <button> is a
+                labelable element, so a wrapping <label> forwards the click and
+                fires the toggle twice, flipping it straight back. */}
+            <button
+              type="button"
+              onClick={() => setBuilder(p => ({ ...p, advanced: !p.advanced }))}
+              className="flex items-center gap-2 py-1 select-none"
+            >
+              <span className={`w-5 h-5 rounded-md border flex items-center justify-center flex-shrink-0 ${
+                builder.advanced ? 'bg-green-600 border-green-600' : 'border-gray-300 bg-white'
+              }`}>
+                {builder.advanced && <Check className="w-3.5 h-3.5 text-white" />}
+              </span>
+              <span className="text-xs text-gray-600">Advanced nutrition (quantities &amp; macros)</span>
+            </button>
 
-            {!builder.nutritionEnabled && (() => {
+            {builder.advanced && !builder.nutritionEnabled && (() => {
               const computed = computeIngredientsNutrition(builder.ingredients);
               return computed ? (
                 <div className="text-[11px] text-green-700 bg-green-50 rounded-lg px-2.5 py-1.5">
@@ -933,7 +987,22 @@ export default function NutritionPlanner() {
               );
             })()}
 
-            {builder.nutritionEnabled && (
+            {builder.advanced && (
+              <button
+                type="button"
+                onClick={() => setBuilder(p => ({ ...p, nutritionEnabled: !p.nutritionEnabled }))}
+                className="flex items-center gap-2 py-1 select-none"
+              >
+                <span className={`w-5 h-5 rounded-md border flex items-center justify-center flex-shrink-0 ${
+                  builder.nutritionEnabled ? 'bg-green-600 border-green-600' : 'border-gray-300 bg-white'
+                }`}>
+                  {builder.nutritionEnabled && <Check className="w-3.5 h-3.5 text-white" />}
+                </span>
+                <span className="text-xs text-gray-600">Set a whole-recipe nutrition override</span>
+              </button>
+            )}
+
+            {builder.advanced && builder.nutritionEnabled && (
               <div className="flex gap-2">
                 <div className="flex-1">
                   <div className="text-[10px] uppercase tracking-wide text-gray-400 mb-1 text-center">Protein (g)</div>
@@ -1261,7 +1330,10 @@ export default function NutritionPlanner() {
         </div>
       )}
 
-      <div className="sticky top-0 z-40 bg-[#f7f7f5]/90 backdrop-blur px-4 pt-5 pb-3">
+      <div className="sticky top-0 z-40 bg-[#f7f7f5]/90 backdrop-blur px-4 pt-3 pb-3">
+        <div className="max-w-md mx-auto mb-2">
+          <AppSwitcher current="eat" />
+        </div>
         <div className="max-w-md mx-auto flex items-baseline justify-between">
           <h1 className="text-xl font-bold text-gray-900">
             {tab === 'today' ? 'Today' : tab === 'week' ? 'Week' : 'Shopping'}

@@ -220,6 +220,32 @@ function Stepper({ label, value, onChange, step = 1, min = 0, unit }) {
   );
 }
 
+// Summit Command Center strip: ties the three sibling apps together under
+// one identity, with one-tap jumps between them. Absolute prod paths — the
+// apps are only siblings when deployed under /summit-app/, not in local dev.
+const SUMMIT_APPS = [
+  { id: 'tasks', label: 'Tasks', href: '/summit-app/', active: 'bg-blue-600 text-white' },
+  { id: 'fitness', label: 'Fitness', href: '/summit-app/fitness/', active: 'bg-orange-600 text-white' },
+  { id: 'eat', label: 'Eat', href: '/summit-app/eat/', active: 'bg-green-600 text-white' },
+];
+
+function AppSwitcher({ current }) {
+  return (
+    <div className="flex items-center gap-1.5">
+      <span className="text-[10px] font-bold tracking-widest uppercase text-gray-400 mr-0.5">Summit</span>
+      {SUMMIT_APPS.map(a => (
+        a.id === current ? (
+          <span key={a.id} className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${a.active}`}>{a.label}</span>
+        ) : (
+          <a key={a.id} href={a.href} className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-gray-200/70 text-gray-500 active:bg-gray-300">
+            {a.label}
+          </a>
+        )
+      ))}
+    </div>
+  );
+}
+
 function StatCard({ icon: Icon, label, value, sub }) {
   return (
     <div className="bg-white rounded-2xl border border-gray-200 p-4 flex-1 min-w-0">
@@ -1446,7 +1472,10 @@ export default function FitnessTracker() {
       )}
 
       {/* Header */}
-      <div className="sticky top-0 z-40 bg-[#f7f7f5]/90 backdrop-blur px-4 pt-5 pb-3">
+      <div className="sticky top-0 z-40 bg-[#f7f7f5]/90 backdrop-blur px-4 pt-3 pb-3">
+        <div className="max-w-md mx-auto mb-2">
+          <AppSwitcher current="fitness" />
+        </div>
         <div className="max-w-md mx-auto flex items-baseline justify-between">
           <h1 className="text-xl font-bold text-gray-900">
             {tab === 'today' ? 'Today' : tab === 'plan' ? 'Plan' : 'History'}
