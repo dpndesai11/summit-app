@@ -29,10 +29,15 @@ const STORAGE_KEYS = {
 
 const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
 
-// Reference-only nutrition targets from the Placement Year plan — displayed
-// on Today, not tracked against actual logged meals (recipes have no
-// calorie/macro data, so there's nothing to total up against these yet).
-// Protein and fibre are fixed daily; carbs are periodized by training day.
+// Nutrition targets from the Placement Year plan. Protein and fibre are
+// fixed daily; carbs are periodized by training day. Recipes only carry
+// macro data when someone's ticked "Add nutrition info" on them, so Today's
+// card totals up whatever's actually been entered against these targets —
+// a partial, honest total, not a guess at untracked recipes.
+const parseRange = (s) => {
+  const m = s.match(/(\d+)-(\d+)/);
+  return m ? [Number(m[1]), Number(m[2])] : null;
+};
 const PROTEIN_TARGET = '150-155g';
 const FIBRE_TARGET = '30-40g';
 const CARB_TARGETS = {
@@ -101,6 +106,33 @@ function StatCard({ icon: Icon, label, value, sub }) {
   );
 }
 
+// One macro row on Today's targets card: actual grams tracked so far today
+// against the target range, with a small fill bar. `range` is [lo, hi] from
+// parseRange, or null when there's no numeric target to bar against
+// (Sunday's duration-scaled carbs) — falls back to just showing the total.
+function MacroBar({ label, actual, range, targetLabel }) {
+  const pct = range ? Math.max(0, Math.min(100, (actual / range[1]) * 100)) : 0;
+  const inRange = range && actual >= range[0] && actual <= range[1];
+  return (
+    <div>
+      <div className="flex items-center justify-between text-[11px] mb-1">
+        <span className="font-medium text-gray-600">{label}</span>
+        <span className="text-gray-400">{actual}g <span className="text-gray-300">/ {targetLabel}</span></span>
+      </div>
+      {range ? (
+        <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
+          <div
+            className={`h-full rounded-full transition-[width] duration-300 ${inRange ? 'bg-green-500' : 'bg-green-300'}`}
+            style={{ width: `${pct}%` }}
+          />
+        </div>
+      ) : (
+        <div className="h-1.5 bg-gray-100 rounded-full" />
+      )}
+    </div>
+  );
+}
+
 export default function NutritionPlanner() {
   const [tab, setTab] = useState('today');
   const [recipes, setRecipes] = useState(DEFAULT_RECIPES);
@@ -120,8 +152,13 @@ export default function NutritionPlanner() {
   // 5-8 ingredients at once beats typing them one at a time. The same form
   // is reused for editing: editingRecipeId set means Save updates that
   // recipe in place instead of creating a new one.
+  // Nutrition info is opt-in per recipe ("Add nutrition info" tick) — most
+  // ingredients here have no quantity at all, so per-ingredient macros
+  // aren't realistic; a whole-recipe estimate is. Left untracked, a recipe
+  // just doesn't contribute to Today's target totals.
   const [builder, setBuilder] = useState({
-    name: '', ingredients: [], notes: '', mode: 'list', bulkText: '', draftName: ''
+    name: '', ingredients: [], notes: '', mode: 'list', bulkText: '', draftName: '',
+    nutritionEnabled: false, protein: '', carbs: '', fibre: ''
   });
   const [builderOpen, setBuilderOpen] = useState(false);
   const [editingRecipeId, setEditingRecipeId] = useState(null);
@@ -252,16 +289,29 @@ export default function NutritionPlanner() {
   };
 
   const resetBuilder = () => {
-    setBuilder({ name: '', ingredients: [], notes: '', mode: 'list', bulkText: '', draftName: '' });
+    setBuilder({ name: '', ingredients: [], notes: '', mode: 'list', bulkText: '', draftName: '', nutritionEnabled: false, protein: '', carbs: '', fibre: '' });
     setEditingRecipeId(null);
     setBuilderOpen(false);
   };
 
   const startEditRecipe = (recipe) => {
-    setBuilder({ name: recipe.name, ingredients: [...recipe.ingredients], notes: recipe.notes || '', mode: 'list', bulkText: '', draftName: '' });
+    setBuilder({
+      name: recipe.name, ingredients: [...recipe.ingredients], notes: recipe.notes || '', mode: 'list', bulkText: '', draftName: '',
+      nutritionEnabled: !!recipe.nutrition,
+      protein: recipe.nutrition?.protein ?? '', carbs: recipe.nutrition?.carbs ?? '', fibre: recipe.nutrition?.fibre ?? ''
+    });
     setEditingRecipeId(recipe.id);
     setExpandedRecipeId(null);
     setBuilderOpen(true);
+  };
+
+  // Nutrition is only stored when the tick is on AND at least one field was
+  // actually filled in — an empty ticked box is the same as untracked.
+  const builderNutrition = () => {
+    if (!builder.nutritionEnabled) return null;
+    const p = Number(builder.protein) || 0, c = Number(builder.carbs) || 0, f = Number(builder.fibre) || 0;
+    if (!p && !c && !f) return null;
+    return { protein: p, carbs: c, fibre: f };
   };
 
   // Creates a new recipe, or — when editingRecipeId is set — updates that
@@ -270,11 +320,12 @@ export default function NutritionPlanner() {
   const saveRecipe = () => {
     const name = builder.name.trim();
     if (!name || builder.ingredients.length === 0) return;
+    const nutrition = builderNutrition();
 
     if (editingRecipeId) {
       const prev = recipes.find(r => r.id === editingRecipeId);
       updateRecipes(recipes.map(r => (
-        r.id === editingRecipeId ? { ...r, name, ingredients: builder.ingredients, notes: builder.notes.trim() } : r
+        r.id === editingRecipeId ? { ...r, name, ingredients: builder.ingredients, notes: builder.notes.trim(), nutrition } : r
       )));
       if (prev && prev.name !== name) {
         const next = {};
@@ -286,7 +337,7 @@ export default function NutritionPlanner() {
       }
       showToast('Recipe updated');
     } else {
-      updateRecipes([...recipes, { id: Date.now(), name, ingredients: builder.ingredients, notes: builder.notes.trim() }]);
+      updateRecipes([...recipes, { id: Date.now(), name, ingredients: builder.ingredients, notes: builder.notes.trim(), nutrition }]);
       showToast('Recipe saved');
     }
     resetBuilder();
@@ -360,6 +411,27 @@ export default function NutritionPlanner() {
   );
   const shoppingItemCount = shoppingItems.length + shoppingExtras.length;
 
+  // Sum nutrition across every recipe assigned to any of today's slots —
+  // only recipes with data entered count, everything else is invisible to
+  // the total rather than silently treated as zero.
+  const todayNutrition = (() => {
+    const totals = { protein: 0, carbs: 0, fibre: 0 };
+    let tracked = 0, planned = 0;
+    SLOTS.forEach(slot => {
+      (plan[todayName]?.[slot] || []).forEach(name => {
+        planned += 1;
+        const recipe = recipes.find(r => r.name === name);
+        if (recipe?.nutrition) {
+          tracked += 1;
+          totals.protein += recipe.nutrition.protein;
+          totals.carbs += recipe.nutrition.carbs;
+          totals.fibre += recipe.nutrition.fibre;
+        }
+      });
+    });
+    return { ...totals, tracked, planned };
+  })();
+
   // --- Today page --------------------------------------------------------------
   const TodayPage = (
     <div className="space-y-3">
@@ -370,29 +442,34 @@ export default function NutritionPlanner() {
       </div>
 
       <div className="bg-white rounded-2xl border border-gray-200 p-4">
-        <div className="flex items-center gap-2 mb-3">
-          <Target className="w-4 h-4 text-green-600" />
-          <span className="font-semibold text-gray-900 text-sm">Today's targets</span>
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center gap-2">
+            <Target className="w-4 h-4 text-green-600" />
+            <span className="font-semibold text-gray-900 text-sm">Today's targets</span>
+          </div>
+          {todayNutrition.planned > 0 && (
+            <span className="text-[10px] text-gray-400">{todayNutrition.tracked}/{todayNutrition.planned} meals tracked</span>
+          )}
         </div>
-        <div className="flex gap-2 mb-2">
-          <div className="flex-1 bg-gray-50 rounded-xl p-2.5 text-center">
-            <div className="text-[10px] uppercase tracking-wide text-gray-400">Protein</div>
-            <div className="text-sm font-bold text-gray-900">{PROTEIN_TARGET}</div>
-          </div>
-          <div className="flex-1 bg-gray-50 rounded-xl p-2.5 text-center">
-            <div className="text-[10px] uppercase tracking-wide text-gray-400">Fibre</div>
-            <div className="text-sm font-bold text-gray-900">{FIBRE_TARGET}</div>
-          </div>
-          <div className="flex-1 bg-gray-50 rounded-xl p-2.5 text-center">
-            <div className="text-[10px] uppercase tracking-wide text-gray-400">Carbs</div>
-            <div className="text-sm font-bold text-gray-900">{todayName === 'Sunday' ? 'Scaled' : CARB_TARGETS[todayName]}</div>
-          </div>
+        <div className="space-y-2.5">
+          <MacroBar label="Protein" actual={todayNutrition.protein} range={parseRange(PROTEIN_TARGET)} targetLabel={PROTEIN_TARGET} />
+          <MacroBar
+            label="Carbs" actual={todayNutrition.carbs}
+            range={todayName === 'Sunday' ? null : parseRange(CARB_TARGETS[todayName])}
+            targetLabel={todayName === 'Sunday' ? 'scaled' : CARB_TARGETS[todayName]}
+          />
+          <MacroBar label="Fibre" actual={todayNutrition.fibre} range={parseRange(FIBRE_TARGET)} targetLabel={FIBRE_TARGET} />
         </div>
         {todayName === 'Sunday' && (
-          <p className="text-[11px] text-gray-400 mb-1">{CARB_TARGETS.Sunday}</p>
+          <p className="text-[11px] text-gray-400 mt-2.5">{CARB_TARGETS.Sunday}</p>
+        )}
+        {todayNutrition.planned > 0 && todayNutrition.tracked < todayNutrition.planned && (
+          <p className="text-[11px] text-amber-600 mt-2.5">
+            {todayNutrition.planned - todayNutrition.tracked} meal{todayNutrition.planned - todayNutrition.tracked === 1 ? '' : 's'} today {todayNutrition.planned - todayNutrition.tracked === 1 ? "isn't" : "aren't"} tracked — totals above are a floor, not the full day.
+          </p>
         )}
         {PRE_WORKOUT_FUEL[todayName] && (
-          <p className="text-[11px] text-gray-500 pt-1 border-t border-gray-100 mt-1">
+          <p className="text-[11px] text-gray-500 pt-2.5 border-t border-gray-100 mt-2.5">
             <span className="font-medium text-gray-700">Pre-workout: </span>{PRE_WORKOUT_FUEL[todayName]}
           </p>
         )}
@@ -632,6 +709,52 @@ export default function NutritionPlanner() {
               </div>
             )}
 
+            <label className="flex items-center gap-2 py-1 cursor-pointer select-none">
+              <button
+                type="button"
+                onClick={() => setBuilder(p => ({ ...p, nutritionEnabled: !p.nutritionEnabled }))}
+                className={`w-5 h-5 rounded-md border flex items-center justify-center flex-shrink-0 ${
+                  builder.nutritionEnabled ? 'bg-green-600 border-green-600' : 'border-gray-300 bg-white'
+                }`}
+                aria-label={builder.nutritionEnabled ? 'Disable nutrition info' : 'Add nutrition info'}
+              >
+                {builder.nutritionEnabled && <Check className="w-3.5 h-3.5 text-white" />}
+              </button>
+              <span className="text-xs text-gray-600">Add nutrition info (advanced)</span>
+            </label>
+
+            {builder.nutritionEnabled && (
+              <div className="flex gap-2">
+                <div className="flex-1">
+                  <div className="text-[10px] uppercase tracking-wide text-gray-400 mb-1 text-center">Protein (g)</div>
+                  <input
+                    type="number" inputMode="numeric" min="0" placeholder="0"
+                    value={builder.protein}
+                    onChange={e => setBuilder(p => ({ ...p, protein: e.target.value }))}
+                    className="w-full bg-white border border-gray-200 rounded-lg px-2 py-2 text-sm text-center outline-none focus:border-green-500"
+                  />
+                </div>
+                <div className="flex-1">
+                  <div className="text-[10px] uppercase tracking-wide text-gray-400 mb-1 text-center">Carbs (g)</div>
+                  <input
+                    type="number" inputMode="numeric" min="0" placeholder="0"
+                    value={builder.carbs}
+                    onChange={e => setBuilder(p => ({ ...p, carbs: e.target.value }))}
+                    className="w-full bg-white border border-gray-200 rounded-lg px-2 py-2 text-sm text-center outline-none focus:border-green-500"
+                  />
+                </div>
+                <div className="flex-1">
+                  <div className="text-[10px] uppercase tracking-wide text-gray-400 mb-1 text-center">Fibre (g)</div>
+                  <input
+                    type="number" inputMode="numeric" min="0" placeholder="0"
+                    value={builder.fibre}
+                    onChange={e => setBuilder(p => ({ ...p, fibre: e.target.value }))}
+                    className="w-full bg-white border border-gray-200 rounded-lg px-2 py-2 text-sm text-center outline-none focus:border-green-500"
+                  />
+                </div>
+              </div>
+            )}
+
             <textarea
               value={builder.notes}
               onChange={e => setBuilder(p => ({ ...p, notes: e.target.value }))}
@@ -654,8 +777,13 @@ export default function NutritionPlanner() {
             return (
               <div key={r.id} className="border border-gray-200 rounded-xl p-3">
                 <button onClick={() => setExpandedRecipeId(expanded ? null : r.id)} className="w-full flex items-center justify-between mb-1.5">
-                  <span className="text-sm font-medium text-gray-900">{r.name}</span>
+                  <span className="text-sm font-medium text-gray-900 truncate">{r.name}</span>
                   <div className="flex items-center gap-2 flex-shrink-0">
+                    {r.nutrition && (
+                      <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-green-50 text-green-700">
+                        P{r.nutrition.protein}·C{r.nutrition.carbs}·F{r.nutrition.fibre}
+                      </span>
+                    )}
                     <span className="text-[10px] text-gray-400">{r.ingredients.length} ingredients</span>
                     <ChevronDown className={`w-3.5 h-3.5 text-gray-400 transition-transform ${expanded ? 'rotate-180' : ''}`} />
                   </div>
