@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import {
   CalendarDays, ShoppingCart, ChefHat, Coffee, Apple, Sandwich, Cookie, CookingPot,
-  Plus, X, Trash2, Check, ChevronDown, AlertTriangle, RefreshCw, ClipboardList, Pencil
+  Plus, X, Trash2, Check, ChevronDown, AlertTriangle, RefreshCw, ClipboardList, Pencil, Target
 } from 'lucide-react';
 import { dbGet, dbSet, dbRefresh } from './lib/db';
 
@@ -28,6 +28,23 @@ const STORAGE_KEYS = {
 };
 
 const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+
+// Reference-only nutrition targets from the Placement Year plan — displayed
+// on Today, not tracked against actual logged meals (recipes have no
+// calorie/macro data, so there's nothing to total up against these yet).
+// Protein and fibre are fixed daily; carbs are periodized by training day.
+const PROTEIN_TARGET = '150-155g';
+const FIBRE_TARGET = '30-40g';
+const CARB_TARGETS = {
+  Monday: '230-310g', Tuesday: '385-460g', Wednesday: '310-385g',
+  Thursday: '385-460g', Friday: '230-310g', Saturday: '310-385g',
+  Sunday: 'Duration-scaled — use daily target + intra-ride g/hour once rides exceed ~90min',
+};
+const PRE_WORKOUT_FUEL = {
+  Tuesday: 'Banana, or bread/roll + jam, or small oats (60-90min before the 10km run)',
+  Thursday: 'Banana + orange (60-90min before cricket nets)',
+  Saturday: 'Banana + orange (60-90min before gym + run)',
+};
 
 // Five named slots per day, in display order. Icon + color give each one a
 // consistent identity across Today, Week, and recipe pickers.
@@ -350,6 +367,35 @@ export default function NutritionPlanner() {
         <StatCard icon={CalendarDays} label="This week" value={mealsPlannedThisWeek} sub="meals planned" />
         <StatCard icon={ChefHat} label="Recipes" value={recipes.length} sub="saved" />
         <StatCard icon={ShoppingCart} label="Shopping" value={shoppingItemCount} sub="items" />
+      </div>
+
+      <div className="bg-white rounded-2xl border border-gray-200 p-4">
+        <div className="flex items-center gap-2 mb-3">
+          <Target className="w-4 h-4 text-green-600" />
+          <span className="font-semibold text-gray-900 text-sm">Today's targets</span>
+        </div>
+        <div className="flex gap-2 mb-2">
+          <div className="flex-1 bg-gray-50 rounded-xl p-2.5 text-center">
+            <div className="text-[10px] uppercase tracking-wide text-gray-400">Protein</div>
+            <div className="text-sm font-bold text-gray-900">{PROTEIN_TARGET}</div>
+          </div>
+          <div className="flex-1 bg-gray-50 rounded-xl p-2.5 text-center">
+            <div className="text-[10px] uppercase tracking-wide text-gray-400">Fibre</div>
+            <div className="text-sm font-bold text-gray-900">{FIBRE_TARGET}</div>
+          </div>
+          <div className="flex-1 bg-gray-50 rounded-xl p-2.5 text-center">
+            <div className="text-[10px] uppercase tracking-wide text-gray-400">Carbs</div>
+            <div className="text-sm font-bold text-gray-900">{todayName === 'Sunday' ? 'Scaled' : CARB_TARGETS[todayName]}</div>
+          </div>
+        </div>
+        {todayName === 'Sunday' && (
+          <p className="text-[11px] text-gray-400 mb-1">{CARB_TARGETS.Sunday}</p>
+        )}
+        {PRE_WORKOUT_FUEL[todayName] && (
+          <p className="text-[11px] text-gray-500 pt-1 border-t border-gray-100 mt-1">
+            <span className="font-medium text-gray-700">Pre-workout: </span>{PRE_WORKOUT_FUEL[todayName]}
+          </p>
+        )}
       </div>
 
       <div className="bg-green-600 rounded-2xl p-4 text-white">
