@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import {
   Dumbbell, Activity, PersonStanding, Coffee, Apple, Sandwich, Cookie, CookingPot,
   CheckSquare, Check, ChevronDown, RefreshCw, AlertTriangle, X, Circle, CircleCheck
@@ -75,6 +75,18 @@ const formatTime = (hhmm) => {
   const display = h % 12 === 0 ? 12 : h % 12;
   return `${display}:${String(m).padStart(2, '0')} ${period}`;
 };
+const minutesToTime = (mins) => {
+  const h = Math.floor(mins / 60);
+  const m = mins % 60;
+  return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+};
+
+// Drag-to-reschedule tuning: a block only counts as "dragged" (vs. tapped to
+// expand) past this many px of movement, and its dropped time snaps to the
+// nearest 5 minutes rather than landing on an exact pixel.
+const DRAG_THRESHOLD_PX = 6;
+const SNAP_MINUTES = 5;
+const snapMinutes = (mins) => Math.round(mins / SNAP_MINUTES) * SNAP_MINUTES;
 
 export default function Dashboard() {
   const [templates, setTemplates] = useState([]);
@@ -90,6 +102,13 @@ export default function Dashboard() {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [expandedBlock, setExpandedBlock] = useState(null);
   const [expandedTaskId, setExpandedTaskId] = useState(null);
+  // Drag-to-reschedule state for the timeline, calendar-app style: press and
+  // drag a block, it follows the finger/pointer, release to commit the new
+  // time. `drag` tracks the block being moved and its live (pre-commit)
+  // minutes; dragMovedRef distinguishes an actual drag from a tap (which
+  // should just toggle the block's expanded detail instead).
+  const [drag, setDrag] = useState(null);
+  const dragMovedRef = useRef(false);
 
   const showToast = (msg, isError = false) => {
     setToast({ message: msg, isError });
@@ -204,6 +223,62 @@ export default function Dashboard() {
     showToast(nowDone ? 'Task marked done' : 'Task reopened');
   };
 
+  // --- Drag-to-reschedule ------------------------------------------------------
+  // Workout times are keyed by template name, meal times by slot (dragging one
+  // recipe in a shared slot moves every recipe in that slot — same as editing
+  // the time in Workouts/Meals directly).
+  const commitWorkoutTime = (templateName, time) => {
+    const next = { ...workoutTimes, [todayName]: { ...workoutTimes[todayName], [templateName]: time } };
+    setWorkoutTimes(next);
+    dbSet(STORAGE_KEYS.workoutTimes, next).catch(() => showToast('Save failed — change may not persist.', true));
+  };
+  const commitMealTime = (slot, time) => {
+    const next = { ...mealTimes, [todayName]: { ...mealTimes[todayName], [slot]: time } };
+    setMealTimes(next);
+    dbSet(STORAGE_KEYS.mealTimes, next).catch(() => showToast('Save failed — change may not persist.', true));
+  };
+
+  const handleBlockPointerDown = (block, e) => {
+    if (e.button != null && e.button !== 0) return; // primary button/touch only
+    e.currentTarget.setPointerCapture(e.pointerId);
+    dragMovedRef.current = false;
+    setDrag({
+      key: block.key,
+      kind: block.kind,
+      templateName: block.title,
+      slot: block.slot,
+      pointerId: e.pointerId,
+      startClientY: e.clientY,
+      startMinutes: timeToMinutes(block.time),
+      liveMinutes: timeToMinutes(block.time),
+    });
+  };
+
+  const handleBlockPointerMove = (e) => {
+    if (!drag || e.pointerId !== drag.pointerId) return;
+    const deltaY = e.clientY - drag.startClientY;
+    if (Math.abs(deltaY) > DRAG_THRESHOLD_PX) dragMovedRef.current = true;
+    if (!dragMovedRef.current) return;
+    e.preventDefault();
+    const deltaMinutes = (deltaY / HOUR_HEIGHT) * 60;
+    const raw = drag.startMinutes + deltaMinutes;
+    const snapped = snapMinutes(Math.max(TIMELINE_START_MIN, Math.min(TIMELINE_END_MIN, raw)));
+    setDrag(d => (d && d.pointerId === e.pointerId ? { ...d, liveMinutes: snapped } : d));
+  };
+
+  const handleBlockPointerUp = (block, e) => {
+    if (!drag || e.pointerId !== drag.pointerId) return;
+    if (dragMovedRef.current) {
+      const finalTime = minutesToTime(drag.liveMinutes);
+      if (drag.kind === 'workout') commitWorkoutTime(drag.templateName, finalTime);
+      else commitMealTime(drag.slot, finalTime);
+      showToast(`Moved to ${formatTime(finalTime)}`);
+    } else {
+      setExpandedBlock(expandedBlock === block.key ? null : block.key);
+    }
+    setDrag(null);
+  };
+
   if (isLoading) {
     return (
       <div className="space-y-3">
@@ -226,7 +301,10 @@ export default function Dashboard() {
       )}
 
       <div className="flex items-center justify-between">
-        <span className="font-semibold text-gray-900 text-sm">{todayName}'s timeline</span>
+        <div>
+          <span className="font-semibold text-gray-900 text-sm block">{todayName}'s timeline</span>
+          <span className="text-[10px] text-gray-400">Press and drag a block to reschedule</span>
+        </div>
         <button onClick={refresh} disabled={isRefreshing} aria-label="Refresh data" className="text-gray-400 active:text-gray-600 disabled:opacity-40">
           <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
         </button>
@@ -254,34 +332,40 @@ export default function Dashboard() {
             </div>
           )}
 
-          {/* Blocks */}
+          {/* Blocks — press and drag to reschedule, tap to expand */}
           {allBlocks.map(block => {
-            const mins = timeToMinutes(block.time);
-            const clamped = Math.max(TIMELINE_START_MIN, Math.min(TIMELINE_END_MIN, mins));
+            const isDragging = drag && drag.key === block.key && dragMovedRef.current;
+            const displayMinutes = isDragging ? drag.liveMinutes : timeToMinutes(block.time);
+            const clamped = Math.max(TIMELINE_START_MIN, Math.min(TIMELINE_END_MIN, displayMinutes));
             const top = ((clamped - TIMELINE_START_MIN) / 60) * HOUR_HEIGHT;
             const isWorkout = block.kind === 'workout';
             const expanded = expandedBlock === block.key;
             return (
               <div
                 key={block.key}
-                className="absolute left-14 right-2"
-                style={{ top: top + 2 }}
+                className={`absolute left-14 right-2 ${isDragging ? 'z-30' : 'z-20'}`}
+                style={{ top: top + 2, touchAction: 'none' }}
               >
                 <button
-                  onClick={() => setExpandedBlock(expanded ? null : block.key)}
-                  className={`w-full text-left rounded-xl px-3 py-2 flex items-center gap-2 ${
+                  onPointerDown={e => handleBlockPointerDown(block, e)}
+                  onPointerMove={handleBlockPointerMove}
+                  onPointerUp={e => handleBlockPointerUp(block, e)}
+                  onPointerCancel={() => setDrag(null)}
+                  className={`w-full text-left rounded-xl px-3 py-2 flex items-center gap-2 select-none transition-shadow ${
                     isWorkout ? 'bg-orange-500 text-white' : 'bg-green-600 text-white'
-                  }`}
+                  } ${isDragging ? 'shadow-xl scale-[1.02]' : ''}`}
                 >
                   {isWorkout ? <Dumbbell className="w-3.5 h-3.5 flex-shrink-0" /> : (() => {
                     const Icon = SLOT_META[block.slot]?.icon || CookingPot;
                     return <Icon className="w-3.5 h-3.5 flex-shrink-0" />;
                   })()}
                   <span className="text-xs font-semibold truncate flex-1 min-w-0">{block.title}</span>
-                  <span className="text-[10px] opacity-80 tabular-nums flex-shrink-0">{formatTime(block.time)}</span>
+                  <span className="text-[10px] opacity-80 tabular-nums flex-shrink-0">
+                    {isDragging ? formatTime(minutesToTime(drag.liveMinutes)) : formatTime(block.time)}
+                  </span>
                   <ChevronDown className={`w-3 h-3 flex-shrink-0 transition-transform ${expanded ? 'rotate-180' : ''}`} />
                 </button>
-                {expanded && (
+                {expanded && !isDragging && (
                   <div className={`mt-1 rounded-xl px-3 py-2 text-xs ${isWorkout ? 'bg-orange-50 text-orange-800' : 'bg-green-50 text-green-800'}`}>
                     {isWorkout ? (
                       block.exercises.length > 0 ? (
