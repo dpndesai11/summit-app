@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import {
   CalendarDays, ShoppingCart, ChefHat, Coffee, Apple, Sandwich, Cookie, CookingPot,
-  Plus, X, Trash2, Check, ChevronDown, AlertTriangle, RefreshCw, ClipboardList, Pencil, Target
+  Plus, X, Trash2, Check, ChevronDown, AlertTriangle, RefreshCw, ClipboardList, Pencil, Target, Database
 } from 'lucide-react';
 import { dbGet, dbSet, dbRefresh } from './lib/db';
 
@@ -25,6 +25,7 @@ const STORAGE_KEYS = {
   weeklyMealPlan: 'summit_weekly_meal_plan',
   shoppingChecked: 'summit_shopping_checked',
   shoppingExtras: 'summit_shopping_extras',
+  ingredients: 'summit_ingredients',
 };
 
 const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
@@ -73,6 +74,74 @@ const DEFAULT_RECIPES = [
   { id: 2, name: 'Chicken Stir-fry', ingredients: ['Chicken breast', 'Broccoli', 'Bell pepper', 'Soy sauce', 'Garlic', 'Rice'], notes: '' },
 ];
 
+// Ingredient database: reusable per-100g macros, looked up by name so any
+// recipe ingredient with a matching name + a quantity gets its nutrition
+// contribution calculated automatically, instead of typing a whole-recipe
+// estimate by hand. Seeded from a real nutrition-data spreadsheet.
+const DEFAULT_INGREDIENTS = [
+  { id: 1786600000000, name: 'Little gem lettuce', protein: 1.2, carbs: 1.3, fibre: 1.3 },
+  { id: 1786600000001, name: 'Spinach', protein: 2.6, carbs: 0.5, fibre: 1.0 },
+  { id: 1786600000002, name: 'Tomato', protein: 0.5, carbs: 2.9, fibre: 1.0 },
+  { id: 1786600000003, name: 'Brown onions', protein: 1.0, carbs: 7.6, fibre: 1.1 },
+  { id: 1786600000004, name: 'Fresh chilli', protein: 1.8, carbs: 4.2, fibre: 1.5 },
+  { id: 1786600000005, name: 'Bananas', protein: 1.1, carbs: 19.3, fibre: 1.4 },
+  { id: 1786600000006, name: 'Nectarines', protein: 1.4, carbs: 9.0, fibre: 1.7 },
+  { id: 1786600000007, name: 'Oranges (Easy Peelers)', protein: 0.9, carbs: 9.1, fibre: 1.2 },
+  { id: 1786600000008, name: 'Apple', protein: 0.6, carbs: 11.1, fibre: 1.2 },
+  { id: 1786600000009, name: 'Baby potatoes', protein: 1.8, carbs: 13.6, fibre: 1.8 },
+  { id: 1786600000010, name: 'Bread roll', protein: 9.0, carbs: 49.0, fibre: 2.5 },
+  { id: 1786600000011, name: 'Pitta bread', protein: 11.9, carbs: 40.0, fibre: 5.7 },
+  { id: 1786600000012, name: 'Croissant', protein: 8.6, carbs: 43.4, fibre: 1.6 },
+  { id: 1786600000013, name: 'Morning rolls', protein: 9.7, carbs: 47.7, fibre: 1.8 },
+  { id: 1786600000014, name: 'Feta', protein: 16.5, carbs: 0.7, fibre: 0.5 },
+  { id: 1786600000015, name: 'Protein yogurt', protein: 5.9, carbs: 4.5, fibre: 1.0 },
+  { id: 1786600000016, name: 'Mature Cheddar', protein: 25.4, carbs: 0.5, fibre: 0.5 },
+  { id: 1786600000017, name: 'Grated Four Cheese Mix', protein: 22.2, carbs: 5.3, fibre: 0.5 },
+  { id: 1786600000018, name: 'Firm tofu', protein: 16.5, carbs: 1.1, fibre: 1.9 },
+  { id: 1786600000019, name: 'Paneer', protein: 22.0, carbs: 3.2, fibre: 0.5 },
+  { id: 1786600000020, name: 'Hummus', protein: 6.7, carbs: 10.7, fibre: 4.9 },
+  { id: 1786600000021, name: 'Rana Gnocchi or Ravioli', protein: 6.0, carbs: 28.0, fibre: 2.0 },
+  { id: 1786600000022, name: 'Frozen mixed veg', protein: 2.7, carbs: 6.6, fibre: 4.4 },
+  { id: 1786600000023, name: 'Frozen butternut squash chunks', protein: 0.9, carbs: 7.4, fibre: 1.4 },
+  { id: 1786600000024, name: 'Frozen peas', protein: 5.7, carbs: 9.2, fibre: 6.9 },
+  { id: 1786600000025, name: 'Frozen edamame', protein: 12.0, carbs: 2.6, fibre: 4.9 },
+  { id: 1786600000026, name: 'Poppi', protein: 0.1, carbs: 1.6, fibre: 0.9 },
+  { id: 1786600000027, name: 'Coffee (instant, dry)', protein: 14.0, carbs: 44.0, fibre: 0.0 },
+  { id: 1786600000028, name: 'Alpro Barista Coconut', protein: 1.5, carbs: 3.3, fibre: 0.5 },
+  { id: 1786600000029, name: 'Ginger & Garlic paste', protein: 1.5, carbs: 18.0, fibre: 2.0 },
+  { id: 1786600000030, name: 'Ghee', protein: 0.5, carbs: 0.5, fibre: 0.5 },
+  { id: 1786600000031, name: 'Lemon juice', protein: 0.5, carbs: 1.2, fibre: 0.5 },
+  { id: 1786600000032, name: 'Mustard', protein: 7.9, carbs: 3.8, fibre: 1.9 },
+  { id: 1786600000033, name: 'Almonds', protein: 21.2, carbs: 21.7, fibre: 12.5 },
+  { id: 1786600000034, name: 'Green curry paste', protein: 2.5, carbs: 19.0, fibre: 0.5 },
+  { id: 1786600000035, name: 'Red curry paste', protein: 2.2, carbs: 12.0, fibre: 0.5 },
+  { id: 1786600000036, name: 'Canned coconut milk (light)', protein: 0.5, carbs: 3.1, fibre: 0.0 },
+  { id: 1786600000037, name: 'Passata', protein: 1.5, carbs: 4.2, fibre: 0.5 },
+  { id: 1786600000038, name: 'Soy sauce', protein: 1.0, carbs: 15.5, fibre: 1.9 },
+  { id: 1786600000039, name: 'Chickpeas, canned', protein: 7.7, carbs: 16.5, fibre: 6.1 },
+  { id: 1786600000040, name: 'Kidney beans, canned', protein: 8.1, carbs: 12.8, fibre: 7.8 },
+  { id: 1786600000041, name: 'Rice', protein: 2.8, carbs: 26.5, fibre: 0.6 },
+  { id: 1786600000042, name: 'Quinoa', protein: 3.5, carbs: 14.9, fibre: 2.3 },
+  { id: 1786600000043, name: 'Red Lentil Penne', protein: 12.4, carbs: 24.0, fibre: 3.6 },
+  { id: 1786600000044, name: 'Soba noodles', protein: 15.0, carbs: 69.0, fibre: 4.6 },
+  { id: 1786600000045, name: 'Olive oil', protein: 0.1, carbs: 0.1, fibre: 0.1 },
+  { id: 1786600000046, name: 'Black pepper', protein: 11.0, carbs: 65.0, fibre: 27.0 },
+  { id: 1786600000047, name: 'Peanuts', protein: 29.0, carbs: 7.2, fibre: 7.3 },
+  { id: 1786600000048, name: 'Walnuts', protein: 14.7, carbs: 3.3, fibre: 4.1 },
+  { id: 1786600000049, name: 'Whey protein isolate', protein: 79.0, carbs: 3.1, fibre: 0.0 },
+  { id: 1786600000050, name: 'Creatine monohydrate', protein: 0.0, carbs: 0.0, fibre: 0.0 },
+  { id: 1786600000051, name: 'SiS Go Hydro tablets', protein: 0.5, carbs: 16.0, fibre: 4.1 },
+  { id: 1786600000052, name: 'Love Corn', protein: 7.4, carbs: 66.0, fibre: 7.0 },
+  { id: 1786600000053, name: 'Pickles', protein: 0.9, carbs: 4.4, fibre: 1.4 },
+  { id: 1786600000054, name: 'Olives, pitted', protein: 1.0, carbs: 0.5, fibre: 3.9 },
+  { id: 1786600000055, name: 'Jam', protein: 0.5, carbs: 58.4, fibre: 1.2 },
+  { id: 1786600000056, name: 'Chia seeds', protein: 21.8, carbs: 8.6, fibre: 33.7 },
+  { id: 1786600000057, name: 'Barebells Protein Bar', protein: 30.0, carbs: 32.0, fibre: 3.0 },
+  { id: 1786600000058, name: 'Deliciously Ella oat bars', protein: 8.0, carbs: 55.0, fibre: 5.0 },
+  { id: 1786600000059, name: 'Merchant Gourmet Thai Green Lentil Curry', protein: 5.0, carbs: 12.0, fibre: 3.0 },
+  { id: 1786600000060, name: 'Merchant Gourmet 3 Bean & Lentil Chilli', protein: 4.0, carbs: 11.0, fibre: 4.0 },
+];
+
 // A slot's value may be a list of recipe names (current shape) or a single
 // string / null (legacy shape, one recipe per slot) — normalize on read so
 // older data upgrades in place instead of crashing the UI.
@@ -92,6 +161,17 @@ const normalizePlan = (raw) => DAYS.reduce((acc, d) => ({ ...acc, [d]: normalize
 
 const normalizeIngredientName = (s) => s.trim().replace(/\s+/g, ' ');
 const ingredientKey = (s) => normalizeIngredientName(s).toLowerCase();
+
+// A recipe ingredient may be the legacy plain-string shape or the current
+// {name, quantity} shape — quantity is grams, null/blank means "not tracked,"
+// same opt-in philosophy as recipe-level nutrition. Normalize on read so
+// older recipes upgrade in place instead of crashing the UI.
+const normalizeIngredient = (ing) => (
+  typeof ing === 'string'
+    ? { name: normalizeIngredientName(ing), quantity: null }
+    : { name: normalizeIngredientName(ing.name || ''), quantity: ing.quantity || null }
+);
+const normalizeRecipeIngredients = (ingredients) => (Array.isArray(ingredients) ? ingredients.map(normalizeIngredient) : []);
 
 function StatCard({ icon: Icon, label, value, sub }) {
   return (
@@ -139,6 +219,7 @@ export default function NutritionPlanner() {
   const [plan, setPlan] = useState(EMPTY_PLAN);
   const [shoppingChecked, setShoppingChecked] = useState({});
   const [shoppingExtras, setShoppingExtras] = useState([]);
+  const [ingredientDb, setIngredientDb] = useState(DEFAULT_INGREDIENTS);
   const [toast, setToast] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState(null);
@@ -162,6 +243,12 @@ export default function NutritionPlanner() {
   });
   const [builderOpen, setBuilderOpen] = useState(false);
   const [editingRecipeId, setEditingRecipeId] = useState(null);
+
+  // Ingredient database builder — separate small form for adding/editing a
+  // reusable ingredient's per-100g macros.
+  const [dbBuilder, setDbBuilder] = useState({ name: '', protein: '', carbs: '', fibre: '' });
+  const [dbBuilderOpen, setDbBuilderOpen] = useState(false);
+  const [editingDbId, setEditingDbId] = useState(null);
 
   const [extraInput, setExtraInput] = useState('');
 
@@ -188,16 +275,18 @@ export default function NutritionPlanner() {
         return fallback;
       }
     };
-    const [rc, wmp, sc, se] = await Promise.all([
+    const [rc, wmp, sc, se, ing] = await Promise.all([
       loadData(STORAGE_KEYS.recipes, DEFAULT_RECIPES),
       loadData(STORAGE_KEYS.weeklyMealPlan, EMPTY_PLAN),
       loadData(STORAGE_KEYS.shoppingChecked, {}),
       loadData(STORAGE_KEYS.shoppingExtras, []),
+      loadData(STORAGE_KEYS.ingredients, DEFAULT_INGREDIENTS),
     ]);
-    setRecipes(Array.isArray(rc) ? rc : DEFAULT_RECIPES);
+    setRecipes((Array.isArray(rc) ? rc : DEFAULT_RECIPES).map(r => ({ ...r, ingredients: normalizeRecipeIngredients(r.ingredients) })));
     setPlan(normalizePlan(wmp));
     setShoppingChecked(sc && typeof sc === 'object' ? sc : {});
     setShoppingExtras(Array.isArray(se) ? se : []);
+    setIngredientDb(Array.isArray(ing) ? ing : DEFAULT_INGREDIENTS);
   };
 
   useEffect(() => {
@@ -230,6 +319,7 @@ export default function NutritionPlanner() {
   const updatePlan = (next) => { setPlan(next); saveToStorage(STORAGE_KEYS.weeklyMealPlan, next); };
   const updateShoppingChecked = (next) => { setShoppingChecked(next); saveToStorage(STORAGE_KEYS.shoppingChecked, next); };
   const updateShoppingExtras = (next) => { setShoppingExtras(next); saveToStorage(STORAGE_KEYS.shoppingExtras, next); };
+  const updateIngredientDb = (next) => { setIngredientDb(next); saveToStorage(STORAGE_KEYS.ingredients, next); };
 
   // --- Plan actions ------------------------------------------------------------
   const addToSlot = (day, slot, recipeName) => {
@@ -253,20 +343,90 @@ export default function NutritionPlanner() {
     showToast('Week cleared');
   };
 
+  // --- Ingredient database ---------------------------------------------------
+  // Exact-match lookup (trim + case-insensitive), same normalization as
+  // everything else ingredient-related in this file.
+  const findDbIngredient = (name) => ingredientDb.find(d => ingredientKey(d.name) === ingredientKey(name));
+
+  // Sums matched-and-quantified ingredients' contributions. Unmatched or
+  // unquantified ingredients simply don't contribute — returns null (fully
+  // untracked) only when nothing at all matched, same "invisible, not zero"
+  // rule as recipe-level nutrition.
+  const computeIngredientsNutrition = (ingredients) => {
+    let protein = 0, carbs = 0, fibre = 0, matched = 0;
+    ingredients.forEach(ing => {
+      const db = findDbIngredient(ing.name);
+      if (db && ing.quantity) {
+        const factor = Number(ing.quantity) / 100;
+        protein += db.protein * factor; carbs += db.carbs * factor; fibre += db.fibre * factor;
+        matched += 1;
+      }
+    });
+    if (matched === 0) return null;
+    return { protein: Math.round(protein), carbs: Math.round(carbs), fibre: Math.round(fibre) };
+  };
+
+  const resetDbBuilder = () => {
+    setDbBuilder({ name: '', protein: '', carbs: '', fibre: '' });
+    setEditingDbId(null);
+    setDbBuilderOpen(false);
+  };
+
+  const startEditDbIngredient = (item) => {
+    setDbBuilder({ name: item.name, protein: item.protein, carbs: item.carbs, fibre: item.fibre });
+    setEditingDbId(item.id);
+    setDbBuilderOpen(true);
+  };
+
+  const saveDbIngredient = () => {
+    const name = normalizeIngredientName(dbBuilder.name);
+    if (!name) return;
+    const entry = {
+      name,
+      protein: Number(dbBuilder.protein) || 0,
+      carbs: Number(dbBuilder.carbs) || 0,
+      fibre: Number(dbBuilder.fibre) || 0,
+    };
+    if (editingDbId) {
+      updateIngredientDb(ingredientDb.map(d => (d.id === editingDbId ? { ...d, ...entry } : d)));
+      showToast('Ingredient updated');
+    } else {
+      updateIngredientDb([...ingredientDb, { id: Date.now(), ...entry }]);
+      showToast('Ingredient added');
+    }
+    resetDbBuilder();
+  };
+
+  const deleteDbIngredient = (id) => {
+    updateIngredientDb(ingredientDb.filter(d => d.id !== id));
+    if (editingDbId === id) resetDbBuilder();
+  };
+
+  // Quick-add from inside the recipe builder: pre-fills the ingredient's name
+  // so you only need to type the three numbers, and immediately switches to
+  // editing it there instead of duplicating the "new ingredient" flow.
+  const quickAddDbIngredient = (name) => {
+    setDbBuilder({ name, protein: '', carbs: '', fibre: '' });
+    setEditingDbId(null);
+    setDbBuilderOpen(true);
+  };
+
   // --- Recipe builder ------------------------------------------------------
   const addDraftIngredient = () => {
     const name = normalizeIngredientName(builder.draftName);
     if (!name) return;
-    if (builder.ingredients.some(i => ingredientKey(i) === ingredientKey(name))) {
+    if (builder.ingredients.some(i => ingredientKey(i.name) === ingredientKey(name))) {
       setBuilder(p => ({ ...p, draftName: '' }));
       return;
     }
-    setBuilder(p => ({ ...p, ingredients: [...p.ingredients, name], draftName: '' }));
+    setBuilder(p => ({ ...p, ingredients: [...p.ingredients, { name, quantity: null }], draftName: '' }));
   };
 
   // One ingredient per line, or comma-separated — covers both pasting from a
   // notes app and typing a quick list. Duplicates (case-insensitive) are
   // dropped so re-pasting an overlapping list doesn't create repeats.
+  // Quantities aren't part of bulk paste — add them per-ingredient after,
+  // once the names are in.
   const addBulkIngredients = () => {
     const names = builder.bulkText
       .split(/[\n,]+/)
@@ -274,11 +434,11 @@ export default function NutritionPlanner() {
       .filter(Boolean);
     if (names.length === 0) return;
     setBuilder(p => {
-      const seen = new Set(p.ingredients.map(ingredientKey));
+      const seen = new Set(p.ingredients.map(i => ingredientKey(i.name)));
       const additions = [];
       names.forEach(n => {
         const k = ingredientKey(n);
-        if (!seen.has(k)) { seen.add(k); additions.push(n); }
+        if (!seen.has(k)) { seen.add(k); additions.push({ name: n, quantity: null }); }
       });
       return { ...p, ingredients: [...p.ingredients, ...additions], bulkText: '' };
     });
@@ -286,6 +446,13 @@ export default function NutritionPlanner() {
 
   const removeBuilderIngredient = (i) => {
     setBuilder(p => ({ ...p, ingredients: p.ingredients.filter((_, j) => j !== i) }));
+  };
+
+  const setBuilderIngredientQuantity = (i, quantity) => {
+    setBuilder(p => ({
+      ...p,
+      ingredients: p.ingredients.map((ing, j) => (j === i ? { ...ing, quantity: quantity === '' ? null : Number(quantity) } : ing))
+    }));
   };
 
   const resetBuilder = () => {
@@ -296,7 +463,7 @@ export default function NutritionPlanner() {
 
   const startEditRecipe = (recipe) => {
     setBuilder({
-      name: recipe.name, ingredients: [...recipe.ingredients], notes: recipe.notes || '', mode: 'list', bulkText: '', draftName: '',
+      name: recipe.name, ingredients: recipe.ingredients.map(i => ({ ...i })), notes: recipe.notes || '', mode: 'list', bulkText: '', draftName: '',
       nutritionEnabled: !!recipe.nutrition,
       protein: recipe.nutrition?.protein ?? '', carbs: recipe.nutrition?.carbs ?? '', fibre: recipe.nutrition?.fibre ?? ''
     });
@@ -317,10 +484,14 @@ export default function NutritionPlanner() {
   // Creates a new recipe, or — when editingRecipeId is set — updates that
   // recipe in place. A rename cascades into the weekly plan, since slots
   // reference recipes by name.
+  //
+  // Nutrition: the manual tick (builderNutrition) wins when it's on — an
+  // explicit whole-recipe override. Otherwise it's computed live from
+  // whichever ingredients have both a quantity and a database match.
   const saveRecipe = () => {
     const name = builder.name.trim();
     if (!name || builder.ingredients.length === 0) return;
-    const nutrition = builderNutrition();
+    const nutrition = builder.nutritionEnabled ? builderNutrition() : computeIngredientsNutrition(builder.ingredients);
 
     if (editingRecipeId) {
       const prev = recipes.find(r => r.id === editingRecipeId);
@@ -369,9 +540,9 @@ export default function NutritionPlanner() {
           const recipe = recipes.find(r => r.name === recipeName);
           if (!recipe) return;
           recipe.ingredients.forEach(ing => {
-            const key = ingredientKey(ing);
+            const key = ingredientKey(ing.name);
             if (!key) return;
-            const entry = map.get(key) || { key, name: normalizeIngredientName(ing), count: 0, uses: [] };
+            const entry = map.get(key) || { key, name: normalizeIngredientName(ing.name), count: 0, uses: [] };
             entry.count += 1;
             entry.uses.push({ recipe: recipe.name, day, slot });
             map.set(key, entry);
@@ -518,7 +689,9 @@ export default function NutritionPlanner() {
                   <div className="mt-3 space-y-2">
                     <div className="flex flex-wrap gap-1">
                       {recipe.ingredients.map((ing, i) => (
-                        <span key={i} className="text-[11px] bg-gray-100 text-gray-600 rounded-full px-2 py-0.5">{ing}</span>
+                        <span key={i} className="text-[11px] bg-gray-100 text-gray-600 rounded-full px-2 py-0.5">
+                          {ing.name}{ing.quantity ? ` · ${ing.quantity}g` : ''}
+                        </span>
                       ))}
                     </div>
                     {recipe.notes && <p className="text-xs text-gray-500 whitespace-pre-line">{recipe.notes}</p>}
@@ -697,15 +870,39 @@ export default function NutritionPlanner() {
             )}
 
             {builder.ingredients.length > 0 && (
-              <div className="flex flex-wrap gap-1.5">
-                {builder.ingredients.map((ing, i) => (
-                  <span key={i} className="text-[11px] bg-green-100 text-green-700 px-2.5 py-1 rounded-full flex items-center gap-1">
-                    {ing}
-                    <button onClick={() => removeBuilderIngredient(i)} aria-label={`Remove ${ing}`}>
-                      <X className="w-3 h-3" />
-                    </button>
-                  </span>
-                ))}
+              <div className="space-y-1.5">
+                {builder.ingredients.map((ing, i) => {
+                  const db = findDbIngredient(ing.name);
+                  const contribution = db && ing.quantity ? {
+                    protein: Math.round(db.protein * ing.quantity / 100),
+                    carbs: Math.round(db.carbs * ing.quantity / 100),
+                    fibre: Math.round(db.fibre * ing.quantity / 100),
+                  } : null;
+                  return (
+                    <div key={i} className="flex items-center gap-1.5 bg-green-50 rounded-lg px-2 py-1.5">
+                      <span className="text-[11px] text-green-800 font-medium flex-1 min-w-0 truncate">{ing.name}</span>
+                      <input
+                        type="number" inputMode="numeric" min="0" placeholder="qty"
+                        value={ing.quantity ?? ''}
+                        onChange={e => setBuilderIngredientQuantity(i, e.target.value)}
+                        className="w-14 bg-white border border-green-200 rounded-md text-center text-[11px] py-1 outline-none focus:border-green-500"
+                      />
+                      <span className="text-[10px] text-green-700 flex-shrink-0">g</span>
+                      {contribution ? (
+                        <span className="text-[9px] text-green-600 flex-shrink-0 tabular-nums">P{contribution.protein}·C{contribution.carbs}·F{contribution.fibre}</span>
+                      ) : db ? (
+                        <span className="text-[9px] text-gray-400 flex-shrink-0">in DB</span>
+                      ) : (
+                        <button onClick={() => quickAddDbIngredient(ing.name)} className="text-[9px] text-gray-400 underline flex-shrink-0">
+                          not in DB
+                        </button>
+                      )}
+                      <button onClick={() => removeBuilderIngredient(i)} aria-label={`Remove ${ing.name}`} className="text-green-400 active:text-red-500 flex-shrink-0">
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  );
+                })}
               </div>
             )}
 
@@ -720,8 +917,21 @@ export default function NutritionPlanner() {
               >
                 {builder.nutritionEnabled && <Check className="w-3.5 h-3.5 text-white" />}
               </button>
-              <span className="text-xs text-gray-600">Add nutrition info (advanced)</span>
+              <span className="text-xs text-gray-600">Set a whole-recipe nutrition override</span>
             </label>
+
+            {!builder.nutritionEnabled && (() => {
+              const computed = computeIngredientsNutrition(builder.ingredients);
+              return computed ? (
+                <div className="text-[11px] text-green-700 bg-green-50 rounded-lg px-2.5 py-1.5">
+                  Auto-calculated from ingredient quantities: <span className="font-semibold">P{computed.protein} · C{computed.carbs} · F{computed.fibre}</span>
+                </div>
+              ) : (
+                <p className="text-[11px] text-gray-400">
+                  Give an ingredient above a quantity (and match it in the database) to auto-calculate nutrition — or tick the override to type a total yourself.
+                </p>
+              );
+            })()}
 
             {builder.nutritionEnabled && (
               <div className="flex gap-2">
@@ -790,7 +1000,9 @@ export default function NutritionPlanner() {
                 </button>
                 <div className="flex flex-wrap gap-1">
                   {(expanded ? r.ingredients : r.ingredients.slice(0, 6)).map((ing, i) => (
-                    <span key={i} className="text-[10px] px-2 py-0.5 rounded-full bg-gray-100 text-gray-500">{ing}</span>
+                    <span key={i} className="text-[10px] px-2 py-0.5 rounded-full bg-gray-100 text-gray-500">
+                      {ing.name}{ing.quantity ? ` · ${ing.quantity}g` : ''}
+                    </span>
                   ))}
                   {!expanded && r.ingredients.length > 6 && (
                     <span className="text-[10px] px-2 py-0.5 text-gray-400">+{r.ingredients.length - 6} more</span>
@@ -816,6 +1028,86 @@ export default function NutritionPlanner() {
           })}
           {recipes.length === 0 && (
             <p className="text-xs text-gray-400 text-center py-2">No recipes yet — create one above.</p>
+          )}
+        </div>
+      </div>
+
+      <div className="bg-white rounded-2xl border border-gray-200 p-4">
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center gap-2">
+            <Database className="w-4 h-4 text-green-600" />
+            <span className="font-semibold text-gray-900 text-sm">Ingredient database</span>
+          </div>
+          <button onClick={() => (dbBuilderOpen ? resetDbBuilder() : setDbBuilderOpen(true))}
+            className="flex items-center gap-1 text-[11px] font-medium text-green-600 bg-green-50 px-2.5 py-1 rounded-lg active:bg-green-100">
+            {dbBuilderOpen ? <X className="w-3 h-3" /> : <Plus className="w-3 h-3" />}
+            {dbBuilderOpen ? 'Cancel' : 'New'}
+          </button>
+        </div>
+        <p className="text-[11px] text-gray-400 mb-3">
+          Per-100g macros, reused across every recipe — give an ingredient here a match and a quantity in any recipe and its nutrition calculates automatically.
+        </p>
+
+        {dbBuilderOpen && (
+          <div className="bg-gray-50 rounded-xl p-3 mb-3 space-y-2">
+            <input
+              value={dbBuilder.name}
+              onChange={e => setDbBuilder(p => ({ ...p, name: e.target.value }))}
+              placeholder="Ingredient name"
+              className="w-full bg-white border border-gray-200 rounded-lg px-3 py-2.5 text-sm outline-none focus:border-green-500"
+            />
+            <div className="flex gap-2">
+              <div className="flex-1">
+                <div className="text-[10px] uppercase tracking-wide text-gray-400 mb-1 text-center">Protein /100g</div>
+                <input
+                  type="number" inputMode="numeric" min="0" placeholder="0"
+                  value={dbBuilder.protein}
+                  onChange={e => setDbBuilder(p => ({ ...p, protein: e.target.value }))}
+                  className="w-full bg-white border border-gray-200 rounded-lg px-2 py-2 text-sm text-center outline-none focus:border-green-500"
+                />
+              </div>
+              <div className="flex-1">
+                <div className="text-[10px] uppercase tracking-wide text-gray-400 mb-1 text-center">Carbs /100g</div>
+                <input
+                  type="number" inputMode="numeric" min="0" placeholder="0"
+                  value={dbBuilder.carbs}
+                  onChange={e => setDbBuilder(p => ({ ...p, carbs: e.target.value }))}
+                  className="w-full bg-white border border-gray-200 rounded-lg px-2 py-2 text-sm text-center outline-none focus:border-green-500"
+                />
+              </div>
+              <div className="flex-1">
+                <div className="text-[10px] uppercase tracking-wide text-gray-400 mb-1 text-center">Fibre /100g</div>
+                <input
+                  type="number" inputMode="numeric" min="0" placeholder="0"
+                  value={dbBuilder.fibre}
+                  onChange={e => setDbBuilder(p => ({ ...p, fibre: e.target.value }))}
+                  className="w-full bg-white border border-gray-200 rounded-lg px-2 py-2 text-sm text-center outline-none focus:border-green-500"
+                />
+              </div>
+            </div>
+            <button onClick={saveDbIngredient}
+              disabled={!dbBuilder.name.trim()}
+              className="w-full h-10 bg-green-600 text-white rounded-lg text-sm font-semibold disabled:opacity-40 active:bg-green-700">
+              {editingDbId ? 'Save changes' : 'Add ingredient'}
+            </button>
+          </div>
+        )}
+
+        <div className="max-h-64 overflow-y-auto space-y-1">
+          {[...ingredientDb].sort((a, b) => a.name.localeCompare(b.name)).map(item => (
+            <div key={item.id} className="flex items-center gap-2 bg-gray-50 rounded-lg px-3 py-2">
+              <span className="text-xs text-gray-800 flex-1 min-w-0 truncate">{item.name}</span>
+              <span className="text-[10px] text-gray-400 tabular-nums flex-shrink-0">P{item.protein}·C{item.carbs}·F{item.fibre}</span>
+              <button onClick={() => startEditDbIngredient(item)} className="text-gray-300 active:text-green-600 flex-shrink-0">
+                <Pencil className="w-3.5 h-3.5" />
+              </button>
+              <button onClick={() => deleteDbIngredient(item.id)} className="text-gray-300 active:text-red-500 flex-shrink-0">
+                <Trash2 className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          ))}
+          {ingredientDb.length === 0 && (
+            <p className="text-xs text-gray-400 text-center py-2">No ingredients yet — add one above.</p>
           )}
         </div>
       </div>
