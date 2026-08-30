@@ -16,9 +16,13 @@ const SUMMIT_APPS = [
   { label: 'Daily', href: '/summit-app/daily/', icon: LayoutDashboard, color: 'text-indigo-600' },
 ];
 
+// Desktop sidebar — hidden below the `md` breakpoint, where MobileTopBar +
+// MobileNav (below) take over navigation instead. Automatic via CSS media
+// query, not a device check, so resizing a window crosses the breakpoint
+// live same as an actual phone/desktop would.
 export default function Sidebar({ currentPage, setCurrentPage, darkMode, setDarkMode }) {
   return (
-    <aside className="w-60 shrink-0 h-screen sticky top-0 flex flex-col border-r border-black/8 dark:border-white/8 bg-[#fbfbfa] dark:bg-[#202020] px-3 py-4">
+    <aside className="hidden md:flex w-60 shrink-0 h-screen sticky top-0 flex-col border-r border-black/8 dark:border-white/8 bg-[#fbfbfa] dark:bg-[#202020] px-3 py-4">
       <div className="flex items-center gap-2 px-2 mb-6">
         <div className="w-6 h-6 rounded-md bg-blue-600 flex items-center justify-center shrink-0">
           <Mountain className="w-3.5 h-3.5 text-white" />
@@ -74,5 +78,49 @@ export default function Sidebar({ currentPage, setCurrentPage, darkMode, setDark
         {darkMode ? 'Light mode' : 'Dark mode'}
       </button>
     </aside>
+  );
+}
+
+// Mobile top strip — the sidebar's "SUMMIT" wordmark + cross-app switcher,
+// surfaced above the content only below `md` since the sidebar (and its own
+// copy of this) is hidden there. Mirrors the AppSwitcher pattern in Daily's
+// own header.
+export function MobileTopBar() {
+  return (
+    <div className="md:hidden sticky top-0 z-30 bg-[#f7f7f5]/90 dark:bg-[#191919]/90 backdrop-blur px-4 pt-3 pb-2 flex items-center gap-1.5">
+      <span className="text-[10px] font-bold tracking-widest uppercase text-gray-400 mr-0.5">Summit</span>
+      <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-blue-600 text-white">Tasks</span>
+      {SUMMIT_APPS.map(a => (
+        <a key={a.label} href={a.href} className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-gray-200/70 dark:bg-white/10 text-gray-500 dark:text-gray-300 active:bg-gray-300">
+          {a.label}
+        </a>
+      ))}
+    </div>
+  );
+}
+
+// Mobile bottom tab bar — takes over from the sidebar below `md`, same
+// NAV_ITEMS and same fixed-bottom-bar pattern Daily uses.
+export function MobileNav({ currentPage, setCurrentPage }) {
+  return (
+    <nav className="md:hidden fixed bottom-0 inset-x-0 z-40 bg-white dark:bg-[#202020] border-t border-black/8 dark:border-white/8 pb-[env(safe-area-inset-bottom)]">
+      <div className="flex">
+        {NAV_ITEMS.map(({ id, label, icon: Icon }) => {
+          const active = currentPage === id;
+          return (
+            <button
+              key={id}
+              onClick={() => setCurrentPage(id)}
+              className={`flex-1 flex flex-col items-center gap-0.5 py-2.5 ${
+                active ? 'text-blue-600' : 'text-gray-400 dark:text-gray-500'
+              }`}
+            >
+              <Icon className="w-5 h-5" />
+              <span className="text-[10px] font-medium">{label}</span>
+            </button>
+          );
+        })}
+      </div>
+    </nav>
   );
 }

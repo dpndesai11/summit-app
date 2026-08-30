@@ -360,6 +360,10 @@ export default function Dashboard() {
         </button>
       </div>
 
+      {/* On desktop the timeline and today's tasks sit side by side instead of
+          stacked — the same content, just laid out to use the extra width. */}
+      <div className="md:grid md:grid-cols-[2fr_1fr] md:gap-6 md:items-start space-y-4 md:space-y-0">
+      <div className="space-y-4">
       {/* Hour-by-hour timeline */}
       <div className="bg-white rounded-2xl border border-gray-200 p-3">
         <div className="relative" style={{ height: TIMELINE_HOURS.length * HOUR_HEIGHT }}>
@@ -483,6 +487,7 @@ export default function Dashboard() {
           Nothing scheduled yet — add times to workouts and meals in their own tabs.
         </p>
       )}
+      </div>
 
       {/* Today's tasks — untimed, picked in the Tasks app's Today Focus */}
       <div>
@@ -552,6 +557,7 @@ export default function Dashboard() {
             })}
           </div>
         )}
+      </div>
       </div>
     </div>
   );

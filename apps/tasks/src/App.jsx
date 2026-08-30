@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { AlertTriangle } from 'lucide-react';
 import { dbGet, dbSet } from './lib/db';
 import { migrateTasksAndProjects, weightedCompletion, toISODate, startOfWeek } from './lib/taskUtils';
-import Sidebar from './components/Sidebar';
+import Sidebar, { MobileTopBar, MobileNav } from './components/Sidebar';
 import Dashboard from './pages/Dashboard';
 import TaskBoard from './pages/TaskBoard';
 import FitnessDeck from './pages/FitnessDeck';
@@ -593,6 +593,8 @@ export default function App() {
       />
 
       <div className="flex-1 min-w-0">
+        <MobileTopBar />
+
         {toast && (
           <div
             className={`fixed top-4 right-4 z-50 px-4 py-3 rounded-lg border text-sm shadow-lg flex items-center gap-2 animate-toast-in-right ${
@@ -606,7 +608,7 @@ export default function App() {
           </div>
         )}
 
-        <div className="max-w-6xl mx-auto px-6 lg:px-10 py-8">
+        <div className="max-w-6xl mx-auto px-4 md:px-6 lg:px-10 pt-4 md:pt-8 pb-24 md:pb-8">
 
           {loadError && (
             <div className="mb-6 bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/20 rounded-xl p-4 flex items-start gap-3 text-sm text-red-600 dark:text-red-400">
@@ -739,6 +741,8 @@ export default function App() {
 
         </div>
       </div>
+
+      <MobileNav currentPage={currentPage} setCurrentPage={setCurrentPage} />
     </div>
   );
 }
