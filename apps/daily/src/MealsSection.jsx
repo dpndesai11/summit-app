@@ -44,11 +44,11 @@ const PRE_WORKOUT_FUEL = {
 
 const SLOTS = ['breakfast', 'snack1', 'lunch', 'snack2', 'dinner'];
 const SLOT_META = {
-  breakfast: { label: 'Breakfast', icon: Coffee, text: 'text-amber-600', badge: 'bg-amber-50 text-amber-700', bg: 'bg-amber-500', defaultTime: '08:00', defaultDuration: 20 },
-  snack1: { label: 'Snack 1', icon: Apple, text: 'text-rose-500', badge: 'bg-rose-50 text-rose-600', bg: 'bg-rose-500', defaultTime: '11:00', defaultDuration: 10 },
-  lunch: { label: 'Lunch', icon: Sandwich, text: 'text-blue-600', badge: 'bg-blue-50 text-blue-700', bg: 'bg-blue-600', defaultTime: '13:00', defaultDuration: 30 },
-  snack2: { label: 'Snack 2', icon: Cookie, text: 'text-rose-500', badge: 'bg-rose-50 text-rose-600', bg: 'bg-rose-500', defaultTime: '16:00', defaultDuration: 10 },
-  dinner: { label: 'Dinner', icon: CookingPot, text: 'text-purple-600', badge: 'bg-purple-50 text-purple-700', bg: 'bg-purple-600', defaultTime: '19:00', defaultDuration: 45 },
+  breakfast: { label: 'Breakfast', icon: Coffee, text: 'text-amber-600', badge: 'bg-amber-50 dark:bg-amber-500/10 text-amber-700', bg: 'bg-amber-500', defaultTime: '08:00', defaultDuration: 20 },
+  snack1: { label: 'Snack 1', icon: Apple, text: 'text-rose-500', badge: 'bg-rose-50 dark:bg-rose-500/10 text-rose-600', bg: 'bg-rose-500', defaultTime: '11:00', defaultDuration: 10 },
+  lunch: { label: 'Lunch', icon: Sandwich, text: 'text-blue-600', badge: 'bg-blue-50 dark:bg-blue-500/10 text-blue-700', bg: 'bg-blue-600', defaultTime: '13:00', defaultDuration: 30 },
+  snack2: { label: 'Snack 2', icon: Cookie, text: 'text-rose-500', badge: 'bg-rose-50 dark:bg-rose-500/10 text-rose-600', bg: 'bg-rose-500', defaultTime: '16:00', defaultDuration: 10 },
+  dinner: { label: 'Dinner', icon: CookingPot, text: 'text-purple-600', badge: 'bg-purple-50 dark:bg-purple-500/10 text-purple-700', bg: 'bg-purple-600', defaultTime: '19:00', defaultDuration: 45 },
 };
 
 // A mealTimes entry may be the current shape ({time, duration}) or the
@@ -158,13 +158,13 @@ const normalizeRecipeIngredients = (ingredients) => (Array.isArray(ingredients) 
 
 function StatCard({ icon: Icon, label, value, sub }) {
   return (
-    <div className="bg-white rounded-2xl border border-gray-200 p-4 flex-1 min-w-0">
-      <div className="flex items-center gap-1.5 text-gray-400 mb-1">
+    <div className="bg-white dark:bg-[#252525] rounded-2xl border border-gray-200 dark:border-white/10 p-4 flex-1 min-w-0">
+      <div className="flex items-center gap-1.5 text-gray-400 dark:text-gray-500 mb-1">
         <Icon className="w-3.5 h-3.5" />
         <span className="text-[10px] uppercase tracking-wide truncate">{label}</span>
       </div>
-      <div className="text-lg font-bold text-gray-900 truncate">{value}</div>
-      {sub && <div className="text-[11px] text-gray-400 truncate">{sub}</div>}
+      <div className="text-lg font-bold text-gray-900 dark:text-gray-100 truncate">{value}</div>
+      {sub && <div className="text-[11px] text-gray-400 dark:text-gray-500 truncate">{sub}</div>}
     </div>
   );
 }
@@ -175,18 +175,18 @@ function MacroBar({ label, actual, range, targetLabel }) {
   return (
     <div>
       <div className="flex items-center justify-between text-[11px] mb-1">
-        <span className="font-medium text-gray-600">{label}</span>
-        <span className="text-gray-400">{actual}g <span className="text-gray-300">/ {targetLabel}</span></span>
+        <span className="font-medium text-gray-600 dark:text-gray-300">{label}</span>
+        <span className="text-gray-400 dark:text-gray-500">{actual}g <span className="text-gray-300 dark:text-gray-600">/ {targetLabel}</span></span>
       </div>
       {range ? (
-        <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
+        <div className="h-1.5 bg-gray-100 dark:bg-white/10 rounded-full overflow-hidden">
           <div
             className={`h-full rounded-full transition-[width] duration-300 ${inRange ? 'bg-green-500' : 'bg-green-300'}`}
             style={{ width: `${pct}%` }}
           />
         </div>
       ) : (
-        <div className="h-1.5 bg-gray-100 rounded-full" />
+        <div className="h-1.5 bg-gray-100 dark:bg-white/10 rounded-full" />
       )}
     </div>
   );
@@ -572,14 +572,14 @@ export default function MealsSection() {
         <StatCard icon={ShoppingCart} label="Shopping" value={shoppingItemCount} sub="items" />
       </div>
 
-      <div className="bg-white rounded-2xl border border-gray-200 p-4">
+      <div className="bg-white dark:bg-[#252525] rounded-2xl border border-gray-200 dark:border-white/10 p-4">
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2">
             <Target className="w-4 h-4 text-green-600" />
-            <span className="font-semibold text-gray-900 text-sm">Today's targets</span>
+            <span className="font-semibold text-gray-900 dark:text-gray-100 text-sm">Today's targets</span>
           </div>
           {todayNutrition.planned > 0 && (
-            <span className="text-[10px] text-gray-400">{todayNutrition.tracked}/{todayNutrition.planned} meals tracked</span>
+            <span className="text-[10px] text-gray-400 dark:text-gray-500">{todayNutrition.tracked}/{todayNutrition.planned} meals tracked</span>
           )}
         </div>
         <div className="space-y-2.5">
@@ -592,7 +592,7 @@ export default function MealsSection() {
           <MacroBar label="Fibre" actual={todayNutrition.fibre} range={parseRange(FIBRE_TARGET)} targetLabel={FIBRE_TARGET} />
         </div>
         {todayName === 'Sunday' && (
-          <p className="text-[11px] text-gray-400 mt-2.5">{CARB_TARGETS.Sunday}</p>
+          <p className="text-[11px] text-gray-400 dark:text-gray-500 mt-2.5">{CARB_TARGETS.Sunday}</p>
         )}
         {todayNutrition.planned > 0 && todayNutrition.tracked < todayNutrition.planned && (
           <p className="text-[11px] text-amber-600 mt-2.5">
@@ -600,17 +600,17 @@ export default function MealsSection() {
           </p>
         )}
         {PRE_WORKOUT_FUEL[todayName] && (
-          <p className="text-[11px] text-gray-500 pt-2.5 border-t border-gray-100 mt-2.5">
-            <span className="font-medium text-gray-700">Pre-workout: </span>{PRE_WORKOUT_FUEL[todayName]}
+          <p className="text-[11px] text-gray-500 dark:text-gray-400 pt-2.5 border-t border-gray-100 dark:border-white/10 mt-2.5">
+            <span className="font-medium text-gray-700 dark:text-gray-300">Pre-workout: </span>{PRE_WORKOUT_FUEL[todayName]}
           </p>
         )}
       </div>
 
-      <div className="bg-white rounded-2xl border border-gray-200 p-4">
+      <div className="bg-white dark:bg-[#252525] rounded-2xl border border-gray-200 dark:border-white/10 p-4">
         <div className="flex items-center justify-between mb-3">
-          <span className="font-semibold text-gray-900 text-sm">Weekly plan</span>
+          <span className="font-semibold text-gray-900 dark:text-gray-100 text-sm">Weekly plan</span>
           <button onClick={clearWeek}
-            className="text-[11px] font-medium text-gray-500 bg-gray-100 px-2.5 py-1 rounded-lg active:bg-gray-200">
+            className="text-[11px] font-medium text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-white/10 px-2.5 py-1 rounded-lg active:bg-gray-200 dark:bg-white/10">
             Clear week
           </button>
         </div>
@@ -623,17 +623,17 @@ export default function MealsSection() {
               <div key={day} className={`rounded-xl overflow-hidden ${day === todayName ? 'ring-1 ring-green-200' : ''}`}>
                 <button
                   onClick={() => setExpandedDays(p => ({ ...p, [day]: !expanded }))}
-                  className={`w-full flex items-center gap-3 px-3 py-2.5 ${day === todayName ? 'bg-green-50' : 'bg-gray-50'}`}
+                  className={`w-full flex items-center gap-3 px-3 py-2.5 ${day === todayName ? 'bg-green-50 dark:bg-green-500/10' : 'bg-gray-50 dark:bg-white/5'}`}
                 >
-                  <span className={`text-xs w-20 text-left flex-shrink-0 ${day === todayName ? 'font-bold text-green-700' : 'text-gray-500'}`}>
+                  <span className={`text-xs w-20 text-left flex-shrink-0 ${day === todayName ? 'font-bold text-green-700' : 'text-gray-500 dark:text-gray-400'}`}>
                     {day}{day === todayName ? ' •' : ''}
                   </span>
-                  <span className="text-[11px] text-gray-400">{plannedCount} planned</span>
-                  <ChevronDown className={`w-3.5 h-3.5 text-gray-400 ml-auto transition-transform ${expanded ? 'rotate-180' : ''}`} />
+                  <span className="text-[11px] text-gray-400 dark:text-gray-500">{plannedCount} planned</span>
+                  <ChevronDown className={`w-3.5 h-3.5 text-gray-400 dark:text-gray-500 ml-auto transition-transform ${expanded ? 'rotate-180' : ''}`} />
                 </button>
                 <div className={`grid transition-[grid-template-rows] duration-300 ease-out ${expanded ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]'}`}>
                   <div className="overflow-hidden">
-                  <div className="bg-white p-3 space-y-2.5 border border-t-0 border-gray-100 rounded-b-xl">
+                  <div className="bg-white dark:bg-[#252525] p-3 space-y-2.5 border border-t-0 border-gray-100 dark:border-white/10 rounded-b-xl">
                     {SLOTS.map(slot => {
                       const meta = SLOT_META[slot];
                       const Icon = meta.icon;
@@ -643,14 +643,14 @@ export default function MealsSection() {
                         <div key={slot} className="flex items-start gap-2">
                           <Icon className={`w-3.5 h-3.5 flex-shrink-0 mt-1.5 ${meta.text}`} />
                           <div className="w-20 flex-shrink-0 mt-1">
-                            <div className="text-[11px] text-gray-500">{meta.label}</div>
+                            <div className="text-[11px] text-gray-500 dark:text-gray-400">{meta.label}</div>
                             <div className="flex items-center gap-0.5 -ml-0.5">
-                              <Clock className="w-2.5 h-2.5 text-gray-300" />
+                              <Clock className="w-2.5 h-2.5 text-gray-300 dark:text-gray-600" />
                               <input
                                 type="time"
                                 value={getMealTime(day, slot)}
                                 onChange={e => setMealTime(day, slot, e.target.value)}
-                                className="bg-transparent text-[9px] text-gray-400 outline-none w-[42px]"
+                                className="bg-transparent text-[9px] text-gray-400 dark:text-gray-500 outline-none w-[42px]"
                                 aria-label={`Time for ${meta.label} on ${day}`}
                               />
                             </div>
@@ -659,15 +659,15 @@ export default function MealsSection() {
                                 type="number" inputMode="numeric" min="5" step="5"
                                 value={getMealDuration(day, slot)}
                                 onChange={e => setMealDuration(day, slot, e.target.value)}
-                                className="bg-transparent text-[9px] text-gray-400 outline-none w-[22px]"
+                                className="bg-transparent text-[9px] text-gray-400 dark:text-gray-500 outline-none w-[22px]"
                                 aria-label={`Duration for ${meta.label} on ${day}, in minutes`}
                               />
-                              <span className="text-[8px] text-gray-300">min</span>
+                              <span className="text-[8px] text-gray-300 dark:text-gray-600">min</span>
                             </div>
                           </div>
                           <div className="flex-1 min-w-0 flex flex-wrap items-center gap-1.5">
                             {assignedNames.length === 0 && available.length === 0 && (
-                              <span className="text-[11px] text-gray-300 py-1">No recipes yet</span>
+                              <span className="text-[11px] text-gray-300 dark:text-gray-600 py-1">No recipes yet</span>
                             )}
                             {assignedNames.map(name => (
                               <span key={name}
@@ -684,13 +684,13 @@ export default function MealsSection() {
                                 <select
                                   value=""
                                   onChange={e => addToSlot(day, slot, e.target.value)}
-                                  className="appearance-none bg-gray-100 text-gray-500 rounded-full pl-2.5 pr-6 py-1 text-[11px] outline-none"
+                                  className="appearance-none bg-gray-100 dark:bg-white/10 text-gray-500 dark:text-gray-400 rounded-full pl-2.5 pr-6 py-1 text-[11px] outline-none"
                                   aria-label={`Add to ${day} ${meta.label}`}
                                 >
                                   <option value="" disabled>+ Add</option>
                                   {available.map(r => <option key={r.id} value={r.name}>{r.name}</option>)}
                                 </select>
-                                <ChevronDown className="w-3 h-3 text-gray-400 absolute right-1.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                                <ChevronDown className="w-3 h-3 text-gray-400 dark:text-gray-500 absolute right-1.5 top-1/2 -translate-y-1/2 pointer-events-none" />
                               </div>
                             )}
                           </div>
@@ -716,16 +716,16 @@ export default function MealsSection() {
         badge={`${recipes.length}`}
         actions={
           <button onClick={() => (builderOpen ? resetBuilder() : setBuilderOpen(true))}
-            className="flex items-center gap-1 text-[11px] font-medium text-green-600 bg-green-50 px-2.5 py-1 rounded-lg active:bg-green-100">
+            className="flex items-center gap-1 text-[11px] font-medium text-green-600 bg-green-50 dark:bg-green-500/10 px-2.5 py-1 rounded-lg active:bg-green-100">
             {builderOpen ? <X className="w-3 h-3" /> : <Plus className="w-3 h-3" />}
             {builderOpen ? 'Cancel' : 'New'}
           </button>
         }
       >
         {builderOpen && (
-          <div className="bg-gray-50 rounded-xl p-3 mb-3 space-y-2">
+          <div className="bg-gray-50 dark:bg-white/5 rounded-xl p-3 mb-3 space-y-2">
             {editingRecipeId && (
-              <div className="text-[11px] font-medium text-green-700 bg-green-50 rounded-lg px-2.5 py-1.5 flex items-center gap-1">
+              <div className="text-[11px] font-medium text-green-700 bg-green-50 dark:bg-green-500/10 rounded-lg px-2.5 py-1.5 flex items-center gap-1">
                 <Pencil className="w-3 h-3" /> Editing recipe
               </div>
             )}
@@ -733,15 +733,15 @@ export default function MealsSection() {
               value={builder.name}
               onChange={e => setBuilder(p => ({ ...p, name: e.target.value }))}
               placeholder="Recipe name"
-              className="w-full bg-white border border-gray-200 rounded-lg px-3 py-2.5 text-sm outline-none focus:border-green-500"
+              className="w-full bg-white dark:bg-[#252525] border border-gray-200 dark:border-white/10 rounded-lg px-3 py-2.5 text-sm outline-none focus:border-green-500"
             />
 
-            <div className="flex bg-gray-200/60 rounded-lg p-0.5">
+            <div className="flex bg-gray-200/60 dark:bg-white/10 rounded-lg p-0.5">
               {[['list', 'Paste a list'], ['single', 'One at a time']].map(([mode, label]) => (
                 <button key={mode}
                   onClick={() => setBuilder(p => ({ ...p, mode }))}
                   className={`flex-1 text-[11px] font-medium py-1.5 rounded-md ${
-                    builder.mode === mode ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500'
+                    builder.mode === mode ? 'bg-white dark:bg-[#252525] text-gray-900 dark:text-gray-100 shadow-sm' : 'text-gray-500 dark:text-gray-400'
                   }`}
                 >
                   {label}
@@ -756,7 +756,7 @@ export default function MealsSection() {
                   onChange={e => setBuilder(p => ({ ...p, bulkText: e.target.value }))}
                   placeholder={'One ingredient per line, or comma-separated:\nOnion\nChicken breast, Garlic'}
                   rows={4}
-                  className="w-full bg-white border border-gray-200 rounded-lg px-3 py-2.5 text-sm outline-none focus:border-green-500 resize-none"
+                  className="w-full bg-white dark:bg-[#252525] border border-gray-200 dark:border-white/10 rounded-lg px-3 py-2.5 text-sm outline-none focus:border-green-500 resize-none"
                 />
                 <button onClick={addBulkIngredients}
                   disabled={!builder.bulkText.trim()}
@@ -771,7 +771,7 @@ export default function MealsSection() {
                   onChange={e => setBuilder(p => ({ ...p, draftName: e.target.value }))}
                   onKeyDown={e => e.key === 'Enter' && addDraftIngredient()}
                   placeholder="Ingredient"
-                  className="flex-1 min-w-0 bg-white border border-gray-200 rounded-lg px-3 py-2.5 text-sm outline-none focus:border-green-500"
+                  className="flex-1 min-w-0 bg-white dark:bg-[#252525] border border-gray-200 dark:border-white/10 rounded-lg px-3 py-2.5 text-sm outline-none focus:border-green-500"
                 />
                 <button onClick={addDraftIngredient}
                   className="bg-gray-900 text-white rounded-lg px-3 flex-shrink-0 active:bg-gray-700">
@@ -791,21 +791,21 @@ export default function MealsSection() {
                       fibre: Math.round(db.fibre * ing.quantity / 100),
                     } : null;
                     return (
-                      <div key={i} className="flex items-center gap-1.5 bg-green-50 rounded-lg px-2 py-1.5">
+                      <div key={i} className="flex items-center gap-1.5 bg-green-50 dark:bg-green-500/10 rounded-lg px-2 py-1.5">
                         <span className="text-[11px] text-green-800 font-medium flex-1 min-w-0 truncate">{ing.name}</span>
                         <input
                           type="number" inputMode="numeric" min="0" placeholder="qty"
                           value={ing.quantity ?? ''}
                           onChange={e => setBuilderIngredientQuantity(i, e.target.value)}
-                          className="w-14 bg-white border border-green-200 rounded-md text-center text-[11px] py-1 outline-none focus:border-green-500"
+                          className="w-14 bg-white dark:bg-[#252525] border border-green-200 rounded-md text-center text-[11px] py-1 outline-none focus:border-green-500"
                         />
                         <span className="text-[10px] text-green-700 flex-shrink-0">g</span>
                         {contribution ? (
                           <span className="text-[9px] text-green-600 flex-shrink-0 tabular-nums">P{contribution.protein}·C{contribution.carbs}·F{contribution.fibre}</span>
                         ) : db ? (
-                          <span className="text-[9px] text-gray-400 flex-shrink-0">in DB</span>
+                          <span className="text-[9px] text-gray-400 dark:text-gray-500 flex-shrink-0">in DB</span>
                         ) : (
-                          <button onClick={() => quickAddDbIngredient(ing.name)} className="text-[9px] text-gray-400 underline flex-shrink-0">
+                          <button onClick={() => quickAddDbIngredient(ing.name)} className="text-[9px] text-gray-400 dark:text-gray-500 underline flex-shrink-0">
                             not in DB
                           </button>
                         )}
@@ -839,21 +839,21 @@ export default function MealsSection() {
               className="flex items-center gap-2 py-1 select-none"
             >
               <span className={`w-5 h-5 rounded-md border flex items-center justify-center flex-shrink-0 ${
-                builder.advanced ? 'bg-green-600 border-green-600' : 'border-gray-300 bg-white'
+                builder.advanced ? 'bg-green-600 border-green-600' : 'border-gray-300 dark:border-white/20 bg-white dark:bg-[#252525]'
               }`}>
                 {builder.advanced && <Check className="w-3.5 h-3.5 text-white" />}
               </span>
-              <span className="text-xs text-gray-600">Advanced nutrition (quantities &amp; macros)</span>
+              <span className="text-xs text-gray-600 dark:text-gray-300">Advanced nutrition (quantities &amp; macros)</span>
             </button>
 
             {builder.advanced && !builder.nutritionEnabled && (() => {
               const computed = computeIngredientsNutrition(builder.ingredients);
               return computed ? (
-                <div className="text-[11px] text-green-700 bg-green-50 rounded-lg px-2.5 py-1.5">
+                <div className="text-[11px] text-green-700 bg-green-50 dark:bg-green-500/10 rounded-lg px-2.5 py-1.5">
                   Auto-calculated from ingredient quantities: <span className="font-semibold">P{computed.protein} · C{computed.carbs} · F{computed.fibre}</span>
                 </div>
               ) : (
-                <p className="text-[11px] text-gray-400">
+                <p className="text-[11px] text-gray-400 dark:text-gray-500">
                   Give an ingredient above a quantity (and match it in the database) to auto-calculate nutrition — or tick the override to type a total yourself.
                 </p>
               );
@@ -866,41 +866,41 @@ export default function MealsSection() {
                 className="flex items-center gap-2 py-1 select-none"
               >
                 <span className={`w-5 h-5 rounded-md border flex items-center justify-center flex-shrink-0 ${
-                  builder.nutritionEnabled ? 'bg-green-600 border-green-600' : 'border-gray-300 bg-white'
+                  builder.nutritionEnabled ? 'bg-green-600 border-green-600' : 'border-gray-300 dark:border-white/20 bg-white dark:bg-[#252525]'
                 }`}>
                   {builder.nutritionEnabled && <Check className="w-3.5 h-3.5 text-white" />}
                 </span>
-                <span className="text-xs text-gray-600">Set a whole-recipe nutrition override</span>
+                <span className="text-xs text-gray-600 dark:text-gray-300">Set a whole-recipe nutrition override</span>
               </button>
             )}
 
             {builder.advanced && builder.nutritionEnabled && (
               <div className="flex gap-2">
                 <div className="flex-1">
-                  <div className="text-[10px] uppercase tracking-wide text-gray-400 mb-1 text-center">Protein (g)</div>
+                  <div className="text-[10px] uppercase tracking-wide text-gray-400 dark:text-gray-500 mb-1 text-center">Protein (g)</div>
                   <input
                     type="number" inputMode="numeric" min="0" placeholder="0"
                     value={builder.protein}
                     onChange={e => setBuilder(p => ({ ...p, protein: e.target.value }))}
-                    className="w-full bg-white border border-gray-200 rounded-lg px-2 py-2 text-sm text-center outline-none focus:border-green-500"
+                    className="w-full bg-white dark:bg-[#252525] border border-gray-200 dark:border-white/10 rounded-lg px-2 py-2 text-sm text-center outline-none focus:border-green-500"
                   />
                 </div>
                 <div className="flex-1">
-                  <div className="text-[10px] uppercase tracking-wide text-gray-400 mb-1 text-center">Carbs (g)</div>
+                  <div className="text-[10px] uppercase tracking-wide text-gray-400 dark:text-gray-500 mb-1 text-center">Carbs (g)</div>
                   <input
                     type="number" inputMode="numeric" min="0" placeholder="0"
                     value={builder.carbs}
                     onChange={e => setBuilder(p => ({ ...p, carbs: e.target.value }))}
-                    className="w-full bg-white border border-gray-200 rounded-lg px-2 py-2 text-sm text-center outline-none focus:border-green-500"
+                    className="w-full bg-white dark:bg-[#252525] border border-gray-200 dark:border-white/10 rounded-lg px-2 py-2 text-sm text-center outline-none focus:border-green-500"
                   />
                 </div>
                 <div className="flex-1">
-                  <div className="text-[10px] uppercase tracking-wide text-gray-400 mb-1 text-center">Fibre (g)</div>
+                  <div className="text-[10px] uppercase tracking-wide text-gray-400 dark:text-gray-500 mb-1 text-center">Fibre (g)</div>
                   <input
                     type="number" inputMode="numeric" min="0" placeholder="0"
                     value={builder.fibre}
                     onChange={e => setBuilder(p => ({ ...p, fibre: e.target.value }))}
-                    className="w-full bg-white border border-gray-200 rounded-lg px-2 py-2 text-sm text-center outline-none focus:border-green-500"
+                    className="w-full bg-white dark:bg-[#252525] border border-gray-200 dark:border-white/10 rounded-lg px-2 py-2 text-sm text-center outline-none focus:border-green-500"
                   />
                 </div>
               </div>
@@ -911,7 +911,7 @@ export default function MealsSection() {
               onChange={e => setBuilder(p => ({ ...p, notes: e.target.value }))}
               placeholder="Notes / instructions (optional)"
               rows={2}
-              className="w-full bg-white border border-gray-200 rounded-lg px-3 py-2.5 text-sm outline-none focus:border-green-500 resize-none"
+              className="w-full bg-white dark:bg-[#252525] border border-gray-200 dark:border-white/10 rounded-lg px-3 py-2.5 text-sm outline-none focus:border-green-500 resize-none"
             />
 
             <button onClick={saveRecipe}
@@ -926,33 +926,33 @@ export default function MealsSection() {
           {recipes.map(r => {
             const expanded = expandedRecipeId === r.id;
             return (
-              <div key={r.id} className="border border-gray-200 rounded-xl p-3">
+              <div key={r.id} className="border border-gray-200 dark:border-white/10 rounded-xl p-3">
                 <button onClick={() => setExpandedRecipeId(expanded ? null : r.id)} className="w-full flex items-center justify-between mb-1.5">
-                  <span className="text-sm font-medium text-gray-900 truncate">{r.name}</span>
+                  <span className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">{r.name}</span>
                   <div className="flex items-center gap-2 flex-shrink-0">
                     {r.nutrition && (
-                      <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-green-50 text-green-700">
+                      <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-green-50 dark:bg-green-500/10 text-green-700">
                         P{r.nutrition.protein}·C{r.nutrition.carbs}·F{r.nutrition.fibre}
                       </span>
                     )}
-                    <span className="text-[10px] text-gray-400">{r.ingredients.length} ingredients</span>
-                    <ChevronDown className={`w-3.5 h-3.5 text-gray-400 transition-transform ${expanded ? 'rotate-180' : ''}`} />
+                    <span className="text-[10px] text-gray-400 dark:text-gray-500">{r.ingredients.length} ingredients</span>
+                    <ChevronDown className={`w-3.5 h-3.5 text-gray-400 dark:text-gray-500 transition-transform ${expanded ? 'rotate-180' : ''}`} />
                   </div>
                 </button>
                 <div className="flex flex-wrap gap-1">
                   {(expanded ? r.ingredients : r.ingredients.slice(0, 6)).map((ing, i) => (
-                    <span key={i} className="text-[10px] px-2 py-0.5 rounded-full bg-gray-100 text-gray-500">
+                    <span key={i} className="text-[10px] px-2 py-0.5 rounded-full bg-gray-100 dark:bg-white/10 text-gray-500 dark:text-gray-400">
                       {ing.name}{ing.quantity ? ` · ${ing.quantity}g` : ''}
                     </span>
                   ))}
                   {!expanded && r.ingredients.length > 6 && (
-                    <span className="text-[10px] px-2 py-0.5 text-gray-400">+{r.ingredients.length - 6} more</span>
+                    <span className="text-[10px] px-2 py-0.5 text-gray-400 dark:text-gray-500">+{r.ingredients.length - 6} more</span>
                   )}
                 </div>
                 <div className={`grid transition-[grid-template-rows] duration-250 ease-out ${expanded ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]'}`}>
                   <div className="overflow-hidden">
-                    <div className="mt-2 pt-2 border-t border-gray-100">
-                      {r.notes && <p className="text-xs text-gray-500 mb-2 whitespace-pre-line">{r.notes}</p>}
+                    <div className="mt-2 pt-2 border-t border-gray-100 dark:border-white/10">
+                      {r.notes && <p className="text-xs text-gray-500 dark:text-gray-400 mb-2 whitespace-pre-line">{r.notes}</p>}
                       <div className="flex gap-3">
                         <button onClick={() => startEditRecipe(r)} className="text-[11px] text-green-700 flex items-center gap-1">
                           <Pencil className="w-3 h-3" /> Edit recipe
@@ -968,7 +968,7 @@ export default function MealsSection() {
             );
           })}
           {recipes.length === 0 && (
-            <p className="text-xs text-gray-400 text-center py-2">No recipes yet — create one above.</p>
+            <p className="text-xs text-gray-400 dark:text-gray-500 text-center py-2">No recipes yet — create one above.</p>
           )}
         </div>
       </CollapsibleCard>
@@ -981,50 +981,50 @@ export default function MealsSection() {
         defaultOpen={false}
         actions={
           <button onClick={() => (dbBuilderOpen ? resetDbBuilder() : setDbBuilderOpen(true))}
-            className="flex items-center gap-1 text-[11px] font-medium text-green-600 bg-green-50 px-2.5 py-1 rounded-lg active:bg-green-100">
+            className="flex items-center gap-1 text-[11px] font-medium text-green-600 bg-green-50 dark:bg-green-500/10 px-2.5 py-1 rounded-lg active:bg-green-100">
             {dbBuilderOpen ? <X className="w-3 h-3" /> : <Plus className="w-3 h-3" />}
             {dbBuilderOpen ? 'Cancel' : 'New'}
           </button>
         }
       >
-        <p className="text-[11px] text-gray-400 mb-3">
+        <p className="text-[11px] text-gray-400 dark:text-gray-500 mb-3">
           Per-100g macros, reused across every recipe — give an ingredient here a match and a quantity in any recipe and its nutrition calculates automatically.
         </p>
 
         {dbBuilderOpen && (
-          <div className="bg-gray-50 rounded-xl p-3 mb-3 space-y-2">
+          <div className="bg-gray-50 dark:bg-white/5 rounded-xl p-3 mb-3 space-y-2">
             <input
               value={dbBuilder.name}
               onChange={e => setDbBuilder(p => ({ ...p, name: e.target.value }))}
               placeholder="Ingredient name"
-              className="w-full bg-white border border-gray-200 rounded-lg px-3 py-2.5 text-sm outline-none focus:border-green-500"
+              className="w-full bg-white dark:bg-[#252525] border border-gray-200 dark:border-white/10 rounded-lg px-3 py-2.5 text-sm outline-none focus:border-green-500"
             />
             <div className="flex gap-2">
               <div className="flex-1">
-                <div className="text-[10px] uppercase tracking-wide text-gray-400 mb-1 text-center">Protein /100g</div>
+                <div className="text-[10px] uppercase tracking-wide text-gray-400 dark:text-gray-500 mb-1 text-center">Protein /100g</div>
                 <input
                   type="number" inputMode="numeric" min="0" placeholder="0"
                   value={dbBuilder.protein}
                   onChange={e => setDbBuilder(p => ({ ...p, protein: e.target.value }))}
-                  className="w-full bg-white border border-gray-200 rounded-lg px-2 py-2 text-sm text-center outline-none focus:border-green-500"
+                  className="w-full bg-white dark:bg-[#252525] border border-gray-200 dark:border-white/10 rounded-lg px-2 py-2 text-sm text-center outline-none focus:border-green-500"
                 />
               </div>
               <div className="flex-1">
-                <div className="text-[10px] uppercase tracking-wide text-gray-400 mb-1 text-center">Carbs /100g</div>
+                <div className="text-[10px] uppercase tracking-wide text-gray-400 dark:text-gray-500 mb-1 text-center">Carbs /100g</div>
                 <input
                   type="number" inputMode="numeric" min="0" placeholder="0"
                   value={dbBuilder.carbs}
                   onChange={e => setDbBuilder(p => ({ ...p, carbs: e.target.value }))}
-                  className="w-full bg-white border border-gray-200 rounded-lg px-2 py-2 text-sm text-center outline-none focus:border-green-500"
+                  className="w-full bg-white dark:bg-[#252525] border border-gray-200 dark:border-white/10 rounded-lg px-2 py-2 text-sm text-center outline-none focus:border-green-500"
                 />
               </div>
               <div className="flex-1">
-                <div className="text-[10px] uppercase tracking-wide text-gray-400 mb-1 text-center">Fibre /100g</div>
+                <div className="text-[10px] uppercase tracking-wide text-gray-400 dark:text-gray-500 mb-1 text-center">Fibre /100g</div>
                 <input
                   type="number" inputMode="numeric" min="0" placeholder="0"
                   value={dbBuilder.fibre}
                   onChange={e => setDbBuilder(p => ({ ...p, fibre: e.target.value }))}
-                  className="w-full bg-white border border-gray-200 rounded-lg px-2 py-2 text-sm text-center outline-none focus:border-green-500"
+                  className="w-full bg-white dark:bg-[#252525] border border-gray-200 dark:border-white/10 rounded-lg px-2 py-2 text-sm text-center outline-none focus:border-green-500"
                 />
               </div>
             </div>
@@ -1038,19 +1038,19 @@ export default function MealsSection() {
 
         <div className="max-h-64 overflow-y-auto space-y-1">
           {[...ingredientDb].sort((a, b) => a.name.localeCompare(b.name)).map(item => (
-            <div key={item.id} className="flex items-center gap-2 bg-gray-50 rounded-lg px-3 py-2">
-              <span className="text-xs text-gray-800 flex-1 min-w-0 truncate">{item.name}</span>
-              <span className="text-[10px] text-gray-400 tabular-nums flex-shrink-0">P{item.protein}·C{item.carbs}·F{item.fibre}</span>
-              <button onClick={() => startEditDbIngredient(item)} className="text-gray-300 active:text-green-600 flex-shrink-0">
+            <div key={item.id} className="flex items-center gap-2 bg-gray-50 dark:bg-white/5 rounded-lg px-3 py-2">
+              <span className="text-xs text-gray-800 dark:text-gray-200 flex-1 min-w-0 truncate">{item.name}</span>
+              <span className="text-[10px] text-gray-400 dark:text-gray-500 tabular-nums flex-shrink-0">P{item.protein}·C{item.carbs}·F{item.fibre}</span>
+              <button onClick={() => startEditDbIngredient(item)} className="text-gray-300 dark:text-gray-600 active:text-green-600 flex-shrink-0">
                 <Pencil className="w-3.5 h-3.5" />
               </button>
-              <button onClick={() => deleteDbIngredient(item.id)} className="text-gray-300 active:text-red-500 flex-shrink-0">
+              <button onClick={() => deleteDbIngredient(item.id)} className="text-gray-300 dark:text-gray-600 active:text-red-500 flex-shrink-0">
                 <Trash2 className="w-3.5 h-3.5" />
               </button>
             </div>
           ))}
           {ingredientDb.length === 0 && (
-            <p className="text-xs text-gray-400 text-center py-2">No ingredients yet — add one above.</p>
+            <p className="text-xs text-gray-400 dark:text-gray-500 text-center py-2">No ingredients yet — add one above.</p>
           )}
         </div>
       </CollapsibleCard>
@@ -1065,17 +1065,17 @@ export default function MealsSection() {
         <StatCard icon={Plus} label="Extra items" value={shoppingExtras.length} />
       </div>
 
-      <div className="bg-white rounded-2xl border border-gray-200 p-4">
+      <div className="bg-white dark:bg-[#252525] rounded-2xl border border-gray-200 dark:border-white/10 p-4">
         <div className="flex items-center justify-between mb-3">
-          <span className="font-semibold text-gray-900 text-sm">From this week's plan</span>
+          <span className="font-semibold text-gray-900 dark:text-gray-100 text-sm">From this week's plan</span>
           {(Object.values(shoppingChecked).some(Boolean) || shoppingExtras.some(e => e.checked)) && (
-            <button onClick={clearAllChecks} className="text-[11px] font-medium text-gray-500 bg-gray-100 px-2.5 py-1 rounded-lg active:bg-gray-200">
+            <button onClick={clearAllChecks} className="text-[11px] font-medium text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-white/10 px-2.5 py-1 rounded-lg active:bg-gray-200 dark:bg-white/10">
               Clear checks
             </button>
           )}
         </div>
         {shoppingItems.length === 0 ? (
-          <p className="text-xs text-gray-400 text-center py-2">
+          <p className="text-xs text-gray-400 dark:text-gray-500 text-center py-2">
             Nothing yet — assign recipes to days in Week and their ingredients show up here.
           </p>
         ) : (
@@ -1084,35 +1084,35 @@ export default function MealsSection() {
               const checked = !!shoppingChecked[item.key];
               const expanded = expandedIngredient === `shop::${item.key}`;
               return (
-                <div key={item.key} className="bg-gray-50 rounded-lg px-3 py-2">
+                <div key={item.key} className="bg-gray-50 dark:bg-white/5 rounded-lg px-3 py-2">
                   <div className="flex items-center gap-2">
                     <button
                       onClick={() => toggleChecked(item.key)}
                       className={`w-5 h-5 rounded-md border flex items-center justify-center flex-shrink-0 transition-colors ${
-                        checked ? 'bg-green-600 border-green-600 animate-success-pulse' : 'border-gray-300 bg-white'
+                        checked ? 'bg-green-600 border-green-600 animate-success-pulse' : 'border-gray-300 dark:border-white/20 bg-white dark:bg-[#252525]'
                       }`}
                       aria-label={checked ? `Uncheck ${item.name}` : `Check ${item.name}`}
                     >
                       {checked && <Check className="w-3.5 h-3.5 text-white" />}
                     </button>
-                    <span className={`text-sm flex-1 min-w-0 truncate ${checked ? 'line-through text-gray-400' : 'text-gray-900'}`}>
+                    <span className={`text-sm flex-1 min-w-0 truncate ${checked ? 'line-through text-gray-400 dark:text-gray-500' : 'text-gray-900 dark:text-gray-100'}`}>
                       {item.name}
                     </span>
                     <button
                       onClick={() => setExpandedIngredient(expanded ? null : `shop::${item.key}`)}
                       className="flex items-center gap-1 flex-shrink-0"
                     >
-                      <span className="text-[10px] text-gray-400 bg-white border border-gray-200 rounded-full px-2 py-0.5">
+                      <span className="text-[10px] text-gray-400 dark:text-gray-500 bg-white dark:bg-[#252525] border border-gray-200 dark:border-white/10 rounded-full px-2 py-0.5">
                         {item.count} meal{item.count === 1 ? '' : 's'}
                       </span>
-                      <ChevronDown className={`w-3 h-3 text-gray-400 transition-transform ${expanded ? 'rotate-180' : ''}`} />
+                      <ChevronDown className={`w-3 h-3 text-gray-400 dark:text-gray-500 transition-transform ${expanded ? 'rotate-180' : ''}`} />
                     </button>
                   </div>
                   <div className={`grid transition-[grid-template-rows] duration-200 ease-out ${expanded ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]'}`}>
                     <div className="overflow-hidden">
                       <div className="mt-1.5 pl-7 flex flex-wrap gap-1">
                         {item.uses.map((u, i) => (
-                          <span key={i} className="text-[10px] text-gray-500 bg-white border border-gray-200 rounded-full px-2 py-0.5">
+                          <span key={i} className="text-[10px] text-gray-500 dark:text-gray-400 bg-white dark:bg-[#252525] border border-gray-200 dark:border-white/10 rounded-full px-2 py-0.5">
                             {u.recipe} · {u.day.slice(0, 3)} {SLOT_META[u.slot].label}
                           </span>
                         ))}
@@ -1126,39 +1126,39 @@ export default function MealsSection() {
         )}
       </div>
 
-      <div className="bg-white rounded-2xl border border-gray-200 p-4">
-        <span className="font-semibold text-gray-900 text-sm block mb-3">Other items</span>
+      <div className="bg-white dark:bg-[#252525] rounded-2xl border border-gray-200 dark:border-white/10 p-4">
+        <span className="font-semibold text-gray-900 dark:text-gray-100 text-sm block mb-3">Other items</span>
         <div className="flex gap-2 mb-3">
           <input
             value={extraInput}
             onChange={e => setExtraInput(e.target.value)}
             onKeyDown={e => e.key === 'Enter' && addExtra()}
             placeholder="e.g. Paper towels"
-            className="flex-1 min-w-0 bg-gray-100 rounded-xl px-4 py-2.5 text-sm text-gray-900 outline-none focus:bg-white focus:ring-2 focus:ring-green-500"
+            className="flex-1 min-w-0 bg-gray-100 dark:bg-white/10 rounded-xl px-4 py-2.5 text-sm text-gray-900 dark:text-gray-100 outline-none focus:bg-white dark:bg-[#252525] focus:ring-2 focus:ring-green-500"
           />
           <button onClick={addExtra} className="bg-gray-900 text-white rounded-xl px-4 flex-shrink-0 active:bg-gray-700">
             <Plus className="w-4 h-4" />
           </button>
         </div>
         {shoppingExtras.length === 0 ? (
-          <p className="text-xs text-gray-400 text-center py-2">Nothing added manually yet.</p>
+          <p className="text-xs text-gray-400 dark:text-gray-500 text-center py-2">Nothing added manually yet.</p>
         ) : (
           <div className="space-y-1">
             {shoppingExtras.map(e => (
-              <div key={e.id} className="flex items-center gap-2 bg-gray-50 rounded-lg px-3 py-2">
+              <div key={e.id} className="flex items-center gap-2 bg-gray-50 dark:bg-white/5 rounded-lg px-3 py-2">
                 <button
                   onClick={() => toggleExtra(e.id)}
                   className={`w-5 h-5 rounded-md border flex items-center justify-center flex-shrink-0 transition-colors ${
-                    e.checked ? 'bg-green-600 border-green-600 animate-success-pulse' : 'border-gray-300 bg-white'
+                    e.checked ? 'bg-green-600 border-green-600 animate-success-pulse' : 'border-gray-300 dark:border-white/20 bg-white dark:bg-[#252525]'
                   }`}
                   aria-label={e.checked ? `Uncheck ${e.name}` : `Check ${e.name}`}
                 >
                   {e.checked && <Check className="w-3.5 h-3.5 text-white" />}
                 </button>
-                <span className={`text-sm flex-1 min-w-0 truncate ${e.checked ? 'line-through text-gray-400' : 'text-gray-900'}`}>
+                <span className={`text-sm flex-1 min-w-0 truncate ${e.checked ? 'line-through text-gray-400 dark:text-gray-500' : 'text-gray-900 dark:text-gray-100'}`}>
                   {e.name}
                 </span>
-                <button onClick={() => deleteExtra(e.id)} className="text-gray-300 active:text-red-500 flex-shrink-0">
+                <button onClick={() => deleteExtra(e.id)} className="text-gray-300 dark:text-gray-600 active:text-red-500 flex-shrink-0">
                   <Trash2 className="w-3.5 h-3.5" />
                 </button>
               </div>
@@ -1202,11 +1202,11 @@ export default function MealsSection() {
       )}
 
       <div className="flex items-center justify-between mb-3">
-        <div className="flex bg-gray-200/60 rounded-lg p-0.5">
+        <div className="flex bg-gray-200/60 dark:bg-white/10 rounded-lg p-0.5">
           {SUB_TABS.map(({ id, label, icon: Icon }) => (
             <button key={id} onClick={() => setSubTab(id)}
               className={`flex items-center gap-1 px-3 py-1.5 rounded-md text-xs font-medium ${
-                subTab === id ? 'bg-white text-green-600 shadow-sm' : 'text-gray-500'
+                subTab === id ? 'bg-white dark:bg-[#252525] text-green-600 shadow-sm' : 'text-gray-500 dark:text-gray-400'
               }`}
             >
               <Icon className="w-3.5 h-3.5" /> {label}
@@ -1217,14 +1217,14 @@ export default function MealsSection() {
           onClick={refreshFromRemote}
           disabled={isRefreshing}
           aria-label="Refresh data"
-          className="text-gray-400 active:text-gray-600 disabled:opacity-40"
+          className="text-gray-400 dark:text-gray-500 active:text-gray-600 dark:text-gray-300 disabled:opacity-40"
         >
           <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
         </button>
       </div>
 
       {loadError && (
-        <div className="mb-3 bg-red-50 border border-red-200 rounded-xl p-3 flex items-start gap-2 text-xs text-red-600">
+        <div className="mb-3 bg-red-50 dark:bg-red-500/10 border border-red-200 rounded-xl p-3 flex items-start gap-2 text-xs text-red-600">
           <AlertTriangle className="w-4 h-4 mt-0.5 flex-shrink-0" />
           <span>{loadError}</span>
         </div>

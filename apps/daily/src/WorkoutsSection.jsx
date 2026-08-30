@@ -44,29 +44,29 @@ const EXERCISE_TYPE_ORDER = ['weight', 'bodyweight', 'cardio'];
 const TYPE_META = {
   weight: {
     label: 'Weight', icon: Dumbbell,
-    badge: 'bg-blue-50 text-blue-600',
+    badge: 'bg-blue-50 dark:bg-blue-500/10 text-blue-600',
     chip: 'bg-blue-100 text-blue-700',
     iconText: 'text-blue-500',
     cardBorder: 'border-blue-200',
-    cardBadge: 'text-blue-500 bg-blue-50',
+    cardBadge: 'text-blue-500 bg-blue-50 dark:bg-blue-500/10',
     logBtn: 'bg-blue-600 active:bg-blue-700',
   },
   bodyweight: {
     label: 'Bodyweight', icon: PersonStanding,
-    badge: 'bg-teal-50 text-teal-600',
+    badge: 'bg-teal-50 dark:bg-teal-500/10 text-teal-600',
     chip: 'bg-teal-100 text-teal-700',
     iconText: 'text-teal-500',
     cardBorder: 'border-teal-200',
-    cardBadge: 'text-teal-500 bg-teal-50',
+    cardBadge: 'text-teal-500 bg-teal-50 dark:bg-teal-500/10',
     logBtn: 'bg-teal-600 active:bg-teal-700',
   },
   cardio: {
     label: 'Cardio', icon: Activity,
-    badge: 'bg-orange-50 text-orange-600',
+    badge: 'bg-orange-50 dark:bg-orange-500/10 text-orange-600',
     chip: 'bg-orange-100 text-orange-700',
     iconText: 'text-orange-500',
     cardBorder: 'border-orange-200',
-    cardBadge: 'text-orange-500 bg-orange-50',
+    cardBadge: 'text-orange-500 bg-orange-50 dark:bg-orange-500/10',
     logBtn: 'bg-orange-500 active:bg-orange-600',
   },
 };
@@ -180,11 +180,11 @@ function Stepper({ label, value, onChange, step = 1, min = 0, unit }) {
   const bump = (dir) => onChange(Math.max(min, Number(value || 0) + dir * step));
   return (
     <div className="flex-1 min-w-0">
-      <div className="text-[10px] uppercase tracking-wide text-gray-400 mb-1 text-center">
+      <div className="text-[10px] uppercase tracking-wide text-gray-400 dark:text-gray-500 mb-1 text-center">
         {label}{unit ? ` (${unit})` : ''}
       </div>
-      <div className="flex items-center justify-between bg-gray-100 rounded-xl overflow-hidden">
-        <button onClick={() => bump(-1)} className="p-3 text-gray-500 active:bg-gray-200" aria-label={`decrease ${label}`}>
+      <div className="flex items-center justify-between bg-gray-100 dark:bg-white/10 rounded-xl overflow-hidden">
+        <button onClick={() => bump(-1)} className="p-3 text-gray-500 dark:text-gray-400 active:bg-gray-200 dark:bg-white/10" aria-label={`decrease ${label}`}>
           <Minus className="w-4 h-4" />
         </button>
         <input
@@ -192,9 +192,9 @@ function Stepper({ label, value, onChange, step = 1, min = 0, unit }) {
           inputMode="decimal"
           value={value}
           onChange={e => onChange(e.target.value === '' ? '' : Number(e.target.value))}
-          className="w-12 bg-transparent text-center text-sm font-semibold text-gray-900 outline-none"
+          className="w-12 bg-transparent text-center text-sm font-semibold text-gray-900 dark:text-gray-100 outline-none"
         />
-        <button onClick={() => bump(1)} className="p-3 text-gray-500 active:bg-gray-200" aria-label={`increase ${label}`}>
+        <button onClick={() => bump(1)} className="p-3 text-gray-500 dark:text-gray-400 active:bg-gray-200 dark:bg-white/10" aria-label={`increase ${label}`}>
           <Plus className="w-4 h-4" />
         </button>
       </div>
@@ -204,13 +204,13 @@ function Stepper({ label, value, onChange, step = 1, min = 0, unit }) {
 
 function StatCard({ icon: Icon, label, value, sub }) {
   return (
-    <div className="bg-white rounded-2xl border border-gray-200 p-4 flex-1 min-w-0">
-      <div className="flex items-center gap-1.5 text-gray-400 mb-1">
+    <div className="bg-white dark:bg-[#252525] rounded-2xl border border-gray-200 dark:border-white/10 p-4 flex-1 min-w-0">
+      <div className="flex items-center gap-1.5 text-gray-400 dark:text-gray-500 mb-1">
         <Icon className="w-3.5 h-3.5" />
         <span className="text-[10px] uppercase tracking-wide truncate">{label}</span>
       </div>
-      <div className="text-lg font-bold text-gray-900 truncate">{value}</div>
-      {sub && <div className="text-[11px] text-gray-400 truncate">{sub}</div>}
+      <div className="text-lg font-bold text-gray-900 dark:text-gray-100 truncate">{value}</div>
+      {sub && <div className="text-[11px] text-gray-400 dark:text-gray-500 truncate">{sub}</div>}
     </div>
   );
 }
@@ -218,8 +218,8 @@ function StatCard({ icon: Icon, label, value, sub }) {
 function EditableSetRow({ set, type = 'weight', onChange, onDelete }) {
   const isBodyweight = type === 'bodyweight';
   return (
-    <div className="flex items-center gap-2 bg-white rounded-lg px-2.5 py-1.5 border border-gray-100">
-      <span className="text-[10px] text-gray-400 w-10 flex-shrink-0">Set {set.setNumber}</span>
+    <div className="flex items-center gap-2 bg-white dark:bg-[#252525] rounded-lg px-2.5 py-1.5 border border-gray-100 dark:border-white/10">
+      <span className="text-[10px] text-gray-400 dark:text-gray-500 w-10 flex-shrink-0">Set {set.setNumber}</span>
       {!isBodyweight && (
         <>
           <input
@@ -227,9 +227,9 @@ function EditableSetRow({ set, type = 'weight', onChange, onDelete }) {
             inputMode="decimal"
             value={set.weight}
             onChange={e => onChange({ ...set, weight: e.target.value === '' ? '' : Number(e.target.value) })}
-            className="w-14 bg-gray-50 border border-gray-200 rounded-md text-center text-xs py-1 outline-none focus:border-orange-400"
+            className="w-14 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-md text-center text-xs py-1 outline-none focus:border-orange-400"
           />
-          <span className="text-[10px] text-gray-400 flex-shrink-0">kg ×</span>
+          <span className="text-[10px] text-gray-400 dark:text-gray-500 flex-shrink-0">kg ×</span>
         </>
       )}
       <input
@@ -237,10 +237,10 @@ function EditableSetRow({ set, type = 'weight', onChange, onDelete }) {
         inputMode="numeric"
         value={set.reps}
         onChange={e => onChange({ ...set, reps: e.target.value === '' ? '' : Number(e.target.value) })}
-        className="w-12 bg-gray-50 border border-gray-200 rounded-md text-center text-xs py-1 outline-none focus:border-orange-400"
+        className="w-12 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-md text-center text-xs py-1 outline-none focus:border-orange-400"
       />
-      <span className="text-[10px] text-gray-400 flex-shrink-0">reps</span>
-      <button onClick={onDelete} className="ml-auto text-gray-300 active:text-red-500 flex-shrink-0">
+      <span className="text-[10px] text-gray-400 dark:text-gray-500 flex-shrink-0">reps</span>
+      <button onClick={onDelete} className="ml-auto text-gray-300 dark:text-gray-600 active:text-red-500 flex-shrink-0">
         <X className="w-3.5 h-3.5" />
       </button>
     </div>
@@ -250,7 +250,7 @@ function EditableSetRow({ set, type = 'weight', onChange, onDelete }) {
 function RouteThumb({ waypoints }) {
   const w = 72, h = 48, pad = 6;
   if (!waypoints || waypoints.length < 2) {
-    return <div className="w-[72px] h-12 bg-gray-100 rounded-lg" />;
+    return <div className="w-[72px] h-12 bg-gray-100 dark:bg-white/10 rounded-lg" />;
   }
   const lats = waypoints.map(p => p.latitude);
   const lngs = waypoints.map(p => p.longitude);
@@ -266,7 +266,7 @@ function RouteThumb({ waypoints }) {
   const [sx, sy] = pts[0];
   const [ex, ey] = pts[pts.length - 1];
   return (
-    <svg width={w} height={h} viewBox={`0 0 ${w} ${h}`} className="bg-orange-50 rounded-lg flex-shrink-0">
+    <svg width={w} height={h} viewBox={`0 0 ${w} ${h}`} className="bg-orange-50 dark:bg-orange-500/10 rounded-lg flex-shrink-0">
       <polyline
         points={pts.map(([x, y]) => `${x},${y}`).join(' ')}
         fill="none" stroke="#2563eb" strokeWidth="2" strokeLinejoin="round" strokeLinecap="round"
@@ -304,7 +304,7 @@ function StreakCalendar({ strengthLogs, cardioLogs }) {
 
   const cellClass = (cell) => {
     if (cell.isFuture) return 'bg-transparent';
-    if (!cell.day) return 'bg-gray-100';
+    if (!cell.day) return 'bg-gray-100 dark:bg-white/10';
     if (cell.day.strength && cell.day.cardio) return 'bg-orange-600';
     if (cell.day.strength) return 'bg-orange-400';
     return 'bg-orange-200';
@@ -316,7 +316,7 @@ function StreakCalendar({ strengthLogs, cardioLogs }) {
     <div className="flex gap-1.5 items-start">
       <div className="flex flex-col gap-[3px]">
         {dayLabels.map((l, i) => (
-          <div key={i} className="w-3 h-3 text-[8px] leading-3 text-gray-300">{l}</div>
+          <div key={i} className="w-3 h-3 text-[8px] leading-3 text-gray-300 dark:text-gray-600">{l}</div>
         ))}
       </div>
       <div className="flex gap-[3px] overflow-x-auto">
@@ -722,10 +722,10 @@ export default function WorkoutsSection() {
 
     if (ex.type === 'cardio') {
       return (
-        <div key={k} className="bg-white rounded-2xl border border-gray-200 p-4">
+        <div key={k} className="bg-white dark:bg-[#252525] rounded-2xl border border-gray-200 dark:border-white/10 p-4">
           <div className="flex items-center gap-2 mb-3">
             <Icon className={`w-4 h-4 ${meta.iconText}`} />
-            <span className="font-semibold text-gray-900 text-sm">{ex.name}</span>
+            <span className="font-semibold text-gray-900 dark:text-gray-100 text-sm">{ex.name}</span>
             <span className={`text-[10px] uppercase tracking-wide px-2 py-0.5 rounded-full ml-auto ${meta.badge}`}>cardio</span>
           </div>
           <div className="flex items-end gap-3">
@@ -753,15 +753,15 @@ export default function WorkoutsSection() {
 
     if (isLocked) {
       return (
-        <div key={k} className="bg-gray-50 rounded-2xl border border-gray-200 p-4 opacity-80">
+        <div key={k} className="bg-gray-50 dark:bg-white/5 rounded-2xl border border-gray-200 dark:border-white/10 p-4 opacity-80">
           <div className="flex items-center gap-2 mb-2">
             <Check className="w-4 h-4 text-green-500" />
-            <span className="font-semibold text-gray-700 text-sm">{ex.name}</span>
-            <span className="text-[10px] text-gray-400 ml-auto">{exSession.sets.length} set{exSession.sets.length === 1 ? '' : 's'} locked</span>
+            <span className="font-semibold text-gray-700 dark:text-gray-300 text-sm">{ex.name}</span>
+            <span className="text-[10px] text-gray-400 dark:text-gray-500 ml-auto">{exSession.sets.length} set{exSession.sets.length === 1 ? '' : 's'} locked</span>
           </div>
           <div className="flex flex-wrap gap-1.5">
             {exSession.sets.map(s => (
-              <span key={s.setNumber} className="text-[11px] bg-white border border-gray-200 rounded-full px-2 py-0.5 text-gray-500">
+              <span key={s.setNumber} className="text-[11px] bg-white dark:bg-[#252525] border border-gray-200 dark:border-white/10 rounded-full px-2 py-0.5 text-gray-500 dark:text-gray-400">
                 {formatSet(s)}
               </span>
             ))}
@@ -775,12 +775,12 @@ export default function WorkoutsSection() {
         <button
           key={k}
           onClick={() => patchSession(sKey, s => ({ ...s, activeExercise: ex.name }))}
-          className="w-full text-left bg-white rounded-2xl border border-dashed border-gray-200 p-4 opacity-60"
+          className="w-full text-left bg-white dark:bg-[#252525] rounded-2xl border border-dashed border-gray-200 dark:border-white/10 p-4 opacity-60"
         >
           <div className="flex items-center gap-2">
-            <Icon className="w-4 h-4 text-gray-300" />
-            <span className="font-medium text-gray-400 text-sm">{ex.name}</span>
-            <span className="text-[10px] text-gray-300 ml-auto">
+            <Icon className="w-4 h-4 text-gray-300 dark:text-gray-600" />
+            <span className="font-medium text-gray-400 dark:text-gray-500 text-sm">{ex.name}</span>
+            <span className="text-[10px] text-gray-300 dark:text-gray-600 ml-auto">
               {exSession.sets.length > 0 ? `${exSession.sets.length} sets` : 'Not started'}
             </span>
           </div>
@@ -791,10 +791,10 @@ export default function WorkoutsSection() {
     const inp = strengthInputs[k] || (isBodyweight ? { reps: 8 } : { weight: 40, reps: 8 });
     const setInp = (field, v) => setStrengthInputs(p => ({ ...p, [k]: { ...inp, [field]: v } }));
     return (
-      <div key={k} className={`bg-white rounded-2xl border p-4 ${meta.cardBorder}`}>
+      <div key={k} className={`bg-white dark:bg-[#252525] rounded-2xl border p-4 ${meta.cardBorder}`}>
         <div className="flex items-center gap-2 mb-3">
           <Icon className={`w-4 h-4 ${meta.iconText}`} />
-          <span className="font-semibold text-gray-900 text-sm">{ex.name}</span>
+          <span className="font-semibold text-gray-900 dark:text-gray-100 text-sm">{ex.name}</span>
           <span className={`text-[10px] px-2 py-0.5 rounded-full ml-auto ${meta.cardBadge}`}>
             {exSession.sets.length} set{exSession.sets.length === 1 ? '' : 's'} logged
           </span>
@@ -803,9 +803,9 @@ export default function WorkoutsSection() {
         {exSession.sets.length > 0 && (
           <div className="flex flex-wrap gap-1.5 mb-3">
             {exSession.sets.map((s, i) => (
-              <span key={s.setNumber} className="text-[11px] bg-gray-100 rounded-full pl-2 pr-1 py-0.5 text-gray-600 flex items-center gap-1">
+              <span key={s.setNumber} className="text-[11px] bg-gray-100 dark:bg-white/10 rounded-full pl-2 pr-1 py-0.5 text-gray-600 dark:text-gray-300 flex items-center gap-1">
                 {formatSet(s)}
-                <button onClick={() => removeSetFromSession(session, ex.name, i)} className="text-gray-400 active:text-red-500">
+                <button onClick={() => removeSetFromSession(session, ex.name, i)} className="text-gray-400 dark:text-gray-500 active:text-red-500">
                   <X className="w-3 h-3" />
                 </button>
               </span>
@@ -904,7 +904,7 @@ export default function WorkoutsSection() {
       {visibleStrays.filter(s => !resumedStray[sessionKey(s)]).map(s => {
         const sKey = sessionKey(s);
         return (
-          <div key={sKey} className="bg-amber-50 border border-amber-200 rounded-2xl p-3">
+          <div key={sKey} className="bg-amber-50 dark:bg-amber-500/10 border border-amber-200 rounded-2xl p-3">
             <div className="flex items-start gap-2">
               <AlertTriangle className="w-4 h-4 text-amber-500 mt-0.5 flex-shrink-0" />
               <div className="min-w-0 flex-1">
@@ -935,7 +935,7 @@ export default function WorkoutsSection() {
               </button>
               <button
                 onClick={() => discardSession(s)}
-                className="flex-1 h-8 rounded-lg bg-white border border-amber-300 text-amber-700 text-xs font-semibold active:bg-amber-100"
+                className="flex-1 h-8 rounded-lg bg-white dark:bg-[#252525] border border-amber-300 text-amber-700 text-xs font-semibold active:bg-amber-100"
               >
                 Discard
               </button>
@@ -963,10 +963,10 @@ export default function WorkoutsSection() {
       })}
 
       {plannedTemplates.length === 0 && resumedSessions.length === 0 && (
-        <div className="bg-white rounded-2xl border border-gray-200 p-6 text-center">
-          <Moon className="w-6 h-6 text-gray-300 mx-auto mb-2" />
-          <div className="font-semibold text-gray-900 text-sm">Rest day</div>
-          <div className="text-xs text-gray-400 mt-1">Nothing scheduled for {todayName}. Recovery counts too.</div>
+        <div className="bg-white dark:bg-[#252525] rounded-2xl border border-gray-200 dark:border-white/10 p-6 text-center">
+          <Moon className="w-6 h-6 text-gray-300 dark:text-gray-600 mx-auto mb-2" />
+          <div className="font-semibold text-gray-900 dark:text-gray-100 text-sm">Rest day</div>
+          <div className="text-xs text-gray-400 dark:text-gray-500 mt-1">Nothing scheduled for {todayName}. Recovery counts too.</div>
         </div>
       )}
     </div>
@@ -982,16 +982,16 @@ export default function WorkoutsSection() {
 
       {TodaysWorkouts}
 
-      <div className="bg-white rounded-2xl border border-gray-200 p-4">
+      <div className="bg-white dark:bg-[#252525] rounded-2xl border border-gray-200 dark:border-white/10 p-4">
         <div className="flex items-center justify-between mb-3">
-          <span className="font-semibold text-gray-900 text-sm">Weekly plan</span>
+          <span className="font-semibold text-gray-900 dark:text-gray-100 text-sm">Weekly plan</span>
           <div className="flex gap-2">
             <button onClick={() => updatePlan(DEFAULT_PLAN)}
-              className="text-[11px] font-medium text-orange-600 bg-orange-50 px-2.5 py-1 rounded-lg active:bg-orange-100">
+              className="text-[11px] font-medium text-orange-600 bg-orange-50 dark:bg-orange-500/10 px-2.5 py-1 rounded-lg active:bg-orange-100">
               Default
             </button>
             <button onClick={() => updatePlan(REST_WEEK)}
-              className="text-[11px] font-medium text-gray-500 bg-gray-100 px-2.5 py-1 rounded-lg active:bg-gray-200">
+              className="text-[11px] font-medium text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-white/10 px-2.5 py-1 rounded-lg active:bg-gray-200 dark:bg-white/10">
               Rest week
             </button>
           </div>
@@ -1002,19 +1002,19 @@ export default function WorkoutsSection() {
             const available = templates.filter(t => !assigned.includes(t.name));
             return (
               <div key={day}
-                className={`flex items-start gap-3 rounded-xl px-3 py-2 ${day === todayName ? 'bg-orange-50' : ''}`}>
-                <span className={`text-xs w-12 flex-shrink-0 pt-1.5 ${day === todayName ? 'font-bold text-orange-600' : 'text-gray-500'}`}>
+                className={`flex items-start gap-3 rounded-xl px-3 py-2 ${day === todayName ? 'bg-orange-50 dark:bg-orange-500/10' : ''}`}>
+                <span className={`text-xs w-12 flex-shrink-0 pt-1.5 ${day === todayName ? 'font-bold text-orange-600' : 'text-gray-500 dark:text-gray-400'}`}>
                   {day.slice(0, 3)}{day === todayName ? ' •' : ''}
                 </span>
                 <div className="flex-1 min-w-0 flex flex-wrap items-center gap-1.5">
                   {assigned.length === 0 && (
-                    <span className="text-[11px] text-gray-300 py-1">Rest day</span>
+                    <span className="text-[11px] text-gray-300 dark:text-gray-600 py-1">Rest day</span>
                   )}
                   {assigned.map(name => (
                     <span key={name}
                       className="text-[11px] bg-orange-100 text-orange-700 rounded-full pl-2.5 pr-1 py-1 flex items-center gap-1.5 font-medium">
                       {name}
-                      <span className="flex items-center gap-0.5 bg-white/60 rounded-full pl-1.5 pr-0.5">
+                      <span className="flex items-center gap-0.5 bg-white/60 dark:bg-white/10 rounded-full pl-1.5 pr-0.5">
                         <Clock className="w-2.5 h-2.5 text-orange-500" />
                         <input
                           type="time"
@@ -1024,7 +1024,7 @@ export default function WorkoutsSection() {
                           aria-label={`Time for ${name} on ${day}`}
                         />
                       </span>
-                      <span className="flex items-center gap-0.5 bg-white/60 rounded-full pl-1.5 pr-0.5">
+                      <span className="flex items-center gap-0.5 bg-white/60 dark:bg-white/10 rounded-full pl-1.5 pr-0.5">
                         <input
                           type="number" inputMode="numeric" min="5" step="5"
                           value={getWorkoutDuration(day, name)}
@@ -1045,13 +1045,13 @@ export default function WorkoutsSection() {
                       <select
                         value=""
                         onChange={e => addWorkoutToDay(day, e.target.value)}
-                        className="appearance-none bg-gray-100 text-gray-500 rounded-full pl-2.5 pr-6 py-1 text-[11px] outline-none"
+                        className="appearance-none bg-gray-100 dark:bg-white/10 text-gray-500 dark:text-gray-400 rounded-full pl-2.5 pr-6 py-1 text-[11px] outline-none"
                         aria-label={`Add workout to ${day}`}
                       >
                         <option value="" disabled>+ Add</option>
                         {available.map(t => <option key={t.id} value={t.name}>{t.name}</option>)}
                       </select>
-                      <ChevronDown className="w-3 h-3 text-gray-400 absolute right-1.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                      <ChevronDown className="w-3 h-3 text-gray-400 dark:text-gray-500 absolute right-1.5 top-1/2 -translate-y-1/2 pointer-events-none" />
                     </div>
                   )}
                 </div>
@@ -1066,27 +1066,27 @@ export default function WorkoutsSection() {
         badge={`${templates.length}`}
         actions={
           <button onClick={() => setBuilderOpen(o => !o)}
-            className="flex items-center gap-1 text-[11px] font-medium text-orange-600 bg-orange-50 px-2.5 py-1 rounded-lg active:bg-orange-100">
+            className="flex items-center gap-1 text-[11px] font-medium text-orange-600 bg-orange-50 dark:bg-orange-500/10 px-2.5 py-1 rounded-lg active:bg-orange-100">
             {builderOpen ? <X className="w-3 h-3" /> : <Plus className="w-3 h-3" />}
             {builderOpen ? 'Cancel' : 'New'}
           </button>
         }
       >
         {builderOpen && (
-          <div className="bg-gray-50 rounded-xl p-3 mb-3 space-y-2">
+          <div className="bg-gray-50 dark:bg-white/5 rounded-xl p-3 mb-3 space-y-2">
             <input
               value={builder.name}
               onChange={e => setBuilder(p => ({ ...p, name: e.target.value }))}
               placeholder="Workout name"
-              className="w-full bg-white border border-gray-200 rounded-lg px-3 py-2.5 text-sm outline-none focus:border-orange-500"
+              className="w-full bg-white dark:bg-[#252525] border border-gray-200 dark:border-white/10 rounded-lg px-3 py-2.5 text-sm outline-none focus:border-orange-500"
             />
 
-            <div className="flex bg-gray-200/60 rounded-lg p-0.5">
+            <div className="flex bg-gray-200/60 dark:bg-white/10 rounded-lg p-0.5">
               {[['list', 'Paste a list'], ['single', 'One at a time']].map(([mode, label]) => (
                 <button key={mode}
                   onClick={() => setBuilder(p => ({ ...p, mode }))}
                   className={`flex-1 text-[11px] font-medium py-1.5 rounded-md ${
-                    builder.mode === mode ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500'
+                    builder.mode === mode ? 'bg-white dark:bg-[#252525] text-gray-900 dark:text-gray-100 shadow-sm' : 'text-gray-500 dark:text-gray-400'
                   }`}
                 >
                   {label}
@@ -1101,7 +1101,7 @@ export default function WorkoutsSection() {
                   onChange={e => setBuilder(p => ({ ...p, bulkText: e.target.value }))}
                   placeholder={'One exercise per line, or comma-separated:\nSquat\nLeg Press, Calf Raise'}
                   rows={4}
-                  className="w-full bg-white border border-gray-200 rounded-lg px-3 py-2.5 text-sm outline-none focus:border-orange-500 resize-none"
+                  className="w-full bg-white dark:bg-[#252525] border border-gray-200 dark:border-white/10 rounded-lg px-3 py-2.5 text-sm outline-none focus:border-orange-500 resize-none"
                 />
                 <div className="flex gap-2">
                   <button
@@ -1126,7 +1126,7 @@ export default function WorkoutsSection() {
                   onChange={e => setBuilder(p => ({ ...p, draftName: e.target.value }))}
                   onKeyDown={e => e.key === 'Enter' && addDraftExercise()}
                   placeholder="Exercise"
-                  className="flex-1 min-w-0 bg-white border border-gray-200 rounded-lg px-3 py-2.5 text-sm outline-none focus:border-orange-500"
+                  className="flex-1 min-w-0 bg-white dark:bg-[#252525] border border-gray-200 dark:border-white/10 rounded-lg px-3 py-2.5 text-sm outline-none focus:border-orange-500"
                 />
                 <button
                   onClick={() => setBuilder(p => ({ ...p, draftType: cycleExerciseType(p.draftType) }))}
@@ -1180,10 +1180,10 @@ export default function WorkoutsSection() {
 
         <div className="space-y-2">
           {templates.map(t => (
-            <div key={t.id} className="border border-gray-200 rounded-xl p-3">
+            <div key={t.id} className="border border-gray-200 dark:border-white/10 rounded-xl p-3">
               <div className="flex items-center justify-between mb-1.5">
-                <span className="text-sm font-medium text-gray-900">{t.name}</span>
-                <button onClick={() => deleteTemplate(t.id)} className="text-gray-300 active:text-red-500 p-1">
+                <span className="text-sm font-medium text-gray-900 dark:text-gray-100">{t.name}</span>
+                <button onClick={() => deleteTemplate(t.id)} className="text-gray-300 dark:text-gray-600 active:text-red-500 p-1">
                   <Trash2 className="w-4 h-4" />
                 </button>
               </div>
@@ -1201,7 +1201,7 @@ export default function WorkoutsSection() {
             </div>
           ))}
           {templates.length === 0 && (
-            <p className="text-xs text-gray-400 text-center py-2">No workouts yet — create one above.</p>
+            <p className="text-xs text-gray-400 dark:text-gray-500 text-center py-2">No workouts yet — create one above.</p>
           )}
         </div>
       </CollapsibleCard>
@@ -1212,27 +1212,27 @@ export default function WorkoutsSection() {
         defaultOpen={routes.length > 0}
         actions={
           <button onClick={() => setPlannerOpen(true)}
-            className="flex items-center gap-1 text-[11px] font-medium text-orange-600 bg-orange-50 px-2.5 py-1 rounded-lg active:bg-orange-100">
+            className="flex items-center gap-1 text-[11px] font-medium text-orange-600 bg-orange-50 dark:bg-orange-500/10 px-2.5 py-1 rounded-lg active:bg-orange-100">
             <MapPin className="w-3 h-3" /> Plan route
           </button>
         }
       >
         {routes.length === 0 ? (
-          <p className="text-xs text-gray-400 text-center py-2">
+          <p className="text-xs text-gray-400 dark:text-gray-500 text-center py-2">
             No routes yet — plan one to make logging repeat runs a two-tap action.
           </p>
         ) : (
           <div className="space-y-2">
             {routes.map(r => (
-              <div key={r.id} className="flex items-center gap-3 border border-gray-200 rounded-xl p-2.5">
+              <div key={r.id} className="flex items-center gap-3 border border-gray-200 dark:border-white/10 rounded-xl p-2.5">
                 <RouteThumb waypoints={r.waypoints} />
                 <div className="min-w-0 flex-1">
-                  <div className="text-sm font-medium text-gray-900 truncate">{r.name}</div>
-                  <div className="text-[11px] text-gray-400">
+                  <div className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">{r.name}</div>
+                  <div className="text-[11px] text-gray-400 dark:text-gray-500">
                     {r.activity} · {routeDistanceKm(r).toFixed(2)} km · {r.waypoints.length} points
                   </div>
                 </div>
-                <button onClick={() => deleteRoute(r.id)} className="text-gray-300 active:text-red-500 p-1 flex-shrink-0">
+                <button onClick={() => deleteRoute(r.id)} className="text-gray-300 dark:text-gray-600 active:text-red-500 p-1 flex-shrink-0">
                   <Trash2 className="w-4 h-4" />
                 </button>
               </div>
@@ -1251,32 +1251,32 @@ export default function WorkoutsSection() {
         <StatCard icon={Flame} label="Streak" value={currentStreak} sub={currentStreak === 1 ? 'day' : 'days'} />
       </div>
 
-      <div className="bg-white rounded-2xl border border-gray-200 p-4">
+      <div className="bg-white dark:bg-[#252525] rounded-2xl border border-gray-200 dark:border-white/10 p-4">
         <div className="flex items-center justify-between mb-3">
-          <span className="font-semibold text-gray-900 text-sm">Consistency</span>
-          <span className="text-[11px] text-gray-400">last {STREAK_WEEKS} weeks</span>
+          <span className="font-semibold text-gray-900 dark:text-gray-100 text-sm">Consistency</span>
+          <span className="text-[11px] text-gray-400 dark:text-gray-500">last {STREAK_WEEKS} weeks</span>
         </div>
         <StreakCalendar strengthLogs={strengthLogs} cardioLogs={cardioLogs} />
-        <div className="flex items-center gap-3 mt-3 text-[10px] text-gray-400">
-          <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-sm bg-gray-100 inline-block" /> None</span>
+        <div className="flex items-center gap-3 mt-3 text-[10px] text-gray-400 dark:text-gray-500">
+          <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-sm bg-gray-100 dark:bg-white/10 inline-block" /> None</span>
           <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-sm bg-orange-200 inline-block" /> Cardio</span>
           <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-sm bg-orange-400 inline-block" /> Strength</span>
           <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-sm bg-orange-600 inline-block" /> Both</span>
         </div>
       </div>
 
-      <div className="bg-white rounded-2xl border border-gray-200 p-4">
+      <div className="bg-white dark:bg-[#252525] rounded-2xl border border-gray-200 dark:border-white/10 p-4">
         <div className="flex items-center gap-2 mb-3">
           <Dumbbell className="w-4 h-4 text-orange-500" />
-          <span className="font-semibold text-gray-900 text-sm">Strength</span>
+          <span className="font-semibold text-gray-900 dark:text-gray-100 text-sm">Strength</span>
         </div>
         {strengthLogs.length === 0 ? (
-          <p className="text-xs text-gray-400 text-center py-2">No lifts logged yet.</p>
+          <p className="text-xs text-gray-400 dark:text-gray-500 text-center py-2">No lifts logged yet.</p>
         ) : (
           <div className="space-y-3">
             {groupByDate(strengthLogs).map(([date, logs]) => (
               <div key={date}>
-                <div className="text-[10px] uppercase tracking-wide text-gray-400 mb-1.5">{formatSwiss(date)}</div>
+                <div className="text-[10px] uppercase tracking-wide text-gray-400 dark:text-gray-500 mb-1.5">{formatSwiss(date)}</div>
                 <div className="space-y-1.5">
                   {logs.map(l => {
                     const sets = expandLogSets(l);
@@ -1285,25 +1285,25 @@ export default function WorkoutsSection() {
                     const best = allTimeBests[l.exercise];
                     const isPR = !!best && sets.some(s => (type === 'bodyweight' ? Number(s.reps) : Number(s.weight)) === best.value);
                     return (
-                      <div key={l.id} className="bg-gray-50 rounded-lg px-3 py-2">
+                      <div key={l.id} className="bg-gray-50 dark:bg-white/5 rounded-lg px-3 py-2">
                         <button
                           onClick={() => setExpandedLogId(expanded ? null : l.id)}
                           className="w-full flex items-center justify-between"
                         >
                           <div className="flex items-center gap-1.5 min-w-0">
-                            <span className="text-xs font-medium text-gray-900 truncate">{l.exercise}</span>
+                            <span className="text-xs font-medium text-gray-900 dark:text-gray-100 truncate">{l.exercise}</span>
                             {type === 'bodyweight' && (
-                              <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-teal-50 text-teal-600 flex-shrink-0">BW</span>
+                              <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-teal-50 dark:bg-teal-500/10 text-teal-600 flex-shrink-0">BW</span>
                             )}
                             {isPR && (
-                              <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-amber-50 text-amber-600 flex items-center gap-0.5 flex-shrink-0">
+                              <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-amber-50 dark:bg-amber-500/10 text-amber-600 flex items-center gap-0.5 flex-shrink-0">
                                 <Trophy className="w-2.5 h-2.5" /> PR
                               </span>
                             )}
                           </div>
                           <div className="flex items-center gap-3">
-                            <span className="text-xs text-gray-500 tabular-nums">{logSetCount(l)} sets</span>
-                            <ChevronDown className={`w-3.5 h-3.5 text-gray-400 transition-transform ${expanded ? 'rotate-180' : ''}`} />
+                            <span className="text-xs text-gray-500 dark:text-gray-400 tabular-nums">{logSetCount(l)} sets</span>
+                            <ChevronDown className={`w-3.5 h-3.5 text-gray-400 dark:text-gray-500 transition-transform ${expanded ? 'rotate-180' : ''}`} />
                           </div>
                         </button>
                         <div className={`grid transition-[grid-template-rows] duration-250 ease-out ${expanded ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]'}`}>
@@ -1337,28 +1337,28 @@ export default function WorkoutsSection() {
         )}
       </div>
 
-      <div className="bg-white rounded-2xl border border-gray-200 p-4">
+      <div className="bg-white dark:bg-[#252525] rounded-2xl border border-gray-200 dark:border-white/10 p-4">
         <div className="flex items-center gap-2 mb-3">
           <Activity className="w-4 h-4 text-orange-500" />
-          <span className="font-semibold text-gray-900 text-sm">Cardio</span>
+          <span className="font-semibold text-gray-900 dark:text-gray-100 text-sm">Cardio</span>
         </div>
         {cardioLogs.length === 0 ? (
-          <p className="text-xs text-gray-400 text-center py-2">No cardio logged yet.</p>
+          <p className="text-xs text-gray-400 dark:text-gray-500 text-center py-2">No cardio logged yet.</p>
         ) : (
           <div className="space-y-3">
             {groupByDate(cardioLogs).map(([date, logs]) => (
               <div key={date}>
-                <div className="text-[10px] uppercase tracking-wide text-gray-400 mb-1.5">{formatSwiss(date)}</div>
+                <div className="text-[10px] uppercase tracking-wide text-gray-400 dark:text-gray-500 mb-1.5">{formatSwiss(date)}</div>
                 <div className="space-y-1">
                   {logs.map(l => (
-                    <div key={l.id} className="flex items-center justify-between bg-gray-50 rounded-lg px-3 py-2">
-                      <span className="text-xs font-medium text-gray-900">{l.activity}</span>
+                    <div key={l.id} className="flex items-center justify-between bg-gray-50 dark:bg-white/5 rounded-lg px-3 py-2">
+                      <span className="text-xs font-medium text-gray-900 dark:text-gray-100">{l.activity}</span>
                       <div className="flex items-center gap-3">
-                        <span className="text-xs text-gray-500 tabular-nums">
+                        <span className="text-xs text-gray-500 dark:text-gray-400 tabular-nums">
                           {l.duration}min{l.distance ? ` · ${l.distance}km` : ''}
                         </span>
                         <button onClick={() => updateCardioLogs(cardioLogs.filter(x => x.id !== l.id))}
-                          className="text-gray-300 active:text-red-500">
+                          className="text-gray-300 dark:text-gray-600 active:text-red-500">
                           <Trash2 className="w-3.5 h-3.5" />
                         </button>
                       </div>
@@ -1406,11 +1406,11 @@ export default function WorkoutsSection() {
       )}
 
       <div className="flex items-center justify-between mb-3">
-        <div className="flex bg-gray-200/60 rounded-lg p-0.5">
+        <div className="flex bg-gray-200/60 dark:bg-white/10 rounded-lg p-0.5">
           {SUB_TABS.map(({ id, label, icon: Icon }) => (
             <button key={id} onClick={() => setSubTab(id)}
               className={`flex items-center gap-1 px-3 py-1.5 rounded-md text-xs font-medium ${
-                subTab === id ? 'bg-white text-orange-600 shadow-sm' : 'text-gray-500'
+                subTab === id ? 'bg-white dark:bg-[#252525] text-orange-600 shadow-sm' : 'text-gray-500 dark:text-gray-400'
               }`}
             >
               <Icon className="w-3.5 h-3.5" /> {label}
@@ -1421,14 +1421,14 @@ export default function WorkoutsSection() {
           onClick={refreshFromRemote}
           disabled={isRefreshing}
           aria-label="Refresh data"
-          className="text-gray-400 active:text-gray-600 disabled:opacity-40"
+          className="text-gray-400 dark:text-gray-500 active:text-gray-600 dark:text-gray-300 disabled:opacity-40"
         >
           <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
         </button>
       </div>
 
       {loadError && (
-        <div className="mb-3 bg-red-50 border border-red-200 rounded-xl p-3 flex items-start gap-2 text-xs text-red-600">
+        <div className="mb-3 bg-red-50 dark:bg-red-500/10 border border-red-200 rounded-xl p-3 flex items-start gap-2 text-xs text-red-600">
           <AlertTriangle className="w-4 h-4 mt-0.5 flex-shrink-0" />
           <span>{loadError}</span>
         </div>
@@ -1451,13 +1451,13 @@ export default function WorkoutsSection() {
       {cardioSheetOpen && (
         <div className="fixed inset-0 z-50">
           <div className="absolute inset-0 bg-black/40" onClick={() => setCardioSheetOpen(false)} />
-          <div className="absolute bottom-0 inset-x-0 bg-white rounded-t-2xl p-4 pb-[max(1rem,env(safe-area-inset-bottom))] max-w-md mx-auto">
+          <div className="absolute bottom-0 inset-x-0 bg-white dark:bg-[#252525] rounded-t-2xl p-4 pb-[max(1rem,env(safe-area-inset-bottom))] max-w-md mx-auto">
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-2">
                 <Activity className="w-4 h-4 text-orange-500" />
-                <span className="font-semibold text-gray-900 text-sm">Quick cardio</span>
+                <span className="font-semibold text-gray-900 dark:text-gray-100 text-sm">Quick cardio</span>
               </div>
-              <button onClick={() => setCardioSheetOpen(false)} className="text-gray-400 active:text-gray-600 p-1" aria-label="Close">
+              <button onClick={() => setCardioSheetOpen(false)} className="text-gray-400 dark:text-gray-500 active:text-gray-600 dark:text-gray-300 p-1" aria-label="Close">
                 <X className="w-4 h-4" />
               </button>
             </div>
@@ -1467,7 +1467,7 @@ export default function WorkoutsSection() {
                 <select
                   value={cardioForm.routeId}
                   onChange={e => setCardioForm(p => ({ ...p, routeId: e.target.value }))}
-                  className="w-full appearance-none bg-orange-50 text-orange-700 rounded-xl px-4 py-3 text-sm font-medium outline-none"
+                  className="w-full appearance-none bg-orange-50 dark:bg-orange-500/10 text-orange-700 rounded-xl px-4 py-3 text-sm font-medium outline-none"
                 >
                   <option value="">Manual entry (no route)</option>
                   {routes.map(r => (
@@ -1485,11 +1485,11 @@ export default function WorkoutsSection() {
                 <select
                   value={cardioForm.activity}
                   onChange={e => setCardioForm(p => ({ ...p, activity: e.target.value }))}
-                  className="w-full appearance-none bg-gray-100 rounded-xl px-4 py-3 text-sm text-gray-900 outline-none"
+                  className="w-full appearance-none bg-gray-100 dark:bg-white/10 rounded-xl px-4 py-3 text-sm text-gray-900 dark:text-gray-100 outline-none"
                 >
                   {CARDIO_ACTIVITIES.map(a => <option key={a} value={a}>{a}</option>)}
                 </select>
-                <ChevronDown className="w-4 h-4 text-gray-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                <ChevronDown className="w-4 h-4 text-gray-400 dark:text-gray-500 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
               </div>
             )}
 
@@ -1498,8 +1498,8 @@ export default function WorkoutsSection() {
                 onChange={v => setCardioForm(p => ({ ...p, duration: v }))} />
               {selectedRoute ? (
                 <div className="flex-1 min-w-0">
-                  <div className="text-[10px] uppercase tracking-wide text-gray-400 mb-1 text-center">Distance (km)</div>
-                  <div className="bg-orange-50 rounded-xl py-3 text-center text-sm font-semibold text-orange-700 tabular-nums">
+                  <div className="text-[10px] uppercase tracking-wide text-gray-400 dark:text-gray-500 mb-1 text-center">Distance (km)</div>
+                  <div className="bg-orange-50 dark:bg-orange-500/10 rounded-xl py-3 text-center text-sm font-semibold text-orange-700 tabular-nums">
                     {routeDistanceKm(selectedRoute).toFixed(2)}
                   </div>
                 </div>

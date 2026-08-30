@@ -32,12 +32,17 @@ const STORAGE_KEYS = {
   recipes: 'summit_recipes',
   weeklyMealPlan: 'summit_weekly_meal_plan',
   mealTimes: 'summit_meal_times',
+  taskTimes: 'summit_task_times',
 };
 
 const DEFAULT_WORKOUT_TIME = '07:00';
 const DEFAULT_WORKOUT_DURATION = 60;
 const SLOT_DEFAULT_TIMES = { breakfast: '08:00', snack1: '11:00', lunch: '13:00', snack2: '16:00', dinner: '19:00' };
 const SLOT_DEFAULT_DURATIONS = { breakfast: 20, snack1: 10, lunch: 30, snack2: 10, dinner: 45 };
+// A newly-scheduled task lands here until dragged elsewhere — no smarter
+// slot-finding, since you can just drag it once it's on the timeline.
+const DEFAULT_TASK_TIME = '09:00';
+const DEFAULT_TASK_DURATION = 30;
 
 const normalizeTimeEntry = (v, defaultTime, defaultDuration) => {
   if (v && typeof v === 'object') return { time: v.time || defaultTime, duration: Number(v.duration) > 0 ? Number(v.duration) : defaultDuration };
@@ -134,6 +139,10 @@ export default function Home({
   const [recipes, setRecipes] = useState([]);
   const [mealPlan, setMealPlan] = useState({});
   const [mealTimes, setMealTimes] = useState({});
+  // Which picked tasks have been placed on the timeline, and when —
+  // {[isoDate]: {[taskId]: {time, duration}}}. Keyed by real date (not
+  // weekday) since tasks are one-off, not a recurring weekly plan.
+  const [taskTimes, setTaskTimes] = useState({});
   const [toast, setToast] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -186,13 +195,14 @@ export default function Home({
         return fallback;
       }
     };
-    const [wt, wwp, wtm, rc, wmp, mt] = await Promise.all([
+    const [wt, wwp, wtm, rc, wmp, mt, tt] = await Promise.all([
       loadData(STORAGE_KEYS.workoutTemplates, []),
       loadData(STORAGE_KEYS.weeklyWorkoutPlan, {}),
       loadData(STORAGE_KEYS.workoutTimes, {}),
       loadData(STORAGE_KEYS.recipes, []),
       loadData(STORAGE_KEYS.weeklyMealPlan, {}),
       loadData(STORAGE_KEYS.mealTimes, {}),
+      loadData(STORAGE_KEYS.taskTimes, {}),
     ]);
     setTemplates(Array.isArray(wt) ? wt : []);
     setWorkoutPlan(wwp && typeof wwp === 'object' ? wwp : {});
@@ -200,6 +210,7 @@ export default function Home({
     setRecipes(Array.isArray(rc) ? rc : []);
     setMealPlan(wmp && typeof wmp === 'object' ? wmp : {});
     setMealTimes(mt && typeof mt === 'object' ? mt : {});
+    setTaskTimes(tt && typeof tt === 'object' ? tt : {});
   };
 
   useEffect(() => {
@@ -225,7 +236,9 @@ export default function Home({
   // --- Build a given day's blocks -----------------------------------------------
   // Factored out so the reminder checker below can build *today's* blocks for
   // notifications even while you're browsing a different day in the Day view.
-  const buildBlocksForDay = (dayName) => {
+  // `iso` is the real calendar date (for tasks, which aren't a recurring
+  // weekly plan like workouts/meals are); `dayName` is its weekday name.
+  const buildBlocksForDay = (dayName, iso) => {
     const workoutBlocks = dayList(workoutPlan[dayName])
       .map(name => templates.find(t => t.name === name))
       .filter(Boolean)
@@ -237,19 +250,41 @@ export default function Home({
         };
       });
 
+    // One block per SLOT, not per recipe — a slot only has one time/duration
+    // in the data model (summit_meal_times is keyed by slot), so multiple
+    // recipes in the same slot (a meal plus a side, several snacks) used to
+    // render as separate blocks at the identical time and visually overlap.
+    // Combining them into one block that lists every recipe in that slot
+    // matches the data model and avoids the overlap entirely.
     const mealBlocks = SLOTS.flatMap(slot => {
       const names = slotList(mealPlan[dayName]?.[slot]);
+      if (names.length === 0) return [];
       const entry = normalizeTimeEntry(mealTimes[dayName]?.[slot], SLOT_DEFAULT_TIMES[slot], SLOT_DEFAULT_DURATIONS[slot]);
-      return names.map(name => {
-        const recipe = recipes.find(r => r.name === name);
-        return { kind: 'meal', key: `m::${slot}::${name}`, title: name, slot, time: entry.time, duration: entry.duration, recipe };
-      });
+      const slotRecipes = names.map(name => recipes.find(r => r.name === name)).filter(Boolean);
+      return [{
+        kind: 'meal', key: `m::${slot}`, title: names.join(' + '), slot,
+        time: entry.time, duration: entry.duration, recipes: slotRecipes,
+      }];
     });
 
-    return [...workoutBlocks, ...mealBlocks].sort((a, b) => timeToMinutes(a.time) - timeToMinutes(b.time));
+    // Tasks placed on the timeline — opt-in per task (see "Add to timeline"
+    // in the task list below), not automatic just from being picked, so the
+    // timeline doesn't fill up with every due/overdue task by default.
+    const dayTaskTimes = taskTimes[iso] || {};
+    const taskBlocks = Object.keys(dayTaskTimes).map(taskId => {
+      const task = tasks.find(t => String(t.id) === String(taskId));
+      if (!task) return null;
+      const entry = normalizeTimeEntry(dayTaskTimes[taskId], DEFAULT_TASK_TIME, DEFAULT_TASK_DURATION);
+      return {
+        kind: 'task', key: `t::${taskId}`, title: task.name, taskId,
+        time: entry.time, duration: entry.duration, task,
+      };
+    }).filter(Boolean);
+
+    return [...workoutBlocks, ...mealBlocks, ...taskBlocks].sort((a, b) => timeToMinutes(a.time) - timeToMinutes(b.time));
   };
 
-  const allBlocks = buildBlocksForDay(selectedDayName);
+  const allBlocks = buildBlocksForDay(selectedDayName, selectedISO);
 
   // Checks every 30s (while this tab is open) for a workout/meal starting
   // within the next 5 minutes and fires a browser notification once per
@@ -262,7 +297,7 @@ export default function Home({
       const realTodayName = nowD.toLocaleDateString('en-US', { weekday: 'long' });
       const realTodayISO = toISODate(nowD);
       const nowM = nowD.getHours() * 60 + nowD.getMinutes();
-      const blocks = realTodayName === selectedDayName ? allBlocks : buildBlocksForDay(realTodayName);
+      const blocks = realTodayISO === selectedISO ? allBlocks : buildBlocksForDay(realTodayName, realTodayISO);
       blocks.forEach(b => {
         const start = timeToMinutes(b.time);
         const delta = start - nowM;
@@ -282,7 +317,7 @@ export default function Home({
     const interval = setInterval(check, 30000);
     return () => clearInterval(interval);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [notifPermission, isLoading, workoutPlan, workoutTimes, mealPlan, mealTimes, templates, recipes]);
+  }, [notifPermission, isLoading, workoutPlan, workoutTimes, mealPlan, mealTimes, templates, recipes, taskTimes, tasks]);
 
   // --- Drag-to-reschedule + resize-to-set-duration -----------------------------
   const commitWorkoutEntry = (templateName, patch) => {
@@ -301,13 +336,33 @@ export default function Home({
     dbSet(key, value).catch(() => showToast('Save failed — change may not persist.', true));
   };
 
+  // Tasks are opt-in onto the timeline (see the "Add to timeline" button in
+  // the task list) rather than automatic just from being picked/due, keyed
+  // by the real selected date since tasks aren't a recurring weekly plan.
+  const commitTaskEntry = (taskId, patch) => {
+    const entry = normalizeTimeEntry(taskTimes[selectedISO]?.[taskId], DEFAULT_TASK_TIME, DEFAULT_TASK_DURATION);
+    const next = { ...taskTimes, [selectedISO]: { ...taskTimes[selectedISO], [taskId]: { ...entry, ...patch } } };
+    setTaskTimes(next);
+    dbSetSafe(STORAGE_KEYS.taskTimes, next);
+  };
+  const removeTaskFromTimeline = (taskId) => {
+    const dayEntries = { ...(taskTimes[selectedISO] || {}) };
+    delete dayEntries[String(taskId)];
+    delete dayEntries[taskId];
+    const next = { ...taskTimes, [selectedISO]: dayEntries };
+    setTaskTimes(next);
+    dbSetSafe(STORAGE_KEYS.taskTimes, next);
+  };
+  const isTaskScheduled = (taskId) => Object.prototype.hasOwnProperty.call(taskTimes[selectedISO] || {}, String(taskId))
+    || Object.prototype.hasOwnProperty.call(taskTimes[selectedISO] || {}, taskId);
+
   const handleBlockPointerDown = (block, mode, e) => {
     if (e.button != null && e.button !== 0) return;
     e.stopPropagation();
     try { e.currentTarget.setPointerCapture(e.pointerId); } catch { /* best-effort */ }
     dragMovedRef.current = false;
     setDrag({
-      mode, key: block.key, kind: block.kind, templateName: block.title, slot: block.slot,
+      mode, key: block.key, kind: block.kind, templateName: block.title, slot: block.slot, taskId: block.taskId,
       pointerId: e.pointerId, startClientY: e.clientY,
       startMinutes: timeToMinutes(block.time), liveMinutes: timeToMinutes(block.time),
       startDuration: block.duration, liveDuration: block.duration,
@@ -338,12 +393,14 @@ export default function Home({
     if (dragMovedRef.current) {
       if (drag.mode === 'resize') {
         if (drag.kind === 'workout') commitWorkoutEntry(drag.templateName, { duration: drag.liveDuration });
-        else commitMealEntry(drag.slot, { duration: drag.liveDuration });
+        else if (drag.kind === 'meal') commitMealEntry(drag.slot, { duration: drag.liveDuration });
+        else commitTaskEntry(drag.taskId, { duration: drag.liveDuration });
         showToast(`Set to ${formatDuration(drag.liveDuration)}`);
       } else {
         const finalTime = minutesToTime(drag.liveMinutes);
         if (drag.kind === 'workout') commitWorkoutEntry(drag.templateName, { time: finalTime });
-        else commitMealEntry(drag.slot, { time: finalTime });
+        else if (drag.kind === 'meal') commitMealEntry(drag.slot, { time: finalTime });
+        else commitTaskEntry(drag.taskId, { time: finalTime });
         showToast(`Moved to ${formatTime(finalTime)}`);
       }
     } else if (drag.mode === 'move') {
@@ -397,7 +454,7 @@ export default function Home({
       )}
 
       {notifPermission === 'default' && !bannerDismissed && (
-        <div className="bg-indigo-50 border border-indigo-100 rounded-2xl p-3 flex items-start gap-2.5">
+        <div className="bg-indigo-50 dark:bg-indigo-500/10 border border-indigo-100 rounded-2xl p-3 flex items-start gap-2.5">
           <Bell className="w-4 h-4 text-indigo-500 mt-0.5 flex-shrink-0" />
           <div className="flex-1 min-w-0">
             <p className="text-xs font-medium text-indigo-900">Get reminded when a workout or meal starts</p>
@@ -415,16 +472,16 @@ export default function Home({
       )}
 
       <div className="flex items-center justify-between">
-        <div className="flex bg-gray-200/60 rounded-lg p-0.5">
+        <div className="flex bg-gray-200/60 dark:bg-white/10 rounded-lg p-0.5">
           {[['day', 'Day'], ['week', 'Week']].map(([id, label]) => (
             <button key={id} onClick={() => setView(id)}
-              className={`px-3 py-1.5 rounded-md text-xs font-medium ${view === id ? 'bg-white text-indigo-600 shadow-sm' : 'text-gray-500'}`}
+              className={`px-3 py-1.5 rounded-md text-xs font-medium ${view === id ? 'bg-white dark:bg-[#252525] text-indigo-600 shadow-sm' : 'text-gray-500 dark:text-gray-400'}`}
             >
               {label}
             </button>
           ))}
         </div>
-        <button onClick={refresh} disabled={isRefreshing} aria-label="Refresh data" className="text-gray-400 active:text-gray-600 disabled:opacity-40">
+        <button onClick={refresh} disabled={isRefreshing} aria-label="Refresh data" className="text-gray-400 dark:text-gray-500 active:text-gray-600 dark:text-gray-300 disabled:opacity-40">
           <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
         </button>
       </div>
@@ -433,18 +490,18 @@ export default function Home({
         <>
           <div className="flex items-center justify-between -mt-1">
             <div className="flex items-center gap-1">
-              <button onClick={() => shiftDay(-1)} aria-label="Previous day" className="text-gray-400 active:text-gray-600 p-1">
+              <button onClick={() => shiftDay(-1)} aria-label="Previous day" className="text-gray-400 dark:text-gray-500 active:text-gray-600 dark:text-gray-300 p-1">
                 <ChevronLeft className="w-4 h-4" />
               </button>
-              <span className="text-sm font-semibold text-gray-900 w-36 text-center">
+              <span className="text-sm font-semibold text-gray-900 dark:text-gray-100 w-36 text-center">
                 {isViewingToday ? 'Today' : selectedDateLabel}
               </span>
-              <button onClick={() => shiftDay(1)} aria-label="Next day" className="text-gray-400 active:text-gray-600 p-1">
+              <button onClick={() => shiftDay(1)} aria-label="Next day" className="text-gray-400 dark:text-gray-500 active:text-gray-600 dark:text-gray-300 p-1">
                 <ChevronRight className="w-4 h-4" />
               </button>
             </div>
             {!isViewingToday && (
-              <button onClick={() => setSelectedDate(new Date())} className="text-[11px] font-medium text-indigo-600 bg-indigo-50 px-2.5 py-1 rounded-lg active:bg-indigo-100">
+              <button onClick={() => setSelectedDate(new Date())} className="text-[11px] font-medium text-indigo-600 bg-indigo-50 dark:bg-indigo-500/10 px-2.5 py-1 rounded-lg active:bg-indigo-100">
                 Jump to today
               </button>
             )}
@@ -453,14 +510,14 @@ export default function Home({
           <div className="md:grid md:grid-cols-[2fr_1fr] md:gap-6 md:items-start space-y-4 md:space-y-0">
           <div className="space-y-4">
           <div>
-            <span className="text-xs text-gray-400">Drag a block to reschedule, its bottom edge to resize</span>
+            <span className="text-xs text-gray-400 dark:text-gray-500">Drag a block to reschedule, its bottom edge to resize</span>
           </div>
-          <div className="bg-white rounded-2xl border border-gray-200 p-3">
+          <div className="bg-white dark:bg-[#252525] rounded-2xl border border-gray-200 dark:border-white/10 p-3">
             <div className="relative" style={{ height: TIMELINE_HOURS.length * HOUR_HEIGHT }}>
               {TIMELINE_HOURS.map((h, i) => (
                 <div key={h} className="absolute left-0 right-0 flex items-start gap-2" style={{ top: i * HOUR_HEIGHT }}>
-                  <span className="text-[10px] text-gray-300 w-10 flex-shrink-0 -mt-1.5 tabular-nums">{formatHour(h)}</span>
-                  <div className="flex-1 border-t border-gray-100 mt-1" />
+                  <span className="text-[10px] text-gray-300 dark:text-gray-600 w-10 flex-shrink-0 -mt-1.5 tabular-nums">{formatHour(h)}</span>
+                  <div className="flex-1 border-t border-gray-100 dark:border-white/10 mt-1" />
                 </div>
               ))}
 
@@ -484,6 +541,8 @@ export default function Home({
                 const top = ((clamped - TIMELINE_START_MIN) / 60) * HOUR_HEIGHT;
                 const height = Math.max(MIN_BLOCK_HEIGHT, (displayDuration / 60) * HOUR_HEIGHT);
                 const isWorkout = block.kind === 'workout';
+                const isTask = block.kind === 'task';
+                const blockColor = isWorkout ? 'bg-orange-500' : isTask ? 'bg-indigo-600' : 'bg-green-600';
                 const expanded = expandedBlock === block.key;
                 const showDurationLabel = height >= 44;
                 return (
@@ -494,11 +553,11 @@ export default function Home({
                       onPointerUp={e => handleBlockPointerUp(block, e)}
                       onPointerCancel={() => setDrag(null)}
                       style={{ height: height - 4 }}
-                      className={`w-full text-left rounded-xl px-3 py-2 flex items-start gap-2 select-none transition-shadow overflow-hidden ${
-                        isWorkout ? 'bg-orange-500 text-white' : 'bg-green-600 text-white'
-                      } ${isDragging ? 'shadow-xl scale-[1.02]' : ''}`}
+                      className={`w-full text-left rounded-xl px-3 py-2 flex items-start gap-2 select-none transition-shadow overflow-hidden text-white ${blockColor} ${isDragging ? 'shadow-xl scale-[1.02]' : ''}`}
                     >
-                      {isWorkout ? <Dumbbell className="w-3.5 h-3.5 flex-shrink-0 mt-0.5" /> : (() => {
+                      {isWorkout ? <Dumbbell className="w-3.5 h-3.5 flex-shrink-0 mt-0.5" /> : isTask ? (
+                        <CheckSquare className="w-3.5 h-3.5 flex-shrink-0 mt-0.5" />
+                      ) : (() => {
                         const Icon = SLOT_META[block.slot]?.icon || CookingPot;
                         return <Icon className="w-3.5 h-3.5 flex-shrink-0 mt-0.5" />;
                       })()}
@@ -528,24 +587,47 @@ export default function Home({
                       <span className={`w-8 h-1 rounded-full transition-colors ${isResizing ? 'bg-gray-500' : 'bg-black/10 group-hover:bg-black/20'}`} />
                     </div>
 
-                    {isResizing && <div className="text-[10px] text-gray-500 mt-0.5">{formatDuration(drag.liveDuration)}</div>}
+                    {isResizing && <div className="text-[10px] text-gray-500 dark:text-gray-400 mt-0.5">{formatDuration(drag.liveDuration)}</div>}
 
                     {expanded && !isDragging && (
-                      <div className={`mt-1 rounded-xl px-3 py-2 text-xs ${isWorkout ? 'bg-orange-50 text-orange-800' : 'bg-green-50 text-green-800'}`}>
+                      <div className={`mt-1 rounded-xl px-3 py-2 text-xs ${isWorkout ? 'bg-orange-50 dark:bg-orange-500/10 text-orange-800' : isTask ? 'bg-indigo-50 dark:bg-indigo-500/10 text-indigo-800' : 'bg-green-50 dark:bg-green-500/10 text-green-800'}`}>
                         {isWorkout ? (
                           block.exercises.length > 0 ? (
                             <div className="flex flex-wrap gap-1">
-                              {block.exercises.map((ex, i) => <span key={i} className="bg-white/70 rounded-full px-2 py-0.5">{ex.name}</span>)}
+                              {block.exercises.map((ex, i) => <span key={i} className="bg-white/70 dark:bg-white/10 rounded-full px-2 py-0.5">{ex.name}</span>)}
                             </div>
                           ) : <span className="opacity-70">No exercises set.</span>
-                        ) : block.recipe ? (
-                          <div className="space-y-1">
-                            <div className="flex flex-wrap gap-1">
-                              {block.recipe.ingredients.map((ing, i) => (
-                                <span key={i} className="bg-white/70 rounded-full px-2 py-0.5">{ing.name}{ing.quantity ? ` · ${ing.quantity}g` : ''}</span>
-                              ))}
+                        ) : isTask ? (
+                          <div className="space-y-2">
+                            {block.task.notes && <p className="opacity-80 whitespace-pre-line">{block.task.notes}</p>}
+                            <div className="flex gap-2">
+                              <button
+                                onClick={() => handleUpdateTaskStatus(block.taskId, (block.task.status === 'done' || block.task.isCompleted) ? 'todo' : 'done')}
+                                className="text-[11px] font-semibold bg-white/70 dark:bg-white/10 px-2 py-1 rounded-lg active:bg-white dark:bg-[#252525]"
+                              >
+                                {(block.task.status === 'done' || block.task.isCompleted) ? 'Reopen' : 'Mark done'}
+                              </button>
+                              <button
+                                onClick={() => { removeTaskFromTimeline(block.taskId); setExpandedBlock(null); }}
+                                className="text-[11px] font-semibold bg-white/70 dark:bg-white/10 px-2 py-1 rounded-lg active:bg-white dark:bg-[#252525]"
+                              >
+                                Remove from timeline
+                              </button>
                             </div>
-                            {block.recipe.notes && <p className="opacity-80 whitespace-pre-line">{block.recipe.notes}</p>}
+                          </div>
+                        ) : block.recipes && block.recipes.length > 0 ? (
+                          <div className="space-y-2">
+                            {block.recipes.map(recipe => (
+                              <div key={recipe.id}>
+                                {block.recipes.length > 1 && <div className="font-semibold mb-1">{recipe.name}</div>}
+                                <div className="flex flex-wrap gap-1">
+                                  {recipe.ingredients.map((ing, i) => (
+                                    <span key={i} className="bg-white/70 dark:bg-white/10 rounded-full px-2 py-0.5">{ing.name}{ing.quantity ? ` · ${ing.quantity}g` : ''}</span>
+                                  ))}
+                                </div>
+                                {recipe.notes && <p className="opacity-80 whitespace-pre-line mt-1">{recipe.notes}</p>}
+                              </div>
+                            ))}
                           </div>
                         ) : <span className="opacity-70">Recipe not found.</span>}
                       </div>
@@ -557,7 +639,7 @@ export default function Home({
           </div>
 
           {allBlocks.length === 0 && (
-            <p className="text-xs text-gray-400 text-center -mt-2">Nothing scheduled yet — add times to workouts and meals in their own tabs.</p>
+            <p className="text-xs text-gray-400 dark:text-gray-500 text-center -mt-2">Nothing scheduled yet — add times to workouts and meals in their own tabs.</p>
           )}
           </div>
 
@@ -568,12 +650,12 @@ export default function Home({
             <div>
               <div className="flex items-center gap-2 mb-2">
                 <CheckSquare className="w-4 h-4 text-indigo-600" />
-                <span className="font-semibold text-gray-900 text-sm">{isViewingToday ? 'Today' : selectedDateLabel}</span>
-                <span className="text-[10px] text-gray-400 ml-auto">{dayListTasks.length}</span>
+                <span className="font-semibold text-gray-900 dark:text-gray-100 text-sm">{isViewingToday ? 'Today' : selectedDateLabel}</span>
+                <span className="text-[10px] text-gray-400 dark:text-gray-500 ml-auto">{dayListTasks.length}</span>
               </div>
               {dayListTasks.length === 0 ? (
-                <div className="bg-white rounded-2xl border border-dashed border-gray-200 p-4 text-center">
-                  <p className="text-xs text-gray-400">
+                <div className="bg-white dark:bg-[#252525] rounded-2xl border border-dashed border-gray-200 dark:border-white/10 p-4 text-center">
+                  <p className="text-xs text-gray-400 dark:text-gray-500">
                     {isViewingToday ? 'Nothing due, overdue, or picked for today.' : 'Nothing due, targeted, or picked for this day.'}
                   </p>
                 </div>
@@ -581,22 +663,42 @@ export default function Home({
                 <div className="space-y-1.5">
                   {dayListTasks.map(task => {
                     const done = task.status === 'done' || task.isCompleted;
+                    const scheduled = isTaskScheduled(task.id);
                     return (
-                      <div key={task.id} className="bg-white rounded-2xl border border-gray-200 p-3 flex items-center gap-2">
-                        <button
-                          onClick={() => handleUpdateTaskStatus(task.id, done ? 'todo' : 'done')}
-                          aria-label={done ? `Reopen ${task.name}` : `Mark ${task.name} done`}
-                          className="text-gray-300 active:text-indigo-600 flex-shrink-0"
-                        >
-                          {done ? <CircleCheck className="w-5 h-5 text-indigo-600" /> : <Circle className="w-5 h-5" />}
-                        </button>
-                        <button onClick={() => setOpenTaskId(task.id)} className="flex-1 min-w-0 text-left">
-                          <span className={`text-sm truncate block ${done ? 'line-through text-gray-400' : 'text-gray-900 font-medium'}`}>{task.name}</span>
-                        </button>
-                        <div className="flex items-center gap-1 flex-shrink-0">
-                          {overdueIds.has(task.id) && <span className="text-[9px] font-medium text-red-600 bg-red-50 px-1.5 py-0.5 rounded">Overdue</span>}
-                          {task.dueDate === selectedISO && !overdueIds.has(task.id) && <span className="text-[9px] font-medium text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded">Due</span>}
-                          {(isViewingToday ? selectedToday : otherDaySelections).includes(task.id) && <span className="text-[9px] font-medium text-indigo-600 bg-indigo-50 px-1.5 py-0.5 rounded">Picked</span>}
+                      <div key={task.id} className="bg-white dark:bg-[#252525] rounded-2xl border border-gray-200 dark:border-white/10 p-3">
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={() => handleUpdateTaskStatus(task.id, done ? 'todo' : 'done')}
+                            aria-label={done ? `Reopen ${task.name}` : `Mark ${task.name} done`}
+                            className="text-gray-300 dark:text-gray-600 active:text-indigo-600 flex-shrink-0"
+                          >
+                            {done ? <CircleCheck className="w-5 h-5 text-indigo-600" /> : <Circle className="w-5 h-5" />}
+                          </button>
+                          <button onClick={() => setOpenTaskId(task.id)} className="flex-1 min-w-0 text-left">
+                            <span className={`text-sm truncate block ${done ? 'line-through text-gray-400 dark:text-gray-500' : 'text-gray-900 dark:text-gray-100 font-medium'}`}>{task.name}</span>
+                          </button>
+                          <div className="flex items-center gap-1 flex-shrink-0">
+                            {overdueIds.has(task.id) && <span className="text-[9px] font-medium text-red-600 bg-red-50 dark:bg-red-500/10 px-1.5 py-0.5 rounded">Overdue</span>}
+                            {task.dueDate === selectedISO && !overdueIds.has(task.id) && <span className="text-[9px] font-medium text-amber-600 bg-amber-50 dark:bg-amber-500/10 px-1.5 py-0.5 rounded">Due</span>}
+                            {(isViewingToday ? selectedToday : otherDaySelections).includes(task.id) && <span className="text-[9px] font-medium text-indigo-600 bg-indigo-50 dark:bg-indigo-500/10 px-1.5 py-0.5 rounded">Picked</span>}
+                          </div>
+                        </div>
+                        <div className="pl-7 mt-1.5">
+                          {scheduled ? (
+                            <button
+                              onClick={() => removeTaskFromTimeline(task.id)}
+                              className="flex items-center gap-1 text-[10px] font-medium text-indigo-600 bg-indigo-50 dark:bg-indigo-500/10 px-2 py-0.5 rounded-full active:bg-indigo-100"
+                            >
+                              <CalendarRange className="w-2.5 h-2.5" /> On timeline · remove
+                            </button>
+                          ) : (
+                            <button
+                              onClick={() => commitTaskEntry(task.id, {})}
+                              className="flex items-center gap-1 text-[10px] font-medium text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-white/10 px-2 py-0.5 rounded-full active:bg-gray-200 dark:bg-white/10"
+                            >
+                              <CalendarRange className="w-2.5 h-2.5" /> Add to timeline
+                            </button>
+                          )}
                         </div>
                       </div>
                     );
@@ -607,15 +709,15 @@ export default function Home({
 
             {isViewingToday && (
               <CollapsibleCard title="Pick today's focus" badge={openTasks.length ? `${openTasks.length}` : null}>
-                <p className="text-xs text-gray-400 mb-3">Deliberately choose what you're targeting today — separate from what's simply due.</p>
+                <p className="text-xs text-gray-400 dark:text-gray-500 mb-3">Deliberately choose what you're targeting today — separate from what's simply due.</p>
                 {openTasks.length === 0 ? (
-                  <p className="text-sm text-gray-400">No open tasks.</p>
+                  <p className="text-sm text-gray-400 dark:text-gray-500">No open tasks.</p>
                 ) : (
                   <div className="space-y-1.5 max-h-64 overflow-y-auto">
                     {openTasks.map(task => (
-                      <label key={task.id} className="flex items-center gap-2 bg-gray-50 border border-gray-200 rounded-lg p-2 cursor-pointer">
+                      <label key={task.id} className="flex items-center gap-2 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-lg p-2 cursor-pointer">
                         <input type="checkbox" checked={selectedToday.includes(task.id)} onChange={() => handleToggleDailySelection(task.id)} />
-                        <span onClick={(e) => { e.preventDefault(); setOpenTaskId(task.id); }} className="text-xs text-gray-700 truncate flex-1">
+                        <span onClick={(e) => { e.preventDefault(); setOpenTaskId(task.id); }} className="text-xs text-gray-700 dark:text-gray-300 truncate flex-1">
                           {task.name}
                         </span>
                       </label>
@@ -629,12 +731,12 @@ export default function Home({
         </>
       ) : (
         <div className="space-y-4">
-          <div className="bg-white rounded-2xl border border-gray-200 p-4">
+          <div className="bg-white dark:bg-[#252525] rounded-2xl border border-gray-200 dark:border-white/10 p-4">
             <div className="flex items-center gap-2 mb-3">
               <CalendarRange className="w-4 h-4 text-indigo-600" />
-              <span className="font-semibold text-gray-900 text-sm">This week's plan</span>
+              <span className="font-semibold text-gray-900 dark:text-gray-100 text-sm">This week's plan</span>
             </div>
-            <p className="text-[11px] text-gray-400 mb-2">Tap a day to see (and drag-schedule) its timeline</p>
+            <p className="text-[11px] text-gray-400 dark:text-gray-500 mb-2">Tap a day to see (and drag-schedule) its timeline</p>
             <div className="space-y-1.5">
               {weekDates.map(({ day, iso }) => {
                 const workoutNames = dayList(workoutPlan[day]);
@@ -645,14 +747,14 @@ export default function Home({
                   <button
                     key={day}
                     onClick={() => goToDay(iso)}
-                    className={`w-full flex items-center gap-3 rounded-xl px-3 py-2 text-left transition-colors hover:bg-gray-50 ${isToday ? 'bg-indigo-50 hover:bg-indigo-50' : ''}`}
+                    className={`w-full flex items-center gap-3 rounded-xl px-3 py-2 text-left transition-colors hover:bg-gray-50 dark:bg-white/5 ${isToday ? 'bg-indigo-50 dark:bg-indigo-500/10 hover:bg-indigo-50 dark:bg-indigo-500/10' : ''}`}
                   >
-                    <span className={`text-xs w-24 flex-shrink-0 ${isToday ? 'font-bold text-indigo-600' : 'text-gray-500'}`}>
-                      {day.slice(0, 3)}{isToday ? ' •' : ''} <span className="text-gray-300">{iso.slice(5)}</span>
+                    <span className={`text-xs w-24 flex-shrink-0 ${isToday ? 'font-bold text-indigo-600' : 'text-gray-500 dark:text-gray-400'}`}>
+                      {day.slice(0, 3)}{isToday ? ' •' : ''} <span className="text-gray-300 dark:text-gray-600">{iso.slice(5)}</span>
                     </span>
                     <div className="flex-1 min-w-0 flex flex-wrap items-center gap-1.5">
                       {workoutNames.length === 0 && mealCount === 0 && taskCount === 0 && (
-                        <span className="text-[11px] text-gray-300">Nothing planned</span>
+                        <span className="text-[11px] text-gray-300 dark:text-gray-600">Nothing planned</span>
                       )}
                       {workoutNames.map(name => (
                         <span key={name} className="text-[10px] bg-orange-100 text-orange-700 rounded-full px-2 py-0.5">{name}</span>
