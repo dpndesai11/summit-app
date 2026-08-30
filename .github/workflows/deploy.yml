@@ -26,29 +26,18 @@ jobs:
         with:
           node-version: 20
           cache: npm
-          cache-dependency-path: apps/tasks/package-lock.json
+          cache-dependency-path: apps/daily/package-lock.json
       - run: npm ci
-        working-directory: apps/tasks
+        working-directory: apps/daily
       - run: npm run build
-        working-directory: apps/tasks
+        working-directory: apps/daily
         env:
           VITE_GITHUB_OWNER: ${{ secrets.VITE_GITHUB_OWNER }}
           VITE_GITHUB_REPO: ${{ secrets.VITE_GITHUB_REPO }}
           VITE_GITHUB_TOKEN: ${{ secrets.VITE_GITHUB_TOKEN }}
           VITE_APP_PASSWORD: ${{ secrets.VITE_APP_PASSWORD }}
-      - run: npm ci
-        working-directory: apps/daily
-      - run: npm run build
-        working-directory: apps/daily
-        env:
-          VITE_GITHUB_OWNER: ${{ secrets.VITE_GITHUB_OWNER }}
-          VITE_GITHUB_REPO: ${{ secrets.VITE_GITHUB_REPO }}
-          VITE_GITHUB_TOKEN: ${{ secrets.VITE_GITHUB_TOKEN }}
-      - run: |
-          mkdir -p apps/tasks/dist/daily
-          cp -r apps/daily/dist/. apps/tasks/dist/daily/
       - uses: actions/upload-pages-artifact@v3
         with:
-          path: apps/tasks/dist
+          path: apps/daily/dist
       - uses: actions/deploy-pages@v4
         id: deployment
