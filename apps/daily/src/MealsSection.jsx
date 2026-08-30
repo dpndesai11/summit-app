@@ -4,6 +4,7 @@ import {
   Plus, X, Trash2, Check, ChevronDown, AlertTriangle, RefreshCw, ClipboardList, Pencil, Target, Database, Clock
 } from 'lucide-react';
 import { dbGet, dbSet, dbRefresh } from './lib/db';
+import CollapsibleCard from './components/CollapsibleCard';
 
 // ---------------------------------------------------------------------------
 // Summit Daily — Meals section (formerly the standalone Eat app).
@@ -710,16 +711,17 @@ export default function MealsSection() {
         </div>
       </div>
 
-      <div className="bg-white rounded-2xl border border-gray-200 p-4">
-        <div className="flex items-center justify-between mb-3">
-          <span className="font-semibold text-gray-900 text-sm">Recipes</span>
+      <CollapsibleCard
+        title="Recipes"
+        badge={`${recipes.length}`}
+        actions={
           <button onClick={() => (builderOpen ? resetBuilder() : setBuilderOpen(true))}
             className="flex items-center gap-1 text-[11px] font-medium text-green-600 bg-green-50 px-2.5 py-1 rounded-lg active:bg-green-100">
             {builderOpen ? <X className="w-3 h-3" /> : <Plus className="w-3 h-3" />}
             {builderOpen ? 'Cancel' : 'New'}
           </button>
-        </div>
-
+        }
+      >
         {builderOpen && (
           <div className="bg-gray-50 rounded-xl p-3 mb-3 space-y-2">
             {editingRecipeId && (
@@ -969,20 +971,22 @@ export default function MealsSection() {
             <p className="text-xs text-gray-400 text-center py-2">No recipes yet — create one above.</p>
           )}
         </div>
-      </div>
+      </CollapsibleCard>
 
-      <div className="bg-white rounded-2xl border border-gray-200 p-4">
-        <div className="flex items-center justify-between mb-3">
-          <div className="flex items-center gap-2">
-            <Database className="w-4 h-4 text-green-600" />
-            <span className="font-semibold text-gray-900 text-sm">Ingredient database</span>
-          </div>
+      <CollapsibleCard
+        title="Ingredient database"
+        icon={Database}
+        iconColor="text-green-600"
+        badge={`${ingredientDb.length}`}
+        defaultOpen={false}
+        actions={
           <button onClick={() => (dbBuilderOpen ? resetDbBuilder() : setDbBuilderOpen(true))}
             className="flex items-center gap-1 text-[11px] font-medium text-green-600 bg-green-50 px-2.5 py-1 rounded-lg active:bg-green-100">
             {dbBuilderOpen ? <X className="w-3 h-3" /> : <Plus className="w-3 h-3" />}
             {dbBuilderOpen ? 'Cancel' : 'New'}
           </button>
-        </div>
+        }
+      >
         <p className="text-[11px] text-gray-400 mb-3">
           Per-100g macros, reused across every recipe — give an ingredient here a match and a quantity in any recipe and its nutrition calculates automatically.
         </p>
@@ -1049,7 +1053,7 @@ export default function MealsSection() {
             <p className="text-xs text-gray-400 text-center py-2">No ingredients yet — add one above.</p>
           )}
         </div>
-      </div>
+      </CollapsibleCard>
     </div>
   );
 

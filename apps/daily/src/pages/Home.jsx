@@ -7,6 +7,7 @@ import { dbGet, dbSet, dbRefresh } from '../lib/db';
 import { toISODate, startOfWeek, addDays, getTodayFocusTasks } from '../lib/taskUtils';
 import TaskDetailModal from '../components/TaskDetailModal';
 import WeeklyReview from '../components/WeeklyReview';
+import CollapsibleCard from '../components/CollapsibleCard';
 
 // ---------------------------------------------------------------------------
 // Summit Daily — Home: the app's opening page. A "Day" view (hour-by-hour
@@ -485,8 +486,7 @@ export default function Home({
               )}
             </div>
 
-            <div className="bg-white rounded-2xl border border-gray-200 p-4">
-              <h3 className="text-sm font-semibold text-gray-900 mb-1">Pick today's focus</h3>
+            <CollapsibleCard title="Pick today's focus" badge={openTasks.length ? `${openTasks.length}` : null}>
               <p className="text-xs text-gray-400 mb-3">Deliberately choose what you're targeting today — separate from what's simply due.</p>
               {openTasks.length === 0 ? (
                 <p className="text-sm text-gray-400">No open tasks.</p>
@@ -502,7 +502,7 @@ export default function Home({
                   ))}
                 </div>
               )}
-            </div>
+            </CollapsibleCard>
           </div>
           </div>
         </>

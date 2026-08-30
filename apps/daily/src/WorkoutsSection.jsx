@@ -7,6 +7,7 @@ import {
 import { dbGet, dbSet, dbRefresh } from './lib/db';
 import { routeDistanceKm } from './lib/geo';
 import RoutePlanner from './RoutePlanner';
+import CollapsibleCard from './components/CollapsibleCard';
 
 // ---------------------------------------------------------------------------
 // Summit Daily — Workouts section (formerly the standalone Fitness app).
@@ -1060,16 +1061,17 @@ export default function WorkoutsSection() {
         </div>
       </div>
 
-      <div className="bg-white rounded-2xl border border-gray-200 p-4">
-        <div className="flex items-center justify-between mb-3">
-          <span className="font-semibold text-gray-900 text-sm">Workouts</span>
+      <CollapsibleCard
+        title="Workouts"
+        badge={`${templates.length}`}
+        actions={
           <button onClick={() => setBuilderOpen(o => !o)}
             className="flex items-center gap-1 text-[11px] font-medium text-orange-600 bg-orange-50 px-2.5 py-1 rounded-lg active:bg-orange-100">
             {builderOpen ? <X className="w-3 h-3" /> : <Plus className="w-3 h-3" />}
             {builderOpen ? 'Cancel' : 'New'}
           </button>
-        </div>
-
+        }
+      >
         {builderOpen && (
           <div className="bg-gray-50 rounded-xl p-3 mb-3 space-y-2">
             <input
@@ -1202,16 +1204,19 @@ export default function WorkoutsSection() {
             <p className="text-xs text-gray-400 text-center py-2">No workouts yet — create one above.</p>
           )}
         </div>
-      </div>
+      </CollapsibleCard>
 
-      <div className="bg-white rounded-2xl border border-gray-200 p-4">
-        <div className="flex items-center justify-between mb-3">
-          <span className="font-semibold text-gray-900 text-sm">Routes</span>
+      <CollapsibleCard
+        title="Routes"
+        badge={routes.length > 0 ? `${routes.length}` : null}
+        defaultOpen={routes.length > 0}
+        actions={
           <button onClick={() => setPlannerOpen(true)}
             className="flex items-center gap-1 text-[11px] font-medium text-orange-600 bg-orange-50 px-2.5 py-1 rounded-lg active:bg-orange-100">
             <MapPin className="w-3 h-3" /> Plan route
           </button>
-        </div>
+        }
+      >
         {routes.length === 0 ? (
           <p className="text-xs text-gray-400 text-center py-2">
             No routes yet — plan one to make logging repeat runs a two-tap action.
@@ -1234,7 +1239,7 @@ export default function WorkoutsSection() {
             ))}
           </div>
         )}
-      </div>
+      </CollapsibleCard>
     </div>
   );
 
