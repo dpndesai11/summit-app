@@ -5,4 +5,8 @@ import tailwindcss from '@tailwindcss/vite'
 export default defineConfig({
   plugins: [react(), tailwindcss()],
   base: '/summit-app/',
+  test: {
+    environment: 'node',
+    globals: false,
+  },
 })

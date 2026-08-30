@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import {
   Dumbbell, Coffee, Apple, Sandwich, Cookie, CookingPot,
-  CheckSquare, Check, ChevronDown, RefreshCw, AlertTriangle, Circle, CircleCheck, CalendarRange
+  CheckSquare, Check, ChevronDown, ChevronLeft, ChevronRight, RefreshCw, AlertTriangle, Circle, CircleCheck, CalendarRange, Bell, X
 } from 'lucide-react';
 import { dbGet, dbSet, dbRefresh } from '../lib/db';
 import { toISODate, startOfWeek, addDays, getTodayFocusTasks } from '../lib/taskUtils';
@@ -121,6 +121,13 @@ export default function Home({
   navigateTo,
 }) {
   const [view, setView] = useState('day'); // 'day' | 'week'
+  // Day view defaults to today but can navigate to any day — prev/next
+  // arrows here, or tapping a row in Week view. The recurring workout/meal
+  // plan is keyed by weekday name, not a specific date, so "viewing Tuesday"
+  // always shows Tuesday's recurring plan regardless of which calendar week
+  // you're actually in; task due/target dates are real dates though, so
+  // those are looked up against the actual selected date.
+  const [selectedDate, setSelectedDate] = useState(() => new Date());
   const [templates, setTemplates] = useState([]);
   const [workoutPlan, setWorkoutPlan] = useState({});
   const [workoutTimes, setWorkoutTimes] = useState({});
@@ -135,15 +142,40 @@ export default function Home({
   const [drag, setDrag] = useState(null);
   const dragMovedRef = useRef(false);
 
+  // --- Reminders ---------------------------------------------------------------
+  // Local notifications only: this is a static site with no backend to send
+  // real push, so these fire from a timer that only runs while this tab is
+  // open (foreground or background), not when the browser/phone is fully
+  // closed. Honest tradeoff, spelled out in the opt-in banner below.
+  const [notifPermission, setNotifPermission] = useState(
+    () => (typeof Notification !== 'undefined' ? Notification.permission : 'unsupported')
+  );
+  const [bannerDismissed, setBannerDismissed] = useState(false);
+  const notifiedRef = useRef(new Set());
+
+  const requestReminders = async () => {
+    try {
+      const perm = await Notification.requestPermission();
+      setNotifPermission(perm);
+    } catch {
+      setNotifPermission('denied');
+    }
+  };
+
   const showToast = (msg, isError = false) => {
     setToast({ message: msg, isError });
     setTimeout(() => setToast(null), 2200);
   };
 
   const todayISO = toISODate(new Date());
-  const todayName = new Date().toLocaleDateString('en-US', { weekday: 'long' });
   const now = new Date();
   const nowMinutes = now.getHours() * 60 + now.getMinutes();
+  const selectedISO = toISODate(selectedDate);
+  const selectedDayName = selectedDate.toLocaleDateString('en-US', { weekday: 'long' });
+  const isViewingToday = selectedISO === todayISO;
+  const selectedDateLabel = selectedDate.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' });
+  const goToDay = (iso) => { setSelectedDate(new Date(`${iso}T00:00:00`)); setView('day'); };
+  const shiftDay = (delta) => setSelectedDate(d => addDays(d, delta));
 
   const loadAll = async () => {
     const loadData = async (key, fallback) => {
@@ -190,40 +222,78 @@ export default function Home({
     }
   };
 
-  // --- Build today's blocks ---------------------------------------------------
-  const todaysWorkoutNames = dayList(workoutPlan[todayName]);
-  const workoutBlocks = todaysWorkoutNames
-    .map(name => templates.find(t => t.name === name))
-    .filter(Boolean)
-    .map(tpl => {
-      const entry = normalizeTimeEntry(workoutTimes[todayName]?.[tpl.name], DEFAULT_WORKOUT_TIME, DEFAULT_WORKOUT_DURATION);
-      return {
-        kind: 'workout', key: `w::${tpl.name}`, title: tpl.name,
-        time: entry.time, duration: entry.duration, exercises: tpl.exercises || [],
-      };
+  // --- Build a given day's blocks -----------------------------------------------
+  // Factored out so the reminder checker below can build *today's* blocks for
+  // notifications even while you're browsing a different day in the Day view.
+  const buildBlocksForDay = (dayName) => {
+    const workoutBlocks = dayList(workoutPlan[dayName])
+      .map(name => templates.find(t => t.name === name))
+      .filter(Boolean)
+      .map(tpl => {
+        const entry = normalizeTimeEntry(workoutTimes[dayName]?.[tpl.name], DEFAULT_WORKOUT_TIME, DEFAULT_WORKOUT_DURATION);
+        return {
+          kind: 'workout', key: `w::${tpl.name}`, title: tpl.name,
+          time: entry.time, duration: entry.duration, exercises: tpl.exercises || [],
+        };
+      });
+
+    const mealBlocks = SLOTS.flatMap(slot => {
+      const names = slotList(mealPlan[dayName]?.[slot]);
+      const entry = normalizeTimeEntry(mealTimes[dayName]?.[slot], SLOT_DEFAULT_TIMES[slot], SLOT_DEFAULT_DURATIONS[slot]);
+      return names.map(name => {
+        const recipe = recipes.find(r => r.name === name);
+        return { kind: 'meal', key: `m::${slot}::${name}`, title: name, slot, time: entry.time, duration: entry.duration, recipe };
+      });
     });
 
-  const mealBlocks = SLOTS.flatMap(slot => {
-    const names = slotList(mealPlan[todayName]?.[slot]);
-    const entry = normalizeTimeEntry(mealTimes[todayName]?.[slot], SLOT_DEFAULT_TIMES[slot], SLOT_DEFAULT_DURATIONS[slot]);
-    return names.map(name => {
-      const recipe = recipes.find(r => r.name === name);
-      return { kind: 'meal', key: `m::${slot}::${name}`, title: name, slot, time: entry.time, duration: entry.duration, recipe };
-    });
-  });
+    return [...workoutBlocks, ...mealBlocks].sort((a, b) => timeToMinutes(a.time) - timeToMinutes(b.time));
+  };
 
-  const allBlocks = [...workoutBlocks, ...mealBlocks].sort((a, b) => timeToMinutes(a.time) - timeToMinutes(b.time));
+  const allBlocks = buildBlocksForDay(selectedDayName);
+
+  // Checks every 30s (while this tab is open) for a workout/meal starting
+  // within the next 5 minutes and fires a browser notification once per
+  // block per day. Always checks the *actual* current day's blocks,
+  // independent of whatever day is being viewed in the Day view above.
+  useEffect(() => {
+    if (notifPermission !== 'granted' || isLoading) return;
+    const check = () => {
+      const nowD = new Date();
+      const realTodayName = nowD.toLocaleDateString('en-US', { weekday: 'long' });
+      const realTodayISO = toISODate(nowD);
+      const nowM = nowD.getHours() * 60 + nowD.getMinutes();
+      const blocks = realTodayName === selectedDayName ? allBlocks : buildBlocksForDay(realTodayName);
+      blocks.forEach(b => {
+        const start = timeToMinutes(b.time);
+        const delta = start - nowM;
+        const notifKey = `${realTodayISO}::${b.key}`;
+        if (delta >= 0 && delta <= 5 && !notifiedRef.current.has(notifKey)) {
+          notifiedRef.current.add(notifKey);
+          try {
+            new Notification(delta === 0 ? `${b.title} — starting now` : `${b.title} in ${delta}m`, {
+              body: `${formatTime(b.time)} · ${formatDuration(b.duration)}`,
+              tag: notifKey,
+            });
+          } catch { /* Notification constructor can throw on some mobile browsers — best-effort */ }
+        }
+      });
+    };
+    check();
+    const interval = setInterval(check, 30000);
+    return () => clearInterval(interval);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [notifPermission, isLoading, workoutPlan, workoutTimes, mealPlan, mealTimes, templates, recipes]);
 
   // --- Drag-to-reschedule + resize-to-set-duration -----------------------------
   const commitWorkoutEntry = (templateName, patch) => {
-    const entry = normalizeTimeEntry(workoutTimes[todayName]?.[templateName], DEFAULT_WORKOUT_TIME, DEFAULT_WORKOUT_DURATION);
-    const next = { ...workoutTimes, [todayName]: { ...workoutTimes[todayName], [templateName]: { ...entry, ...patch } } };
+    const entry = normalizeTimeEntry(workoutTimes[selectedDayName]?.[templateName], DEFAULT_WORKOUT_TIME, DEFAULT_WORKOUT_DURATION);
+    const next = { ...workoutTimes, [selectedDayName]: { ...workoutTimes[selectedDayName], [templateName]: { ...entry, ...patch } } };
     setWorkoutTimes(next);
     dbSetSafe(STORAGE_KEYS.workoutTimes, next);
   };
   const commitMealEntry = (slot, patch) => {
-    const entry = normalizeTimeEntry(mealTimes[todayName]?.[slot], SLOT_DEFAULT_TIMES[slot], SLOT_DEFAULT_DURATIONS[slot]);
-    const next = { ...mealTimes, [todayName]: { ...mealTimes[todayName], [slot]: { ...entry, ...patch } } };
+    const entry = normalizeTimeEntry(mealTimes[selectedDayName]?.[slot], SLOT_DEFAULT_TIMES[slot], SLOT_DEFAULT_DURATIONS[slot]);
+    const next = { ...mealTimes, [selectedDayName]: { ...mealTimes[selectedDayName], [slot]: { ...entry, ...patch } } };
     setMealTimes(next);
     dbSetSafe(STORAGE_KEYS.mealTimes, next);
   };
@@ -283,11 +353,20 @@ export default function Home({
   };
 
   // --- Today Focus (merged in from the old standalone page) ------------------
+  // "Pick today's focus" and the due/overdue/picked union only make sense
+  // for the actual current day — viewing another day instead shows a
+  // simpler read-only list of whatever's due/targeted/picked on that date.
   const selectedToday = dailySelections[todayISO] || [];
   const overdueIds = new Set(overdueTasks.map(t => t.id));
   const focusTasks = getTodayFocusTasks(tasks, overdueTasks, selectedToday, todayISO);
   const openTasks = tasks.filter(t => !t.isCompleted);
   const openTask = tasks.find(t => t.id === openTaskId) || null;
+
+  const otherDaySelections = dailySelections[selectedISO] || [];
+  const otherDayTasks = isViewingToday ? [] : tasks.filter(t =>
+    t.dueDate === selectedISO || t.targetDate === selectedISO || otherDaySelections.includes(t.id)
+  );
+  const dayListTasks = isViewingToday ? focusTasks : otherDayTasks;
 
   // --- Week view: the recurring weekly workout/meal plan at a glance, plus
   // real task load on the actual next 7 calendar dates (Monday-start, same
@@ -317,6 +396,24 @@ export default function Home({
         </div>
       )}
 
+      {notifPermission === 'default' && !bannerDismissed && (
+        <div className="bg-indigo-50 border border-indigo-100 rounded-2xl p-3 flex items-start gap-2.5">
+          <Bell className="w-4 h-4 text-indigo-500 mt-0.5 flex-shrink-0" />
+          <div className="flex-1 min-w-0">
+            <p className="text-xs font-medium text-indigo-900">Get reminded when a workout or meal starts</p>
+            <p className="text-[11px] text-indigo-600/80 mt-0.5">
+              Only fires while this tab is open (foreground or background) — not a real push notification when the app is fully closed.
+            </p>
+            <button onClick={requestReminders} className="mt-2 text-[11px] font-semibold text-white bg-indigo-600 px-2.5 py-1 rounded-lg active:bg-indigo-700">
+              Enable reminders
+            </button>
+          </div>
+          <button onClick={() => setBannerDismissed(true)} aria-label="Dismiss" className="text-indigo-300 active:text-indigo-500 flex-shrink-0">
+            <X className="w-3.5 h-3.5" />
+          </button>
+        </div>
+      )}
+
       <div className="flex items-center justify-between">
         <div className="flex bg-gray-200/60 rounded-lg p-0.5">
           {[['day', 'Day'], ['week', 'Week']].map(([id, label]) => (
@@ -334,6 +431,25 @@ export default function Home({
 
       {view === 'day' ? (
         <>
+          <div className="flex items-center justify-between -mt-1">
+            <div className="flex items-center gap-1">
+              <button onClick={() => shiftDay(-1)} aria-label="Previous day" className="text-gray-400 active:text-gray-600 p-1">
+                <ChevronLeft className="w-4 h-4" />
+              </button>
+              <span className="text-sm font-semibold text-gray-900 w-36 text-center">
+                {isViewingToday ? 'Today' : selectedDateLabel}
+              </span>
+              <button onClick={() => shiftDay(1)} aria-label="Next day" className="text-gray-400 active:text-gray-600 p-1">
+                <ChevronRight className="w-4 h-4" />
+              </button>
+            </div>
+            {!isViewingToday && (
+              <button onClick={() => setSelectedDate(new Date())} className="text-[11px] font-medium text-indigo-600 bg-indigo-50 px-2.5 py-1 rounded-lg active:bg-indigo-100">
+                Jump to today
+              </button>
+            )}
+          </div>
+
           <div className="md:grid md:grid-cols-[2fr_1fr] md:gap-6 md:items-start space-y-4 md:space-y-0">
           <div className="space-y-4">
           <div>
@@ -348,7 +464,7 @@ export default function Home({
                 </div>
               ))}
 
-              {nowMinutes >= TIMELINE_START_MIN && nowMinutes <= TIMELINE_END_MIN && (
+              {isViewingToday && nowMinutes >= TIMELINE_START_MIN && nowMinutes <= TIMELINE_END_MIN && (
                 <div
                   className="absolute left-10 right-0 flex items-center gap-1 z-10 pointer-events-none"
                   style={{ top: ((nowMinutes - TIMELINE_START_MIN) / 60) * HOUR_HEIGHT }}
@@ -445,22 +561,25 @@ export default function Home({
           )}
           </div>
 
-          {/* Today's tasks — due/overdue/picked, same set Today Focus used to
-              show, tap to open the full task detail. */}
+          {/* Tasks for the selected day — due/overdue/picked for today, or a
+              simpler due/targeted/picked list for any other day, tap to open
+              the full task detail. */}
           <div className="space-y-4">
             <div>
               <div className="flex items-center gap-2 mb-2">
                 <CheckSquare className="w-4 h-4 text-indigo-600" />
-                <span className="font-semibold text-gray-900 text-sm">Today</span>
-                <span className="text-[10px] text-gray-400 ml-auto">{focusTasks.length}</span>
+                <span className="font-semibold text-gray-900 text-sm">{isViewingToday ? 'Today' : selectedDateLabel}</span>
+                <span className="text-[10px] text-gray-400 ml-auto">{dayListTasks.length}</span>
               </div>
-              {focusTasks.length === 0 ? (
+              {dayListTasks.length === 0 ? (
                 <div className="bg-white rounded-2xl border border-dashed border-gray-200 p-4 text-center">
-                  <p className="text-xs text-gray-400">Nothing due, overdue, or picked for today.</p>
+                  <p className="text-xs text-gray-400">
+                    {isViewingToday ? 'Nothing due, overdue, or picked for today.' : 'Nothing due, targeted, or picked for this day.'}
+                  </p>
                 </div>
               ) : (
                 <div className="space-y-1.5">
-                  {focusTasks.map(task => {
+                  {dayListTasks.map(task => {
                     const done = task.status === 'done' || task.isCompleted;
                     return (
                       <div key={task.id} className="bg-white rounded-2xl border border-gray-200 p-3 flex items-center gap-2">
@@ -476,8 +595,8 @@ export default function Home({
                         </button>
                         <div className="flex items-center gap-1 flex-shrink-0">
                           {overdueIds.has(task.id) && <span className="text-[9px] font-medium text-red-600 bg-red-50 px-1.5 py-0.5 rounded">Overdue</span>}
-                          {task.dueDate === todayISO && !overdueIds.has(task.id) && <span className="text-[9px] font-medium text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded">Due</span>}
-                          {selectedToday.includes(task.id) && <span className="text-[9px] font-medium text-indigo-600 bg-indigo-50 px-1.5 py-0.5 rounded">Picked</span>}
+                          {task.dueDate === selectedISO && !overdueIds.has(task.id) && <span className="text-[9px] font-medium text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded">Due</span>}
+                          {(isViewingToday ? selectedToday : otherDaySelections).includes(task.id) && <span className="text-[9px] font-medium text-indigo-600 bg-indigo-50 px-1.5 py-0.5 rounded">Picked</span>}
                         </div>
                       </div>
                     );
@@ -486,23 +605,25 @@ export default function Home({
               )}
             </div>
 
-            <CollapsibleCard title="Pick today's focus" badge={openTasks.length ? `${openTasks.length}` : null}>
-              <p className="text-xs text-gray-400 mb-3">Deliberately choose what you're targeting today — separate from what's simply due.</p>
-              {openTasks.length === 0 ? (
-                <p className="text-sm text-gray-400">No open tasks.</p>
-              ) : (
-                <div className="space-y-1.5 max-h-64 overflow-y-auto">
-                  {openTasks.map(task => (
-                    <label key={task.id} className="flex items-center gap-2 bg-gray-50 border border-gray-200 rounded-lg p-2 cursor-pointer">
-                      <input type="checkbox" checked={selectedToday.includes(task.id)} onChange={() => handleToggleDailySelection(task.id)} />
-                      <span onClick={(e) => { e.preventDefault(); setOpenTaskId(task.id); }} className="text-xs text-gray-700 truncate flex-1">
-                        {task.name}
-                      </span>
-                    </label>
-                  ))}
-                </div>
-              )}
-            </CollapsibleCard>
+            {isViewingToday && (
+              <CollapsibleCard title="Pick today's focus" badge={openTasks.length ? `${openTasks.length}` : null}>
+                <p className="text-xs text-gray-400 mb-3">Deliberately choose what you're targeting today — separate from what's simply due.</p>
+                {openTasks.length === 0 ? (
+                  <p className="text-sm text-gray-400">No open tasks.</p>
+                ) : (
+                  <div className="space-y-1.5 max-h-64 overflow-y-auto">
+                    {openTasks.map(task => (
+                      <label key={task.id} className="flex items-center gap-2 bg-gray-50 border border-gray-200 rounded-lg p-2 cursor-pointer">
+                        <input type="checkbox" checked={selectedToday.includes(task.id)} onChange={() => handleToggleDailySelection(task.id)} />
+                        <span onClick={(e) => { e.preventDefault(); setOpenTaskId(task.id); }} className="text-xs text-gray-700 truncate flex-1">
+                          {task.name}
+                        </span>
+                      </label>
+                    ))}
+                  </div>
+                )}
+              </CollapsibleCard>
+            )}
           </div>
           </div>
         </>
@@ -513,14 +634,19 @@ export default function Home({
               <CalendarRange className="w-4 h-4 text-indigo-600" />
               <span className="font-semibold text-gray-900 text-sm">This week's plan</span>
             </div>
+            <p className="text-[11px] text-gray-400 mb-2">Tap a day to see (and drag-schedule) its timeline</p>
             <div className="space-y-1.5">
               {weekDates.map(({ day, iso }) => {
                 const workoutNames = dayList(workoutPlan[day]);
                 const mealCount = SLOTS.reduce((a, s) => a + slotList(mealPlan[day]?.[s]).length, 0);
                 const taskCount = tasksOnDate(iso);
-                const isToday = day === todayName;
+                const isToday = iso === todayISO;
                 return (
-                  <div key={day} className={`flex items-center gap-3 rounded-xl px-3 py-2 ${isToday ? 'bg-indigo-50' : ''}`}>
+                  <button
+                    key={day}
+                    onClick={() => goToDay(iso)}
+                    className={`w-full flex items-center gap-3 rounded-xl px-3 py-2 text-left transition-colors hover:bg-gray-50 ${isToday ? 'bg-indigo-50 hover:bg-indigo-50' : ''}`}
+                  >
                     <span className={`text-xs w-24 flex-shrink-0 ${isToday ? 'font-bold text-indigo-600' : 'text-gray-500'}`}>
                       {day.slice(0, 3)}{isToday ? ' •' : ''} <span className="text-gray-300">{iso.slice(5)}</span>
                     </span>
@@ -538,7 +664,7 @@ export default function Home({
                         <span className="text-[10px] bg-blue-100 text-blue-700 rounded-full px-2 py-0.5">{taskCount} task{taskCount === 1 ? '' : 's'}</span>
                       )}
                     </div>
-                  </div>
+                  </button>
                 );
               })}
             </div>
