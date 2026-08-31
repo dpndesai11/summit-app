@@ -12,7 +12,7 @@ const STATUS_OPTIONS = [
 const PRIORITY_STYLES = {
   High: 'text-red-600 bg-red-50 dark:bg-red-500/10',
   Medium: 'text-amber-600 bg-amber-50 dark:bg-amber-500/10',
-  Low: 'text-gray-500 bg-gray-100 dark:bg-white/10',
+  Low: 'text-gray-500 bg-gray-100 dark:bg-violet-400/10',
 };
 
 export default function TaskDetailModal({
@@ -37,10 +37,10 @@ export default function TaskDetailModal({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4" onClick={onClose}>
       <div
-        className="bg-white dark:bg-[#252525] border border-gray-200 dark:border-white/10 rounded-xl shadow-xl w-full max-w-lg max-h-[85vh] overflow-y-auto"
+        className="bg-white dark:bg-[#211b34] border border-gray-200 dark:border-violet-400/15 rounded-xl shadow-xl w-full max-w-lg max-h-[85vh] overflow-y-auto"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex items-start justify-between p-5 border-b border-gray-100 dark:border-white/10">
+        <div className="flex items-start justify-between p-5 border-b border-gray-100 dark:border-violet-400/15">
           <div>
             <h2 className="text-base font-semibold text-gray-900 dark:text-gray-100">{task.name}</h2>
             <p className={`text-xs mt-1 ${isOverdue ? 'text-red-500 font-medium' : 'text-gray-400 dark:text-gray-500'}`}>
@@ -73,8 +73,8 @@ export default function TaskDetailModal({
                       onClick={() => onSetStatus(task.id, opt.id)}
                       className={`text-xs font-medium px-2.5 py-1 rounded-md transition-colors ${
                         task.status === opt.id
-                          ? 'bg-blue-600 text-white'
-                          : 'bg-gray-100 dark:bg-white/10 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-white/20'
+                          ? 'bg-violet-600 text-white'
+                          : 'bg-gray-100 dark:bg-violet-400/10 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-white/20'
                       }`}
                     >
                       {opt.label}
@@ -93,13 +93,13 @@ export default function TaskDetailModal({
                   {project && (
                     <button
                       onClick={() => onNavigateToProject?.(project.id)}
-                      className="text-[11px] font-medium px-2 py-0.5 rounded-full bg-blue-50 dark:bg-blue-500/10 text-blue-600 hover:bg-blue-100 dark:hover:bg-blue-500/20 transition-colors"
+                      className="text-[11px] font-medium px-2 py-0.5 rounded-full bg-violet-50 dark:bg-violet-500/10 text-violet-600 hover:bg-violet-100 dark:hover:bg-violet-500/20 transition-colors"
                     >
                       {project.name} →
                     </button>
                   )}
                   {(task.tags || []).map(tag => (
-                    <span key={tag} className="text-[11px] font-medium px-2 py-0.5 rounded-full bg-gray-100 dark:bg-white/10 text-gray-600 dark:text-gray-300">
+                    <span key={tag} className="text-[11px] font-medium px-2 py-0.5 rounded-full bg-gray-100 dark:bg-violet-400/10 text-gray-600 dark:text-gray-300">
                       {tag}
                     </span>
                   ))}
@@ -109,7 +109,7 @@ export default function TaskDetailModal({
               {task.notes && (
                 <div>
                   <span className="text-xs font-medium text-gray-500 dark:text-gray-400 block mb-1.5">Notes</span>
-                  <p className="text-sm text-gray-700 dark:text-gray-300 bg-gray-50 dark:bg-white/5 p-3 rounded-lg border border-gray-200 dark:border-white/10 whitespace-pre-wrap">
+                  <p className="text-sm text-gray-700 dark:text-gray-300 bg-gray-50 dark:bg-violet-400/5 p-3 rounded-lg border border-gray-200 dark:border-violet-400/15 whitespace-pre-wrap">
                     {task.notes}
                   </p>
                 </div>
@@ -121,12 +121,12 @@ export default function TaskDetailModal({
                     <span className="text-xs font-medium text-gray-500 dark:text-gray-400">Checklist</span>
                     <span className="text-xs text-gray-400">{completedCount}/{totalCount}</span>
                   </div>
-                  <div className="w-full bg-gray-200 dark:bg-white/10 h-1 rounded-full mb-2 overflow-hidden">
-                    <div className="bg-blue-600 h-full" style={{ width: `${progressPct}%` }}></div>
+                  <div className="w-full bg-gray-200 dark:bg-violet-400/10 h-1 rounded-full mb-2 overflow-hidden">
+                    <div className="bg-violet-600 h-full" style={{ width: `${progressPct}%` }}></div>
                   </div>
                   <div className="space-y-1.5">
                     {task.checklist.map(item => (
-                      <label key={item.id} className="flex items-center gap-2 bg-gray-50 dark:bg-white/5 p-2 rounded-md border border-gray-200 dark:border-white/10 cursor-pointer">
+                      <label key={item.id} className="flex items-center gap-2 bg-gray-50 dark:bg-violet-400/5 p-2 rounded-md border border-gray-200 dark:border-violet-400/15 cursor-pointer">
                         <input
                           type="checkbox"
                           checked={item.isCompleted}
@@ -144,7 +144,7 @@ export default function TaskDetailModal({
               <div className="flex gap-2">
                 <button
                   onClick={() => setMode('edit')}
-                  className="flex-1 flex items-center justify-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-200 bg-gray-100 dark:bg-white/10 hover:bg-gray-200 dark:hover:bg-white/20 py-2 rounded-lg transition-colors"
+                  className="flex-1 flex items-center justify-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-200 bg-gray-100 dark:bg-violet-400/10 hover:bg-gray-200 dark:hover:bg-white/20 py-2 rounded-lg transition-colors"
                 >
                   <Pencil className="w-3.5 h-3.5" />
                   Edit

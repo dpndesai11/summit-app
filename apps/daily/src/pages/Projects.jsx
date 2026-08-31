@@ -71,7 +71,7 @@ export default function Projects({
       <OrphanedTasksBanner tasks={orphanedTasks} onOpenTask={onOpenTask} />
 
       <div className="grid grid-cols-1 lg:grid-cols-[240px_1fr] gap-6">
-        <div className="bg-white dark:bg-[#252525] border border-gray-200 dark:border-white/10 rounded-xl p-4 h-fit">
+        <div className="bg-white dark:bg-[#211b34] border border-gray-200 dark:border-violet-400/15 rounded-xl p-4 h-fit">
           <div className="flex gap-1.5 mb-3">
             <input
               type="text"
@@ -79,12 +79,12 @@ export default function Projects({
               onChange={(e) => setNewProjectName(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && handleAddProject()}
               placeholder="New project"
-              className="flex-1 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 text-gray-900 dark:text-gray-100 rounded-lg px-2.5 py-1.5 text-xs focus:outline-none focus:border-blue-500"
+              className="flex-1 bg-gray-50 dark:bg-violet-400/5 border border-gray-200 dark:border-violet-400/15 text-gray-900 dark:text-gray-100 rounded-lg px-2.5 py-1.5 text-xs focus:outline-none focus:border-violet-500"
             />
             <button
               onClick={handleAddProject}
               disabled={!newProjectName.trim()}
-              className="bg-blue-600 hover:bg-blue-700 text-white rounded-lg px-2 disabled:opacity-40 transition-colors"
+              className="bg-violet-600 hover:bg-violet-700 text-white rounded-lg px-2 disabled:opacity-40 transition-colors"
             >
               <Plus className="w-3.5 h-3.5" />
             </button>
@@ -100,8 +100,8 @@ export default function Projects({
                   onClick={() => setSelectedProjectId(project.id)}
                   className={`group flex items-center gap-1 rounded-lg px-2 py-1.5 cursor-pointer transition-colors ${
                     selectedProjectId === project.id
-                      ? 'bg-blue-50 dark:bg-blue-500/10'
-                      : 'hover:bg-gray-50 dark:hover:bg-white/5'
+                      ? 'bg-violet-50 dark:bg-violet-500/10'
+                      : 'hover:bg-gray-50 dark:hover:bg-violet-400/10'
                   }`}
                 >
                   {renamingId === project.id ? (
@@ -112,10 +112,10 @@ export default function Projects({
                       onClick={(e) => e.stopPropagation()}
                       onKeyDown={(e) => e.key === 'Enter' && commitRename()}
                       onBlur={commitRename}
-                      className="flex-1 bg-white dark:bg-[#2c2c2c] border border-blue-500 rounded-md px-1.5 py-0.5 text-xs text-gray-900 dark:text-gray-100 focus:outline-none"
+                      className="flex-1 bg-white dark:bg-[#2a2340] border border-violet-500 rounded-md px-1.5 py-0.5 text-xs text-gray-900 dark:text-gray-100 focus:outline-none"
                     />
                   ) : (
-                    <span className={`flex-1 text-sm truncate ${selectedProjectId === project.id ? 'text-blue-700 dark:text-blue-400 font-medium' : 'text-gray-700 dark:text-gray-300'}`}>
+                    <span className={`flex-1 text-sm truncate ${selectedProjectId === project.id ? 'text-violet-700 dark:text-violet-400 font-medium' : 'text-gray-700 dark:text-gray-300'}`}>
                       {project.name}
                     </span>
                   )}
@@ -137,7 +137,7 @@ export default function Projects({
           )}
         </div>
 
-        <div className="bg-white dark:bg-[#252525] border border-gray-200 dark:border-white/10 rounded-xl p-5">
+        <div className="bg-white dark:bg-[#211b34] border border-gray-200 dark:border-violet-400/15 rounded-xl p-5">
           {selectedProject ? (
             <ProjectDetail
               project={selectedProject}

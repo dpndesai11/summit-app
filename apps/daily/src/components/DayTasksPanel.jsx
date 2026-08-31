@@ -5,7 +5,7 @@ export default function DayTasksPanel({ dateStr, tasks, formatToSwissDate, onOpe
   const dayTasks = tasks.filter(t => t.targetDate === dateStr || t.dueDate === dateStr);
 
   return (
-    <div className="bg-white dark:bg-[#252525] border border-gray-200 dark:border-white/10 rounded-xl p-4">
+    <div className="bg-white dark:bg-[#211b34] border border-gray-200 dark:border-violet-400/15 rounded-xl p-4">
       <div className="flex items-center justify-between mb-3">
         <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100">{formatToSwissDate(dateStr)}</h3>
         <button onClick={onClose} aria-label="Close" className="text-gray-400 hover:text-gray-700 dark:hover:text-gray-200">
@@ -20,7 +20,7 @@ export default function DayTasksPanel({ dateStr, tasks, formatToSwissDate, onOpe
             <button
               key={task.id}
               onClick={() => onOpenTask(task)}
-              className="w-full text-left bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-lg p-2.5 hover:border-gray-300 dark:hover:border-white/20 transition-colors"
+              className="w-full text-left bg-gray-50 dark:bg-violet-400/5 border border-gray-200 dark:border-violet-400/15 rounded-lg p-2.5 hover:border-gray-300 dark:hover:border-white/20 transition-colors"
             >
               <span className="text-sm font-medium text-gray-800 dark:text-gray-200 block">{task.name}</span>
               <span className="text-[10px] text-gray-400 dark:text-gray-500">

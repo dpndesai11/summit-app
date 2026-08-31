@@ -43,8 +43,8 @@ export default function ChecklistEditor({ items, onChange }) {
           onClick={() => setShowWeights(s => !s)}
           className={`flex items-center gap-1 text-[11px] font-medium px-2 py-0.5 rounded-md transition-colors ${
             showWeights
-              ? 'bg-blue-600 text-white'
-              : 'text-gray-400 dark:text-gray-500 hover:bg-gray-100 dark:hover:bg-white/5'
+              ? 'bg-violet-600 text-white'
+              : 'text-gray-400 dark:text-gray-500 hover:bg-gray-100 dark:hover:bg-violet-400/10'
           }`}
         >
           <SlidersHorizontal className="w-3 h-3" />
@@ -67,7 +67,7 @@ export default function ChecklistEditor({ items, onChange }) {
               type="text"
               value={item.name}
               onChange={(e) => renameItem(item.id, e.target.value)}
-              className="flex-1 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 text-gray-900 dark:text-gray-100 rounded-md px-2 py-1.5 text-xs focus:outline-none focus:border-blue-500"
+              className="flex-1 bg-gray-50 dark:bg-violet-400/5 border border-gray-200 dark:border-violet-400/15 text-gray-900 dark:text-gray-100 rounded-md px-2 py-1.5 text-xs focus:outline-none focus:border-violet-500"
             />
             {showWeights && (
               <input
@@ -76,7 +76,7 @@ export default function ChecklistEditor({ items, onChange }) {
                 value={item.weight ?? 1}
                 onChange={(e) => reweightItem(item.id, e.target.value)}
                 title="Weight"
-                className="w-14 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 text-gray-900 dark:text-gray-100 rounded-md px-1.5 py-1.5 text-xs text-center focus:outline-none focus:border-blue-500"
+                className="w-14 bg-gray-50 dark:bg-violet-400/5 border border-gray-200 dark:border-violet-400/15 text-gray-900 dark:text-gray-100 rounded-md px-1.5 py-1.5 text-xs text-center focus:outline-none focus:border-violet-500"
               />
             )}
             <button type="button" onClick={() => removeItem(item.id)} className="text-gray-300 dark:text-gray-600 hover:text-red-500">
@@ -93,13 +93,13 @@ export default function ChecklistEditor({ items, onChange }) {
           onChange={(e) => setDraftName(e.target.value)}
           onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addItem(); } }}
           placeholder="Add checklist item"
-          className="flex-1 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 text-gray-900 dark:text-gray-100 rounded-md px-2 py-1.5 text-xs focus:outline-none focus:border-blue-500"
+          className="flex-1 bg-gray-50 dark:bg-violet-400/5 border border-gray-200 dark:border-violet-400/15 text-gray-900 dark:text-gray-100 rounded-md px-2 py-1.5 text-xs focus:outline-none focus:border-violet-500"
         />
         <button
           type="button"
           onClick={addItem}
           disabled={!draftName.trim()}
-          className="flex items-center gap-1 text-xs font-medium bg-gray-100 dark:bg-white/10 hover:bg-gray-200 dark:hover:bg-white/20 text-gray-600 dark:text-gray-300 px-2 py-1.5 rounded-md disabled:opacity-40 transition-colors"
+          className="flex items-center gap-1 text-xs font-medium bg-gray-100 dark:bg-violet-400/10 hover:bg-gray-200 dark:hover:bg-white/20 text-gray-600 dark:text-gray-300 px-2 py-1.5 rounded-md disabled:opacity-40 transition-colors"
         >
           <Plus className="w-3.5 h-3.5" />
           Add

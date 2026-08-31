@@ -9,11 +9,11 @@ import MealsSection from './MealsSection';
 // Daily identity, deployed at the site root (2026-08-30). No more cross-app
 // switcher: everything below is a section of this one app.
 const SECTIONS = [
-  { id: 'Home', label: 'Home', icon: LayoutDashboard, active: 'text-indigo-600' },
-  { id: 'Task Dashboard', label: 'Tasks', icon: CheckSquare, active: 'text-blue-600' },
-  { id: 'Projects', label: 'Projects', icon: Folder, active: 'text-blue-600' },
-  { id: 'Workouts', label: 'Workouts', icon: Dumbbell, active: 'text-orange-600' },
-  { id: 'Meals', label: 'Meals', icon: Salad, active: 'text-green-600' },
+  { id: 'Home', label: 'Home', icon: LayoutDashboard, active: 'text-violet-600' },
+  { id: 'Task Dashboard', label: 'Tasks', icon: CheckSquare, active: 'text-violet-600' },
+  { id: 'Projects', label: 'Projects', icon: Folder, active: 'text-violet-600' },
+  { id: 'Workouts', label: 'Workouts', icon: Dumbbell, active: 'text-violet-600' },
+  { id: 'Meals', label: 'Meals', icon: Salad, active: 'text-violet-600' },
 ];
 
 // Desktop sidebar — hidden below the `md` breakpoint, where the mobile
@@ -22,9 +22,9 @@ const SECTIONS = [
 // same as an actual phone/desktop would.
 function DesktopSidebar({ section, setSection, darkMode, setDarkMode }) {
   return (
-    <aside className="hidden md:flex w-56 shrink-0 h-screen sticky top-0 flex-col border-r border-black/8 dark:border-white/8 bg-[#fbfbfa] dark:bg-[#202020] px-3 py-4">
+    <aside className="hidden md:flex w-56 shrink-0 h-screen sticky top-0 flex-col border-r border-black/8 dark:border-violet-400/15 bg-[#fbfbfa] dark:bg-[#1c1730] px-3 py-4">
       <div className="flex items-center gap-2 px-2 mb-6">
-        <div className="w-6 h-6 rounded-md bg-indigo-600 flex items-center justify-center shrink-0">
+        <div className="w-6 h-6 rounded-md bg-violet-600 flex items-center justify-center shrink-0">
           <Mountain className="w-3.5 h-3.5 text-white" />
         </div>
         <div className="min-w-0">
@@ -41,7 +41,7 @@ function DesktopSidebar({ section, setSection, darkMode, setDarkMode }) {
               key={id}
               onClick={() => setSection(id)}
               className={`flex items-center gap-2.5 px-2.5 py-1.5 rounded-md text-sm text-left transition-colors ${
-                active ? 'bg-black/6 dark:bg-white/10 text-[#37352f] dark:text-white font-medium' : 'text-[#6b7280] dark:text-[#9b9b9b] hover:bg-black/5 dark:hover:bg-white/5'
+                active ? 'bg-black/6 dark:bg-violet-400/10 text-[#37352f] dark:text-white font-medium' : 'text-[#6b7280] dark:text-[#9b9b9b] hover:bg-black/5 dark:hover:bg-violet-400/10'
               }`}
             >
               <Icon className="w-4 h-4" />
@@ -55,7 +55,7 @@ function DesktopSidebar({ section, setSection, darkMode, setDarkMode }) {
 
       <button
         onClick={() => setDarkMode(m => !m)}
-        className="flex items-center gap-2.5 px-2.5 py-1.5 rounded-md text-sm text-[#6b7280] dark:text-[#9b9b9b] hover:bg-black/5 dark:hover:bg-white/5 transition-colors"
+        className="flex items-center gap-2.5 px-2.5 py-1.5 rounded-md text-sm text-[#6b7280] dark:text-[#9b9b9b] hover:bg-black/5 dark:hover:bg-violet-400/10 transition-colors"
       >
         {darkMode ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
         {darkMode ? 'Light mode' : 'Dark mode'}
@@ -68,15 +68,15 @@ export default function DailyApp({ section, setSection, darkMode, setDarkMode, t
   const current = SECTIONS.find(s => s.id === section) || SECTIONS[0];
 
   return (
-    <div className="min-h-screen bg-[#f7f7f5] dark:bg-[#191919] text-[#37352f] dark:text-[#e6e6e6] font-sans antialiased md:flex">
+    <div className="min-h-screen bg-[#f7f7f5] dark:bg-[#14101f] text-[#37352f] dark:text-[#e6e6e6] font-sans antialiased md:flex">
       <DesktopSidebar section={section} setSection={setSection} darkMode={darkMode} setDarkMode={setDarkMode} />
 
       <div className="flex-1 min-w-0">
         {/* Mobile-only header */}
-        <div className="md:hidden sticky top-0 z-30 bg-[#f7f7f5]/90 dark:bg-[#191919]/90 backdrop-blur px-4 pt-3 pb-2">
+        <div className="md:hidden sticky top-0 z-30 bg-[#f7f7f5]/90 dark:bg-[#14101f]/90 backdrop-blur px-4 pt-3 pb-2">
           <div className="flex items-center gap-1.5 mb-1">
             <span className="text-[10px] font-bold tracking-widest uppercase text-gray-400">Summit</span>
-            <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-indigo-600 text-white">Daily</span>
+            <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-violet-600 text-white">Daily</span>
           </div>
           <h1 className="text-xl font-bold text-gray-900 dark:text-gray-100">{current.label}</h1>
         </div>
@@ -91,7 +91,7 @@ export default function DailyApp({ section, setSection, darkMode, setDarkMode, t
             className={`fixed top-4 right-4 z-50 px-4 py-3 rounded-lg border text-sm shadow-lg flex items-center gap-2 animate-toast-in-right ${
               toast.isError
                 ? 'bg-red-50 border-red-200 text-red-600 dark:bg-red-500/10 dark:border-red-500/30 dark:text-red-400'
-                : 'bg-white border-gray-200 text-gray-700 dark:bg-[#252525] dark:border-white/10 dark:text-gray-200'
+                : 'bg-white border-gray-200 text-gray-700 dark:bg-[#211b34] dark:border-violet-400/15 dark:text-gray-200'
             }`}
           >
             {toast.isError ? <AlertTriangle className="w-4 h-4" /> : <Check className="w-4 h-4" />}
@@ -116,7 +116,7 @@ export default function DailyApp({ section, setSection, darkMode, setDarkMode, t
       </div>
 
       {/* Mobile-only bottom tab bar */}
-      <nav className="md:hidden fixed bottom-0 inset-x-0 z-40 bg-white dark:bg-[#202020] border-t border-gray-200 dark:border-white/8 pb-[env(safe-area-inset-bottom)]">
+      <nav className="md:hidden fixed bottom-0 inset-x-0 z-40 bg-white dark:bg-[#1c1730] border-t border-gray-200 dark:border-violet-400/15 pb-[env(safe-area-inset-bottom)]">
         <div className="max-w-md mx-auto flex">
           {SECTIONS.map(({ id, label, icon: Icon, active }) => (
             <button key={id} onClick={() => setSection(id)}

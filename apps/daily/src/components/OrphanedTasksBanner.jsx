@@ -22,7 +22,7 @@ export default function OrphanedTasksBanner({ tasks, onOpenTask }) {
               <button
                 key={task.id}
                 onClick={() => onOpenTask(task.id)}
-                className="text-xs font-medium bg-white dark:bg-white/10 border border-amber-200 dark:border-amber-500/20 text-amber-700 dark:text-amber-300 px-2 py-1 rounded-md hover:bg-amber-100 dark:hover:bg-amber-500/20 transition-colors"
+                className="text-xs font-medium bg-white dark:bg-violet-400/10 border border-amber-200 dark:border-amber-500/20 text-amber-700 dark:text-amber-300 px-2 py-1 rounded-md hover:bg-amber-100 dark:hover:bg-amber-500/20 transition-colors"
               >
                 {task.name}
               </button>

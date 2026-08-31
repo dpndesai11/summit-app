@@ -51,21 +51,21 @@ export default function TaskBoard({
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="bg-white dark:bg-[#252525] border border-gray-200 dark:border-white/10 rounded-xl p-4 text-center">
+        <div className="bg-white dark:bg-[#211b34] border border-gray-200 dark:border-violet-400/15 rounded-xl p-4 text-center">
           <span className="text-xs text-gray-400 dark:text-gray-500 block">Completion velocity</span>
           <span className="text-2xl font-semibold text-gray-900 dark:text-gray-100 block my-1">
             {velocity === null ? '—' : `${Math.round(velocity * 100)}%`}
           </span>
           <span className="text-xs text-gray-400">{velocity === null ? 'No checklist data yet' : 'Across all checklists'}</span>
         </div>
-        <div className="bg-white dark:bg-[#252525] border border-gray-200 dark:border-white/10 rounded-xl p-4 text-center">
+        <div className="bg-white dark:bg-[#211b34] border border-gray-200 dark:border-violet-400/15 rounded-xl p-4 text-center">
           <span className="text-xs text-gray-400 dark:text-gray-500 block">Load today</span>
           <span className="text-2xl font-semibold text-gray-900 dark:text-gray-100 block my-1">
             {getDistributedMilestonesCount(new Date().toISOString().split('T')[0])}
           </span>
           <span className="text-xs text-gray-400">Distributed milestone points</span>
         </div>
-        <div className="bg-white dark:bg-[#252525] border border-gray-200 dark:border-white/10 rounded-xl p-4 text-center">
+        <div className="bg-white dark:bg-[#211b34] border border-gray-200 dark:border-violet-400/15 rounded-xl p-4 text-center">
           <span className="text-xs text-gray-400 dark:text-gray-500 block">Open tasks</span>
           <span className="text-2xl font-semibold text-gray-900 dark:text-gray-100 block my-1">
             {tasks.filter(t => !t.isCompleted).length}
@@ -89,8 +89,8 @@ export default function TaskBoard({
                   onClick={() => setView(v)}
                   className={`text-xs font-medium capitalize px-2.5 py-1 rounded-md transition-colors ${
                     view === v
-                      ? 'bg-blue-600 text-white'
-                      : 'bg-gray-100 dark:bg-white/10 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-white/20'
+                      ? 'bg-violet-600 text-white'
+                      : 'bg-gray-100 dark:bg-violet-400/10 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-white/20'
                   }`}
                 >
                   {v}
@@ -100,7 +100,7 @@ export default function TaskBoard({
           </div>
           <button
             onClick={() => setShowNewTask(true)}
-            className="flex items-center gap-1.5 text-sm font-medium bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-lg transition-colors"
+            className="flex items-center gap-1.5 text-sm font-medium bg-violet-600 hover:bg-violet-700 text-white px-3 py-1.5 rounded-lg transition-colors"
           >
             <Plus className="w-4 h-4" />
             New task
@@ -134,7 +134,7 @@ export default function TaskBoard({
         </div>
       </div>
 
-      <div className="bg-white dark:bg-[#252525] border border-gray-200 dark:border-white/10 rounded-xl p-5">
+      <div className="bg-white dark:bg-[#211b34] border border-gray-200 dark:border-violet-400/15 rounded-xl p-5">
         <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-4">14-day load forecast</h3>
         <div className="grid grid-cols-2 sm:grid-cols-7 lg:grid-cols-14 gap-2">
           {Array.from({ length: 14 }).map((_, idx) => {
@@ -145,13 +145,13 @@ export default function TaskBoard({
             const fillHeight = Math.min(100, (milestonesValue / 5) * 100);
 
             return (
-              <div key={idx} className="bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-lg p-2 flex flex-col justify-between items-center text-center">
+              <div key={idx} className="bg-gray-50 dark:bg-violet-400/5 border border-gray-200 dark:border-violet-400/15 rounded-lg p-2 flex flex-col justify-between items-center text-center">
                 <span className="text-[10px] text-gray-400">
                   {targetDateObj.toLocaleDateString('en-US', { weekday: 'short' })}
                 </span>
-                <div className="w-3 bg-gray-200 dark:bg-white/10 h-16 rounded-full my-1.5 relative overflow-hidden flex items-end">
+                <div className="w-3 bg-gray-200 dark:bg-violet-400/10 h-16 rounded-full my-1.5 relative overflow-hidden flex items-end">
                   <div
-                    className="w-full bg-blue-600 rounded-full transition-all duration-500"
+                    className="w-full bg-violet-600 rounded-full transition-all duration-500"
                     style={{ height: `${fillHeight || 8}%` }}
                   ></div>
                 </div>

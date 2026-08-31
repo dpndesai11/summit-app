@@ -15,7 +15,7 @@ export default function CollapsibleCard({
 }) {
   const [open, setOpen] = useState(defaultOpen);
   return (
-    <div className="bg-white dark:bg-[#252525] rounded-2xl border border-gray-200 dark:border-white/10 overflow-hidden">
+    <div className="bg-white dark:bg-[#211b34] rounded-2xl border border-gray-200 dark:border-violet-400/15 overflow-hidden">
       <button
         onClick={() => setOpen(o => !o)}
         className="w-full flex items-center gap-2 p-4 text-left"

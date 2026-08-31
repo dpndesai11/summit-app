@@ -454,28 +454,28 @@ export default function Home({
       )}
 
       {notifPermission === 'default' && !bannerDismissed && (
-        <div className="bg-indigo-50 dark:bg-indigo-500/10 border border-indigo-100 rounded-2xl p-3 flex items-start gap-2.5">
-          <Bell className="w-4 h-4 text-indigo-500 mt-0.5 flex-shrink-0" />
+        <div className="bg-violet-50 dark:bg-violet-500/10 border border-violet-100 rounded-2xl p-3 flex items-start gap-2.5">
+          <Bell className="w-4 h-4 text-violet-500 mt-0.5 flex-shrink-0" />
           <div className="flex-1 min-w-0">
-            <p className="text-xs font-medium text-indigo-900">Get reminded when a workout or meal starts</p>
-            <p className="text-[11px] text-indigo-600/80 mt-0.5">
+            <p className="text-xs font-medium text-violet-900">Get reminded when a workout or meal starts</p>
+            <p className="text-[11px] text-violet-600/80 mt-0.5">
               Only fires while this tab is open (foreground or background) — not a real push notification when the app is fully closed.
             </p>
-            <button onClick={requestReminders} className="mt-2 text-[11px] font-semibold text-white bg-indigo-600 px-2.5 py-1 rounded-lg active:bg-indigo-700">
+            <button onClick={requestReminders} className="mt-2 text-[11px] font-semibold text-white bg-violet-600 px-2.5 py-1 rounded-lg active:bg-violet-700">
               Enable reminders
             </button>
           </div>
-          <button onClick={() => setBannerDismissed(true)} aria-label="Dismiss" className="text-indigo-300 active:text-indigo-500 flex-shrink-0">
+          <button onClick={() => setBannerDismissed(true)} aria-label="Dismiss" className="text-violet-300 active:text-violet-500 flex-shrink-0">
             <X className="w-3.5 h-3.5" />
           </button>
         </div>
       )}
 
       <div className="flex items-center justify-between">
-        <div className="flex bg-gray-200/60 dark:bg-white/10 rounded-lg p-0.5">
+        <div className="flex bg-gray-200/60 dark:bg-violet-400/10 rounded-lg p-0.5">
           {[['day', 'Day'], ['week', 'Week']].map(([id, label]) => (
             <button key={id} onClick={() => setView(id)}
-              className={`px-3 py-1.5 rounded-md text-xs font-medium ${view === id ? 'bg-white dark:bg-[#252525] text-indigo-600 shadow-sm' : 'text-gray-500 dark:text-gray-400'}`}
+              className={`px-3 py-1.5 rounded-md text-xs font-medium ${view === id ? 'bg-white dark:bg-[#211b34] text-violet-600 shadow-sm' : 'text-gray-500 dark:text-gray-400'}`}
             >
               {label}
             </button>
@@ -501,7 +501,7 @@ export default function Home({
               </button>
             </div>
             {!isViewingToday && (
-              <button onClick={() => setSelectedDate(new Date())} className="text-[11px] font-medium text-indigo-600 bg-indigo-50 dark:bg-indigo-500/10 px-2.5 py-1 rounded-lg active:bg-indigo-100">
+              <button onClick={() => setSelectedDate(new Date())} className="text-[11px] font-medium text-violet-600 bg-violet-50 dark:bg-violet-500/10 px-2.5 py-1 rounded-lg active:bg-violet-100">
                 Jump to today
               </button>
             )}
@@ -512,12 +512,12 @@ export default function Home({
           <div>
             <span className="text-xs text-gray-400 dark:text-gray-500">Drag a block to reschedule, its bottom edge to resize</span>
           </div>
-          <div className="bg-white dark:bg-[#252525] rounded-2xl border border-gray-200 dark:border-white/10 p-3">
+          <div className="bg-white dark:bg-[#211b34] rounded-2xl border border-gray-200 dark:border-violet-400/15 p-3">
             <div className="relative" style={{ height: TIMELINE_HOURS.length * HOUR_HEIGHT }}>
               {TIMELINE_HOURS.map((h, i) => (
                 <div key={h} className="absolute left-0 right-0 flex items-start gap-2" style={{ top: i * HOUR_HEIGHT }}>
                   <span className="text-[10px] text-gray-300 dark:text-gray-600 w-10 flex-shrink-0 -mt-1.5 tabular-nums">{formatHour(h)}</span>
-                  <div className="flex-1 border-t border-gray-100 dark:border-white/10 mt-1" />
+                  <div className="flex-1 border-t border-gray-100 dark:border-violet-400/15 mt-1" />
                 </div>
               ))}
 
@@ -542,7 +542,7 @@ export default function Home({
                 const height = Math.max(MIN_BLOCK_HEIGHT, (displayDuration / 60) * HOUR_HEIGHT);
                 const isWorkout = block.kind === 'workout';
                 const isTask = block.kind === 'task';
-                const blockColor = isWorkout ? 'bg-orange-500' : isTask ? 'bg-indigo-600' : 'bg-green-600';
+                const blockColor = isWorkout ? 'bg-orange-500' : isTask ? 'bg-violet-600' : 'bg-green-600';
                 const expanded = expandedBlock === block.key;
                 const showDurationLabel = height >= 44;
                 return (
@@ -590,11 +590,11 @@ export default function Home({
                     {isResizing && <div className="text-[10px] text-gray-500 dark:text-gray-400 mt-0.5">{formatDuration(drag.liveDuration)}</div>}
 
                     {expanded && !isDragging && (
-                      <div className={`mt-1 rounded-xl px-3 py-2 text-xs ${isWorkout ? 'bg-orange-50 dark:bg-orange-500/10 text-orange-800' : isTask ? 'bg-indigo-50 dark:bg-indigo-500/10 text-indigo-800' : 'bg-green-50 dark:bg-green-500/10 text-green-800'}`}>
+                      <div className={`mt-1 rounded-xl px-3 py-2 text-xs ${isWorkout ? 'bg-orange-50 dark:bg-orange-500/10 text-orange-800' : isTask ? 'bg-violet-50 dark:bg-violet-500/10 text-violet-800' : 'bg-green-50 dark:bg-green-500/10 text-green-800'}`}>
                         {isWorkout ? (
                           block.exercises.length > 0 ? (
                             <div className="flex flex-wrap gap-1">
-                              {block.exercises.map((ex, i) => <span key={i} className="bg-white/70 dark:bg-white/10 rounded-full px-2 py-0.5">{ex.name}</span>)}
+                              {block.exercises.map((ex, i) => <span key={i} className="bg-white/70 dark:bg-violet-400/10 rounded-full px-2 py-0.5">{ex.name}</span>)}
                             </div>
                           ) : <span className="opacity-70">No exercises set.</span>
                         ) : isTask ? (
@@ -603,13 +603,13 @@ export default function Home({
                             <div className="flex gap-2">
                               <button
                                 onClick={() => handleUpdateTaskStatus(block.taskId, (block.task.status === 'done' || block.task.isCompleted) ? 'todo' : 'done')}
-                                className="text-[11px] font-semibold bg-white/70 dark:bg-white/10 px-2 py-1 rounded-lg active:bg-white dark:bg-[#252525]"
+                                className="text-[11px] font-semibold bg-white/70 dark:bg-violet-400/10 px-2 py-1 rounded-lg active:bg-white dark:bg-[#211b34]"
                               >
                                 {(block.task.status === 'done' || block.task.isCompleted) ? 'Reopen' : 'Mark done'}
                               </button>
                               <button
                                 onClick={() => { removeTaskFromTimeline(block.taskId); setExpandedBlock(null); }}
-                                className="text-[11px] font-semibold bg-white/70 dark:bg-white/10 px-2 py-1 rounded-lg active:bg-white dark:bg-[#252525]"
+                                className="text-[11px] font-semibold bg-white/70 dark:bg-violet-400/10 px-2 py-1 rounded-lg active:bg-white dark:bg-[#211b34]"
                               >
                                 Remove from timeline
                               </button>
@@ -622,7 +622,7 @@ export default function Home({
                                 {block.recipes.length > 1 && <div className="font-semibold mb-1">{recipe.name}</div>}
                                 <div className="flex flex-wrap gap-1">
                                   {recipe.ingredients.map((ing, i) => (
-                                    <span key={i} className="bg-white/70 dark:bg-white/10 rounded-full px-2 py-0.5">{ing.name}{ing.quantity ? ` · ${ing.quantity}g` : ''}</span>
+                                    <span key={i} className="bg-white/70 dark:bg-violet-400/10 rounded-full px-2 py-0.5">{ing.name}{ing.quantity ? ` · ${ing.quantity}g` : ''}</span>
                                   ))}
                                 </div>
                                 {recipe.notes && <p className="opacity-80 whitespace-pre-line mt-1">{recipe.notes}</p>}
@@ -649,12 +649,12 @@ export default function Home({
           <div className="space-y-4">
             <div>
               <div className="flex items-center gap-2 mb-2">
-                <CheckSquare className="w-4 h-4 text-indigo-600" />
+                <CheckSquare className="w-4 h-4 text-violet-600" />
                 <span className="font-semibold text-gray-900 dark:text-gray-100 text-sm">{isViewingToday ? 'Today' : selectedDateLabel}</span>
                 <span className="text-[10px] text-gray-400 dark:text-gray-500 ml-auto">{dayListTasks.length}</span>
               </div>
               {dayListTasks.length === 0 ? (
-                <div className="bg-white dark:bg-[#252525] rounded-2xl border border-dashed border-gray-200 dark:border-white/10 p-4 text-center">
+                <div className="bg-white dark:bg-[#211b34] rounded-2xl border border-dashed border-gray-200 dark:border-violet-400/15 p-4 text-center">
                   <p className="text-xs text-gray-400 dark:text-gray-500">
                     {isViewingToday ? 'Nothing due, overdue, or picked for today.' : 'Nothing due, targeted, or picked for this day.'}
                   </p>
@@ -665,14 +665,14 @@ export default function Home({
                     const done = task.status === 'done' || task.isCompleted;
                     const scheduled = isTaskScheduled(task.id);
                     return (
-                      <div key={task.id} className="bg-white dark:bg-[#252525] rounded-2xl border border-gray-200 dark:border-white/10 p-3">
+                      <div key={task.id} className="bg-white dark:bg-[#211b34] rounded-2xl border border-gray-200 dark:border-violet-400/15 p-3">
                         <div className="flex items-center gap-2">
                           <button
                             onClick={() => handleUpdateTaskStatus(task.id, done ? 'todo' : 'done')}
                             aria-label={done ? `Reopen ${task.name}` : `Mark ${task.name} done`}
-                            className="text-gray-300 dark:text-gray-600 active:text-indigo-600 flex-shrink-0"
+                            className="text-gray-300 dark:text-gray-600 active:text-violet-600 flex-shrink-0"
                           >
-                            {done ? <CircleCheck className="w-5 h-5 text-indigo-600" /> : <Circle className="w-5 h-5" />}
+                            {done ? <CircleCheck className="w-5 h-5 text-violet-600" /> : <Circle className="w-5 h-5" />}
                           </button>
                           <button onClick={() => setOpenTaskId(task.id)} className="flex-1 min-w-0 text-left">
                             <span className={`text-sm truncate block ${done ? 'line-through text-gray-400 dark:text-gray-500' : 'text-gray-900 dark:text-gray-100 font-medium'}`}>{task.name}</span>
@@ -680,21 +680,21 @@ export default function Home({
                           <div className="flex items-center gap-1 flex-shrink-0">
                             {overdueIds.has(task.id) && <span className="text-[9px] font-medium text-red-600 bg-red-50 dark:bg-red-500/10 px-1.5 py-0.5 rounded">Overdue</span>}
                             {task.dueDate === selectedISO && !overdueIds.has(task.id) && <span className="text-[9px] font-medium text-amber-600 bg-amber-50 dark:bg-amber-500/10 px-1.5 py-0.5 rounded">Due</span>}
-                            {(isViewingToday ? selectedToday : otherDaySelections).includes(task.id) && <span className="text-[9px] font-medium text-indigo-600 bg-indigo-50 dark:bg-indigo-500/10 px-1.5 py-0.5 rounded">Picked</span>}
+                            {(isViewingToday ? selectedToday : otherDaySelections).includes(task.id) && <span className="text-[9px] font-medium text-violet-600 bg-violet-50 dark:bg-violet-500/10 px-1.5 py-0.5 rounded">Picked</span>}
                           </div>
                         </div>
                         <div className="pl-7 mt-1.5">
                           {scheduled ? (
                             <button
                               onClick={() => removeTaskFromTimeline(task.id)}
-                              className="flex items-center gap-1 text-[10px] font-medium text-indigo-600 bg-indigo-50 dark:bg-indigo-500/10 px-2 py-0.5 rounded-full active:bg-indigo-100"
+                              className="flex items-center gap-1 text-[10px] font-medium text-violet-600 bg-violet-50 dark:bg-violet-500/10 px-2 py-0.5 rounded-full active:bg-violet-100"
                             >
                               <CalendarRange className="w-2.5 h-2.5" /> On timeline · remove
                             </button>
                           ) : (
                             <button
                               onClick={() => commitTaskEntry(task.id, {})}
-                              className="flex items-center gap-1 text-[10px] font-medium text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-white/10 px-2 py-0.5 rounded-full active:bg-gray-200 dark:bg-white/10"
+                              className="flex items-center gap-1 text-[10px] font-medium text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-violet-400/10 px-2 py-0.5 rounded-full active:bg-gray-200 dark:bg-violet-400/10"
                             >
                               <CalendarRange className="w-2.5 h-2.5" /> Add to timeline
                             </button>
@@ -715,7 +715,7 @@ export default function Home({
                 ) : (
                   <div className="space-y-1.5 max-h-64 overflow-y-auto">
                     {openTasks.map(task => (
-                      <label key={task.id} className="flex items-center gap-2 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-lg p-2 cursor-pointer">
+                      <label key={task.id} className="flex items-center gap-2 bg-gray-50 dark:bg-violet-400/5 border border-gray-200 dark:border-violet-400/15 rounded-lg p-2 cursor-pointer">
                         <input type="checkbox" checked={selectedToday.includes(task.id)} onChange={() => handleToggleDailySelection(task.id)} />
                         <span onClick={(e) => { e.preventDefault(); setOpenTaskId(task.id); }} className="text-xs text-gray-700 dark:text-gray-300 truncate flex-1">
                           {task.name}
@@ -731,9 +731,9 @@ export default function Home({
         </>
       ) : (
         <div className="space-y-4">
-          <div className="bg-white dark:bg-[#252525] rounded-2xl border border-gray-200 dark:border-white/10 p-4">
+          <div className="bg-white dark:bg-[#211b34] rounded-2xl border border-gray-200 dark:border-violet-400/15 p-4">
             <div className="flex items-center gap-2 mb-3">
-              <CalendarRange className="w-4 h-4 text-indigo-600" />
+              <CalendarRange className="w-4 h-4 text-violet-600" />
               <span className="font-semibold text-gray-900 dark:text-gray-100 text-sm">This week's plan</span>
             </div>
             <p className="text-[11px] text-gray-400 dark:text-gray-500 mb-2">Tap a day to see (and drag-schedule) its timeline</p>
@@ -747,9 +747,9 @@ export default function Home({
                   <button
                     key={day}
                     onClick={() => goToDay(iso)}
-                    className={`w-full flex items-center gap-3 rounded-xl px-3 py-2 text-left transition-colors hover:bg-gray-50 dark:bg-white/5 ${isToday ? 'bg-indigo-50 dark:bg-indigo-500/10 hover:bg-indigo-50 dark:bg-indigo-500/10' : ''}`}
+                    className={`w-full flex items-center gap-3 rounded-xl px-3 py-2 text-left transition-colors hover:bg-gray-50 dark:bg-violet-400/5 ${isToday ? 'bg-violet-50 dark:bg-violet-500/10 hover:bg-violet-50 dark:bg-violet-500/10' : ''}`}
                   >
-                    <span className={`text-xs w-24 flex-shrink-0 ${isToday ? 'font-bold text-indigo-600' : 'text-gray-500 dark:text-gray-400'}`}>
+                    <span className={`text-xs w-24 flex-shrink-0 ${isToday ? 'font-bold text-violet-600' : 'text-gray-500 dark:text-gray-400'}`}>
                       {day.slice(0, 3)}{isToday ? ' •' : ''} <span className="text-gray-300 dark:text-gray-600">{iso.slice(5)}</span>
                     </span>
                     <div className="flex-1 min-w-0 flex flex-wrap items-center gap-1.5">
@@ -763,7 +763,7 @@ export default function Home({
                         <span className="text-[10px] bg-green-100 text-green-700 rounded-full px-2 py-0.5">{mealCount} meal{mealCount === 1 ? '' : 's'}</span>
                       )}
                       {taskCount > 0 && (
-                        <span className="text-[10px] bg-blue-100 text-blue-700 rounded-full px-2 py-0.5">{taskCount} task{taskCount === 1 ? '' : 's'}</span>
+                        <span className="text-[10px] bg-violet-100 text-violet-700 rounded-full px-2 py-0.5">{taskCount} task{taskCount === 1 ? '' : 's'}</span>
                       )}
                     </div>
                   </button>

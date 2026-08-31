@@ -15,8 +15,8 @@ export default function PlannerView({ tasks, getDistributedMilestonesCount, form
             onClick={() => setGridMode(m)}
             className={`text-xs font-medium capitalize px-2.5 py-1 rounded-md transition-colors ${
               gridMode === m
-                ? 'bg-blue-600 text-white'
-                : 'bg-gray-100 dark:bg-white/10 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-white/20'
+                ? 'bg-violet-600 text-white'
+                : 'bg-gray-100 dark:bg-violet-400/10 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-white/20'
             }`}
           >
             {m}

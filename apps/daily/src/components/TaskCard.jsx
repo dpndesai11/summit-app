@@ -5,7 +5,7 @@ import { weightedCompletion, getDueBadgeLevel } from '../lib/taskUtils';
 const DUE_BADGE_STYLES = {
   overdue: 'text-red-600 bg-red-50 dark:bg-red-500/10',
   soon: 'text-amber-600 bg-amber-50 dark:bg-amber-500/10',
-  normal: 'text-gray-400 bg-gray-100 dark:bg-white/5',
+  normal: 'text-gray-400 bg-gray-100 dark:bg-violet-400/5',
 };
 
 export default function TaskCard({ task, formatToSwissDate, onOpen }) {
@@ -30,14 +30,14 @@ export default function TaskCard({ task, formatToSwissDate, onOpen }) {
       {...listeners}
       {...attributes}
       onClick={() => onOpen(task)}
-      className={`bg-white dark:bg-[#2c2c2c] border border-gray-200 dark:border-white/10 rounded-lg p-3 cursor-pointer shadow-sm hover:shadow-md hover:border-gray-300 dark:hover:border-white/20 transition-shadow ${isDragging ? 'dnd-dragging' : ''}`}
+      className={`bg-white dark:bg-[#2a2340] border border-gray-200 dark:border-violet-400/15 rounded-lg p-3 cursor-pointer shadow-sm hover:shadow-md hover:border-gray-300 dark:hover:border-white/20 transition-shadow ${isDragging ? 'dnd-dragging' : ''}`}
     >
       <div className="text-sm font-medium text-gray-800 dark:text-gray-200 mb-1.5">{task.name}</div>
 
       {totalCount > 0 && (
         <div className="mb-2">
-          <div className="w-full bg-gray-200 dark:bg-white/10 h-1 rounded-full overflow-hidden">
-            <div className="bg-blue-600 h-full" style={{ width: `${weightedPct}%` }}></div>
+          <div className="w-full bg-gray-200 dark:bg-violet-400/10 h-1 rounded-full overflow-hidden">
+            <div className="bg-violet-600 h-full" style={{ width: `${weightedPct}%` }}></div>
           </div>
         </div>
       )}

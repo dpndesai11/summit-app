@@ -9,10 +9,10 @@ export default function FilterBar({ tasks, filteredCount, filters, onChange, pro
   const allTags = [...new Set(tasks.flatMap(t => t.tags || []))].sort();
   const hasActiveFilters = Boolean(filters.tag || filters.priority || filters.projectId);
 
-  const selectClass = "bg-white dark:bg-[#2c2c2c] border border-gray-200 dark:border-white/10 text-gray-700 dark:text-gray-300 rounded-lg px-2.5 py-1.5 text-xs focus:outline-none focus:border-blue-500";
+  const selectClass = "bg-white dark:bg-[#2a2340] border border-gray-200 dark:border-violet-400/15 text-gray-700 dark:text-gray-300 rounded-lg px-2.5 py-1.5 text-xs focus:outline-none focus:border-violet-500";
 
   return (
-    <div className="flex flex-wrap items-center gap-2 bg-gray-50 dark:bg-white/[0.03] border border-gray-200 dark:border-white/10 rounded-xl p-3">
+    <div className="flex flex-wrap items-center gap-2 bg-gray-50 dark:bg-violet-400/[0.05] border border-gray-200 dark:border-violet-400/15 rounded-xl p-3">
       <Filter className="w-3.5 h-3.5 text-gray-400 shrink-0" />
 
       <select

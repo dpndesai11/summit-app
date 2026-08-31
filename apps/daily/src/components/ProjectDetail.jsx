@@ -25,7 +25,7 @@ export default function ProjectDetail({ project, tasks, onUpdateNotes, onOpenTas
           value={project.notes}
           onChange={(e) => onUpdateNotes(project.id, e.target.value)}
           placeholder="Notes for this project…"
-          className="w-full bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 text-gray-900 dark:text-gray-100 rounded-lg p-3 text-sm focus:outline-none focus:border-blue-500 h-32"
+          className="w-full bg-gray-50 dark:bg-violet-400/5 border border-gray-200 dark:border-violet-400/15 text-gray-900 dark:text-gray-100 rounded-lg p-3 text-sm focus:outline-none focus:border-violet-500 h-32"
         />
       </div>
 
@@ -46,7 +46,7 @@ export default function ProjectDetail({ project, tasks, onUpdateNotes, onOpenTas
                     <button
                       key={task.id}
                       onClick={() => onOpenTask(task.id)}
-                      className="w-full text-left bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-lg p-2 text-xs text-gray-700 dark:text-gray-300 hover:border-gray-300 dark:hover:border-white/20 transition-colors"
+                      className="w-full text-left bg-gray-50 dark:bg-violet-400/5 border border-gray-200 dark:border-violet-400/15 rounded-lg p-2 text-xs text-gray-700 dark:text-gray-300 hover:border-gray-300 dark:hover:border-white/20 transition-colors"
                     >
                       {task.name}
                     </button>
