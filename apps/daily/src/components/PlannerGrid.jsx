@@ -24,7 +24,7 @@ export default function PlannerGrid({ mode, getDistributedMilestonesCount, onSel
   return (
     <div className="grid grid-cols-7 gap-1.5 sm:gap-2">
       {WEEKDAY_LABELS.map(label => (
-        <div key={label} className="text-[10px] font-medium text-gray-400 dark:text-gray-500 text-center pb-1">
+        <div key={label} className="text-[10px] font-medium text-black dark:text-white text-center pb-1">
           {label}
         </div>
       ))}
@@ -43,11 +43,11 @@ export default function PlannerGrid({ mode, getDistributedMilestonesCount, onSel
               isSelected ? 'border-violet-500 ring-2 ring-violet-500/40' : 'border-gray-200 dark:border-violet-400/15'
             } ${isToday ? 'ring-2 ring-offset-1 ring-offset-white dark:ring-offset-[#14101f] ring-violet-600' : ''}`}
           >
-            <span className={`text-xs ${isToday ? 'font-semibold text-violet-600' : isOutsideMonth ? 'text-gray-300 dark:text-gray-600' : 'text-gray-700 dark:text-gray-300'}`}>
+            <span className={`text-xs ${isToday ? 'font-semibold text-violet-600' : isOutsideMonth ? 'text-black dark:text-white' : 'text-black dark:text-white'}`}>
               {day.getDate()}
             </span>
             {value > 0 && (
-              <span className="text-[9px] text-gray-500 dark:text-gray-400">{value}</span>
+              <span className="text-[9px] text-black dark:text-white">{value}</span>
             )}
           </button>
         );

@@ -86,9 +86,9 @@ export default function RoutePlanner({ activities, onSave, onClose }) {
       <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200 flex-shrink-0">
         <div className="flex items-center gap-2">
           <MapPin className="w-4 h-4 text-blue-500" />
-          <span className="font-semibold text-gray-900 text-sm">Plan route</span>
+          <span className="font-semibold text-black text-sm">Plan route</span>
         </div>
-        <button onClick={onClose} className="text-gray-400 active:text-gray-600 p-1" aria-label="Close route planner">
+        <button onClick={onClose} className="text-black active:text-black p-1" aria-label="Close route planner">
           <X className="w-5 h-5" />
         </button>
       </div>
@@ -107,7 +107,7 @@ export default function RoutePlanner({ activities, onSave, onClose }) {
           <button
             onClick={() => setWaypoints(p => p.slice(0, -1))}
             disabled={waypoints.length === 0}
-            className="w-10 h-10 bg-white rounded-xl shadow-lg border border-gray-200 flex items-center justify-center text-gray-600 disabled:opacity-40 active:bg-gray-100"
+            className="w-10 h-10 bg-white rounded-xl shadow-lg border border-gray-200 flex items-center justify-center text-black disabled:opacity-40 active:bg-gray-100"
             aria-label="Undo last point"
           >
             <Undo2 className="w-4 h-4" />
@@ -130,17 +130,17 @@ export default function RoutePlanner({ activities, onSave, onClose }) {
             value={name}
             onChange={e => setName(e.target.value)}
             placeholder="Route name (e.g. River loop)"
-            className="flex-1 min-w-0 bg-gray-100 rounded-xl px-4 py-3 text-sm text-gray-900 outline-none focus:bg-white focus:ring-2 focus:ring-blue-500"
+            className="flex-1 min-w-0 bg-gray-100 rounded-xl px-4 py-3 text-sm text-black outline-none focus:bg-white focus:ring-2 focus:ring-blue-500"
           />
           <div className="relative flex-shrink-0">
             <select
               value={activity}
               onChange={e => setActivity(e.target.value)}
-              className="appearance-none bg-gray-100 rounded-xl pl-3 pr-8 py-3 text-sm text-gray-900 outline-none"
+              className="appearance-none bg-gray-100 rounded-xl pl-3 pr-8 py-3 text-sm text-black outline-none"
             >
               {activities.map(a => <option key={a} value={a}>{a}</option>)}
             </select>
-            <ChevronDown className="w-4 h-4 text-gray-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+            <ChevronDown className="w-4 h-4 text-black absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
           </div>
         </div>
         <button

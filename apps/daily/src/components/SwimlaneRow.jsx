@@ -13,8 +13,8 @@ export default function SwimlaneRow({ laneId, title, tasks, formatToSwissDate, o
   return (
     <div>
       <div className="flex items-center gap-2 mb-2">
-        <h3 className="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">{title}</h3>
-        <span className="text-xs text-gray-400 dark:text-gray-500 bg-gray-100 dark:bg-violet-400/5 px-1.5 py-0.5 rounded-full">
+        <h3 className="text-xs font-semibold uppercase tracking-wide text-black dark:text-white">{title}</h3>
+        <span className="text-xs text-black dark:text-white bg-gray-100 dark:bg-violet-400/5 px-1.5 py-0.5 rounded-full">
           {tasks.length}
         </span>
       </div>

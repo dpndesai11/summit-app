@@ -12,7 +12,7 @@ const STATUS_OPTIONS = [
 const PRIORITY_STYLES = {
   High: 'text-red-600 bg-red-50 dark:bg-red-500/10',
   Medium: 'text-amber-600 bg-amber-50 dark:bg-amber-500/10',
-  Low: 'text-gray-500 bg-gray-100 dark:bg-violet-400/10',
+  Low: 'text-black dark:text-white bg-gray-100 dark:bg-violet-400/10',
 };
 
 export default function TaskDetailModal({
@@ -42,13 +42,13 @@ export default function TaskDetailModal({
       >
         <div className="flex items-start justify-between p-5 border-b border-gray-100 dark:border-violet-400/15">
           <div>
-            <h2 className="text-base font-semibold text-gray-900 dark:text-gray-100">{task.name}</h2>
-            <p className={`text-xs mt-1 ${isOverdue ? 'text-red-500 font-medium' : 'text-gray-400 dark:text-gray-500'}`}>
+            <h2 className="text-base font-semibold text-black dark:text-white">{task.name}</h2>
+            <p className={`text-xs mt-1 ${isOverdue ? 'text-red-500 font-medium' : 'text-black dark:text-white'}`}>
               {task.dueDate && `Deadline ${formatToSwissDate(task.dueDate)} · `}Target {formatToSwissDate(task.targetDate)}
               {isOverdue && ' — overdue'}
             </p>
           </div>
-          <button onClick={onClose} aria-label="Close" className="text-gray-400 hover:text-gray-700 dark:hover:text-gray-200">
+          <button onClick={onClose} aria-label="Close" className="text-black dark:text-white hover:text-black dark:hover:text-white">
             <X className="w-4 h-4" />
           </button>
         </div>
@@ -65,7 +65,7 @@ export default function TaskDetailModal({
           ) : (
             <div className="space-y-4">
               <div>
-                <span className="text-xs font-medium text-gray-500 dark:text-gray-400 block mb-1.5">Status</span>
+                <span className="text-xs font-medium text-black dark:text-white block mb-1.5">Status</span>
                 <div className="flex gap-1.5">
                   {STATUS_OPTIONS.map(opt => (
                     <button
@@ -74,7 +74,7 @@ export default function TaskDetailModal({
                       className={`text-xs font-medium px-2.5 py-1 rounded-md transition-colors ${
                         task.status === opt.id
                           ? 'bg-violet-600 text-white'
-                          : 'bg-gray-100 dark:bg-violet-400/10 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-white/20'
+                          : 'bg-gray-100 dark:bg-violet-400/10 text-black dark:text-white hover:bg-gray-200 dark:hover:bg-white/20'
                       }`}
                     >
                       {opt.label}
@@ -99,7 +99,7 @@ export default function TaskDetailModal({
                     </button>
                   )}
                   {(task.tags || []).map(tag => (
-                    <span key={tag} className="text-[11px] font-medium px-2 py-0.5 rounded-full bg-gray-100 dark:bg-violet-400/10 text-gray-600 dark:text-gray-300">
+                    <span key={tag} className="text-[11px] font-medium px-2 py-0.5 rounded-full bg-gray-100 dark:bg-violet-400/10 text-black dark:text-white">
                       {tag}
                     </span>
                   ))}
@@ -108,8 +108,8 @@ export default function TaskDetailModal({
 
               {task.notes && (
                 <div>
-                  <span className="text-xs font-medium text-gray-500 dark:text-gray-400 block mb-1.5">Notes</span>
-                  <p className="text-sm text-gray-700 dark:text-gray-300 bg-gray-50 dark:bg-violet-400/5 p-3 rounded-lg border border-gray-200 dark:border-violet-400/15 whitespace-pre-wrap">
+                  <span className="text-xs font-medium text-black dark:text-white block mb-1.5">Notes</span>
+                  <p className="text-sm text-black dark:text-white bg-gray-50 dark:bg-violet-400/5 p-3 rounded-lg border border-gray-200 dark:border-violet-400/15 whitespace-pre-wrap">
                     {task.notes}
                   </p>
                 </div>
@@ -118,8 +118,8 @@ export default function TaskDetailModal({
               {totalCount > 0 && (
                 <div>
                   <div className="flex justify-between items-center mb-1.5">
-                    <span className="text-xs font-medium text-gray-500 dark:text-gray-400">Checklist</span>
-                    <span className="text-xs text-gray-400">{completedCount}/{totalCount}</span>
+                    <span className="text-xs font-medium text-black dark:text-white">Checklist</span>
+                    <span className="text-xs text-black dark:text-white">{completedCount}/{totalCount}</span>
                   </div>
                   <div className="w-full bg-gray-200 dark:bg-violet-400/10 h-1 rounded-full mb-2 overflow-hidden">
                     <div className="bg-violet-600 h-full" style={{ width: `${progressPct}%` }}></div>
@@ -132,7 +132,7 @@ export default function TaskDetailModal({
                           checked={item.isCompleted}
                           onChange={() => onToggleSubtask(task.id, item.id)}
                         />
-                        <span className={`text-sm ${item.isCompleted ? 'line-through text-gray-400' : 'text-gray-700 dark:text-gray-300'}`}>
+                        <span className={`text-sm ${item.isCompleted ? 'line-through text-black' : 'text-black dark:text-white'}`}>
                           {item.name}
                         </span>
                       </label>
@@ -144,7 +144,7 @@ export default function TaskDetailModal({
               <div className="flex gap-2">
                 <button
                   onClick={() => setMode('edit')}
-                  className="flex-1 flex items-center justify-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-200 bg-gray-100 dark:bg-violet-400/10 hover:bg-gray-200 dark:hover:bg-white/20 py-2 rounded-lg transition-colors"
+                  className="flex-1 flex items-center justify-center gap-2 text-sm font-medium text-black dark:text-white bg-gray-100 dark:bg-violet-400/10 hover:bg-gray-200 dark:hover:bg-white/20 py-2 rounded-lg transition-colors"
                 >
                   <Pencil className="w-3.5 h-3.5" />
                   Edit

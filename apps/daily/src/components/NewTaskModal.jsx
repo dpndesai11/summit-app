@@ -11,18 +11,18 @@ export default function NewTaskModal({ taskForm, setTaskForm, onCreate, onClose 
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between p-5 border-b border-gray-100 dark:border-violet-400/15">
-          <h2 className="text-base font-semibold text-gray-900 dark:text-gray-100">New task</h2>
-          <button onClick={onClose} aria-label="Close" className="text-gray-400 hover:text-gray-700 dark:hover:text-gray-200">
+          <h2 className="text-base font-semibold text-black dark:text-white">New task</h2>
+          <button onClick={onClose} aria-label="Close" className="text-black dark:text-white hover:text-black dark:hover:text-white">
             <X className="w-4 h-4" />
           </button>
         </div>
 
         <div className="p-5 space-y-4 text-sm">
           <div>
-            <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Name</label>
+            <label className="block text-xs font-medium text-black dark:text-white mb-1">Name</label>
             <input
               type="text"
-              className="w-full bg-gray-50 dark:bg-violet-400/5 border border-gray-200 dark:border-violet-400/15 text-gray-900 dark:text-gray-100 rounded-lg p-2.5 focus:outline-none focus:border-violet-500"
+              className="w-full bg-gray-50 dark:bg-violet-400/5 border border-gray-200 dark:border-violet-400/15 text-black dark:text-white rounded-lg p-2.5 focus:outline-none focus:border-violet-500"
               value={taskForm.name}
               onChange={(e) => setTaskForm({ ...taskForm, name: e.target.value })}
               placeholder="e.g. Master's thesis sprint"
@@ -32,19 +32,19 @@ export default function NewTaskModal({ taskForm, setTaskForm, onCreate, onClose 
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Deadline (optional)</label>
+              <label className="block text-xs font-medium text-black dark:text-white mb-1">Deadline (optional)</label>
               <input
                 type="date"
-                className="w-full bg-gray-50 dark:bg-violet-400/5 border border-gray-200 dark:border-violet-400/15 text-gray-900 dark:text-gray-100 rounded-lg p-2.5 focus:outline-none focus:border-violet-500"
+                className="w-full bg-gray-50 dark:bg-violet-400/5 border border-gray-200 dark:border-violet-400/15 text-black dark:text-white rounded-lg p-2.5 focus:outline-none focus:border-violet-500"
                 value={taskForm.dueDate}
                 onChange={(e) => setTaskForm({ ...taskForm, dueDate: e.target.value })}
               />
             </div>
             <div>
-              <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Target date</label>
+              <label className="block text-xs font-medium text-black dark:text-white mb-1">Target date</label>
               <input
                 type="date"
-                className="w-full bg-gray-50 dark:bg-violet-400/5 border border-gray-200 dark:border-violet-400/15 text-gray-900 dark:text-gray-100 rounded-lg p-2.5 focus:outline-none focus:border-violet-500"
+                className="w-full bg-gray-50 dark:bg-violet-400/5 border border-gray-200 dark:border-violet-400/15 text-black dark:text-white rounded-lg p-2.5 focus:outline-none focus:border-violet-500"
                 value={taskForm.targetDate}
                 onChange={(e) => setTaskForm({ ...taskForm, targetDate: e.target.value })}
               />
@@ -52,9 +52,9 @@ export default function NewTaskModal({ taskForm, setTaskForm, onCreate, onClose 
           </div>
 
           <div>
-            <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Notes</label>
+            <label className="block text-xs font-medium text-black dark:text-white mb-1">Notes</label>
             <textarea
-              className="w-full bg-gray-50 dark:bg-violet-400/5 border border-gray-200 dark:border-violet-400/15 text-gray-900 dark:text-gray-100 rounded-lg p-2.5 focus:outline-none focus:border-violet-500 h-20"
+              className="w-full bg-gray-50 dark:bg-violet-400/5 border border-gray-200 dark:border-violet-400/15 text-black dark:text-white rounded-lg p-2.5 focus:outline-none focus:border-violet-500 h-20"
               value={taskForm.notes}
               onChange={(e) => setTaskForm({ ...taskForm, notes: e.target.value })}
               placeholder="Details, specifications, etc."

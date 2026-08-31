@@ -9,11 +9,11 @@ export default function FilterBar({ tasks, filteredCount, filters, onChange, pro
   const allTags = [...new Set(tasks.flatMap(t => t.tags || []))].sort();
   const hasActiveFilters = Boolean(filters.tag || filters.priority || filters.projectId);
 
-  const selectClass = "bg-white dark:bg-[#2a2340] border border-gray-200 dark:border-violet-400/15 text-gray-700 dark:text-gray-300 rounded-lg px-2.5 py-1.5 text-xs focus:outline-none focus:border-violet-500";
+  const selectClass = "bg-white dark:bg-[#2a2340] border border-gray-200 dark:border-violet-400/15 text-black dark:text-white rounded-lg px-2.5 py-1.5 text-xs focus:outline-none focus:border-violet-500";
 
   return (
     <div className="flex flex-wrap items-center gap-2 bg-gray-50 dark:bg-violet-400/[0.05] border border-gray-200 dark:border-violet-400/15 rounded-xl p-3">
-      <Filter className="w-3.5 h-3.5 text-gray-400 shrink-0" />
+      <Filter className="w-3.5 h-3.5 text-black dark:text-white shrink-0" />
 
       <select
         value={filters.tag || ''}
@@ -49,14 +49,14 @@ export default function FilterBar({ tasks, filteredCount, filters, onChange, pro
       {hasActiveFilters && (
         <button
           onClick={() => onChange({})}
-          className="flex items-center gap-1 text-xs font-medium text-gray-500 dark:text-gray-400 hover:text-red-500 transition-colors"
+          className="flex items-center gap-1 text-xs font-medium text-black dark:text-white hover:text-red-500 transition-colors"
         >
           <X className="w-3 h-3" />
           Clear
         </button>
       )}
 
-      <span className="ml-auto text-xs text-gray-400 dark:text-gray-500">
+      <span className="ml-auto text-xs text-black dark:text-white">
         {filteredCount} of {tasks.length} tasks
       </span>
     </div>

@@ -16,12 +16,12 @@ export default function TagInput({ tags, onChange }) {
 
   return (
     <div>
-      <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Tags</label>
+      <label className="block text-xs font-medium text-black dark:text-white mb-1">Tags</label>
       <div className="flex flex-wrap gap-1.5 mb-1.5">
         {tags.map(tag => (
           <span
             key={tag}
-            className="flex items-center gap-1 text-[11px] font-medium bg-gray-100 dark:bg-violet-400/10 text-gray-600 dark:text-gray-300 px-2 py-0.5 rounded-full"
+            className="flex items-center gap-1 text-[11px] font-medium bg-gray-100 dark:bg-violet-400/10 text-black dark:text-white px-2 py-0.5 rounded-full"
           >
             {tag}
             <button type="button" onClick={() => removeTag(tag)} className="hover:text-red-500">
@@ -39,7 +39,7 @@ export default function TagInput({ tags, onChange }) {
         }}
         onBlur={addTag}
         placeholder="Add a tag, press Enter"
-        className="w-full bg-gray-50 dark:bg-violet-400/5 border border-gray-200 dark:border-violet-400/15 text-gray-900 dark:text-gray-100 rounded-lg p-2 text-xs focus:outline-none focus:border-violet-500"
+        className="w-full bg-gray-50 dark:bg-violet-400/5 border border-gray-200 dark:border-violet-400/15 text-black dark:text-white rounded-lg p-2 text-xs focus:outline-none focus:border-violet-500"
       />
     </div>
   );

@@ -475,13 +475,13 @@ export default function Home({
         <div className="flex bg-gray-200/60 dark:bg-violet-400/10 rounded-lg p-0.5">
           {[['day', 'Day'], ['week', 'Week']].map(([id, label]) => (
             <button key={id} onClick={() => setView(id)}
-              className={`px-3 py-1.5 rounded-md text-xs font-medium ${view === id ? 'bg-white dark:bg-[#211b34] text-violet-600 shadow-sm' : 'text-gray-500 dark:text-gray-400'}`}
+              className={`px-3 py-1.5 rounded-md text-xs font-medium ${view === id ? 'bg-white dark:bg-[#211b34] text-violet-600 shadow-sm' : 'text-black dark:text-white'}`}
             >
               {label}
             </button>
           ))}
         </div>
-        <button onClick={refresh} disabled={isRefreshing} aria-label="Refresh data" className="text-gray-400 dark:text-gray-500 active:text-gray-600 dark:text-gray-300 disabled:opacity-40">
+        <button onClick={refresh} disabled={isRefreshing} aria-label="Refresh data" className="text-black dark:text-white active:text-black dark:text-white disabled:opacity-40">
           <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
         </button>
       </div>
@@ -490,13 +490,13 @@ export default function Home({
         <>
           <div className="flex items-center justify-between -mt-1">
             <div className="flex items-center gap-1">
-              <button onClick={() => shiftDay(-1)} aria-label="Previous day" className="text-gray-400 dark:text-gray-500 active:text-gray-600 dark:text-gray-300 p-1">
+              <button onClick={() => shiftDay(-1)} aria-label="Previous day" className="text-black dark:text-white active:text-black dark:text-white p-1">
                 <ChevronLeft className="w-4 h-4" />
               </button>
-              <span className="text-sm font-semibold text-gray-900 dark:text-gray-100 w-36 text-center">
+              <span className="text-sm font-semibold text-black dark:text-white w-36 text-center">
                 {isViewingToday ? 'Today' : selectedDateLabel}
               </span>
-              <button onClick={() => shiftDay(1)} aria-label="Next day" className="text-gray-400 dark:text-gray-500 active:text-gray-600 dark:text-gray-300 p-1">
+              <button onClick={() => shiftDay(1)} aria-label="Next day" className="text-black dark:text-white active:text-black dark:text-white p-1">
                 <ChevronRight className="w-4 h-4" />
               </button>
             </div>
@@ -510,13 +510,13 @@ export default function Home({
           <div className="md:grid md:grid-cols-[2fr_1fr] md:gap-6 md:items-start space-y-4 md:space-y-0">
           <div className="space-y-4">
           <div>
-            <span className="text-xs text-gray-400 dark:text-gray-500">Drag a block to reschedule, its bottom edge to resize</span>
+            <span className="text-xs text-black dark:text-white">Drag a block to reschedule, its bottom edge to resize</span>
           </div>
           <div className="bg-white dark:bg-[#211b34] rounded-2xl border border-gray-200 dark:border-violet-400/15 p-3">
             <div className="relative" style={{ height: TIMELINE_HOURS.length * HOUR_HEIGHT }}>
               {TIMELINE_HOURS.map((h, i) => (
                 <div key={h} className="absolute left-0 right-0 flex items-start gap-2" style={{ top: i * HOUR_HEIGHT }}>
-                  <span className="text-[10px] text-gray-300 dark:text-gray-600 w-10 flex-shrink-0 -mt-1.5 tabular-nums">{formatHour(h)}</span>
+                  <span className="text-[10px] text-black dark:text-white w-10 flex-shrink-0 -mt-1.5 tabular-nums">{formatHour(h)}</span>
                   <div className="flex-1 border-t border-gray-100 dark:border-violet-400/15 mt-1" />
                 </div>
               ))}
@@ -587,7 +587,7 @@ export default function Home({
                       <span className={`w-8 h-1 rounded-full transition-colors ${isResizing ? 'bg-gray-500' : 'bg-black/10 group-hover:bg-black/20'}`} />
                     </div>
 
-                    {isResizing && <div className="text-[10px] text-gray-500 dark:text-gray-400 mt-0.5">{formatDuration(drag.liveDuration)}</div>}
+                    {isResizing && <div className="text-[10px] text-black dark:text-white mt-0.5">{formatDuration(drag.liveDuration)}</div>}
 
                     {expanded && !isDragging && (
                       <div className={`mt-1 rounded-xl px-3 py-2 text-xs ${isWorkout ? 'bg-orange-50 dark:bg-orange-500/10 text-orange-800' : isTask ? 'bg-violet-50 dark:bg-violet-500/10 text-violet-800' : 'bg-green-50 dark:bg-green-500/10 text-green-800'}`}>
@@ -639,7 +639,7 @@ export default function Home({
           </div>
 
           {allBlocks.length === 0 && (
-            <p className="text-xs text-gray-400 dark:text-gray-500 text-center -mt-2">Nothing scheduled yet — add times to workouts and meals in their own tabs.</p>
+            <p className="text-xs text-black dark:text-white text-center -mt-2">Nothing scheduled yet — add times to workouts and meals in their own tabs.</p>
           )}
           </div>
 
@@ -650,12 +650,12 @@ export default function Home({
             <div>
               <div className="flex items-center gap-2 mb-2">
                 <CheckSquare className="w-4 h-4 text-violet-600" />
-                <span className="font-semibold text-gray-900 dark:text-gray-100 text-sm">{isViewingToday ? 'Today' : selectedDateLabel}</span>
-                <span className="text-[10px] text-gray-400 dark:text-gray-500 ml-auto">{dayListTasks.length}</span>
+                <span className="font-semibold text-black dark:text-white text-sm">{isViewingToday ? 'Today' : selectedDateLabel}</span>
+                <span className="text-[10px] text-black dark:text-white ml-auto">{dayListTasks.length}</span>
               </div>
               {dayListTasks.length === 0 ? (
                 <div className="bg-white dark:bg-[#211b34] rounded-2xl border border-dashed border-gray-200 dark:border-violet-400/15 p-4 text-center">
-                  <p className="text-xs text-gray-400 dark:text-gray-500">
+                  <p className="text-xs text-black dark:text-white">
                     {isViewingToday ? 'Nothing due, overdue, or picked for today.' : 'Nothing due, targeted, or picked for this day.'}
                   </p>
                 </div>
@@ -670,12 +670,12 @@ export default function Home({
                           <button
                             onClick={() => handleUpdateTaskStatus(task.id, done ? 'todo' : 'done')}
                             aria-label={done ? `Reopen ${task.name}` : `Mark ${task.name} done`}
-                            className="text-gray-300 dark:text-gray-600 active:text-violet-600 flex-shrink-0"
+                            className="text-black dark:text-white active:text-violet-600 flex-shrink-0"
                           >
                             {done ? <CircleCheck className="w-5 h-5 text-violet-600" /> : <Circle className="w-5 h-5" />}
                           </button>
                           <button onClick={() => setOpenTaskId(task.id)} className="flex-1 min-w-0 text-left">
-                            <span className={`text-sm truncate block ${done ? 'line-through text-gray-400 dark:text-gray-500' : 'text-gray-900 dark:text-gray-100 font-medium'}`}>{task.name}</span>
+                            <span className={`text-sm truncate block ${done ? 'line-through text-black dark:text-white' : 'text-black dark:text-white font-medium'}`}>{task.name}</span>
                           </button>
                           <div className="flex items-center gap-1 flex-shrink-0">
                             {overdueIds.has(task.id) && <span className="text-[9px] font-medium text-red-600 bg-red-50 dark:bg-red-500/10 px-1.5 py-0.5 rounded">Overdue</span>}
@@ -694,7 +694,7 @@ export default function Home({
                           ) : (
                             <button
                               onClick={() => commitTaskEntry(task.id, {})}
-                              className="flex items-center gap-1 text-[10px] font-medium text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-violet-400/10 px-2 py-0.5 rounded-full active:bg-gray-200 dark:bg-violet-400/10"
+                              className="flex items-center gap-1 text-[10px] font-medium text-black dark:text-white bg-gray-100 dark:bg-violet-400/10 px-2 py-0.5 rounded-full active:bg-gray-200 dark:bg-violet-400/10"
                             >
                               <CalendarRange className="w-2.5 h-2.5" /> Add to timeline
                             </button>
@@ -709,15 +709,15 @@ export default function Home({
 
             {isViewingToday && (
               <CollapsibleCard title="Pick today's focus" badge={openTasks.length ? `${openTasks.length}` : null}>
-                <p className="text-xs text-gray-400 dark:text-gray-500 mb-3">Deliberately choose what you're targeting today — separate from what's simply due.</p>
+                <p className="text-xs text-black dark:text-white mb-3">Deliberately choose what you're targeting today — separate from what's simply due.</p>
                 {openTasks.length === 0 ? (
-                  <p className="text-sm text-gray-400 dark:text-gray-500">No open tasks.</p>
+                  <p className="text-sm text-black dark:text-white">No open tasks.</p>
                 ) : (
                   <div className="space-y-1.5 max-h-64 overflow-y-auto">
                     {openTasks.map(task => (
                       <label key={task.id} className="flex items-center gap-2 bg-gray-50 dark:bg-violet-400/5 border border-gray-200 dark:border-violet-400/15 rounded-lg p-2 cursor-pointer">
                         <input type="checkbox" checked={selectedToday.includes(task.id)} onChange={() => handleToggleDailySelection(task.id)} />
-                        <span onClick={(e) => { e.preventDefault(); setOpenTaskId(task.id); }} className="text-xs text-gray-700 dark:text-gray-300 truncate flex-1">
+                        <span onClick={(e) => { e.preventDefault(); setOpenTaskId(task.id); }} className="text-xs text-black dark:text-white truncate flex-1">
                           {task.name}
                         </span>
                       </label>
@@ -734,9 +734,9 @@ export default function Home({
           <div className="bg-white dark:bg-[#211b34] rounded-2xl border border-gray-200 dark:border-violet-400/15 p-4">
             <div className="flex items-center gap-2 mb-3">
               <CalendarRange className="w-4 h-4 text-violet-600" />
-              <span className="font-semibold text-gray-900 dark:text-gray-100 text-sm">This week's plan</span>
+              <span className="font-semibold text-black dark:text-white text-sm">This week's plan</span>
             </div>
-            <p className="text-[11px] text-gray-400 dark:text-gray-500 mb-2">Tap a day to see (and drag-schedule) its timeline</p>
+            <p className="text-[11px] text-black dark:text-white mb-2">Tap a day to see (and drag-schedule) its timeline</p>
             <div className="space-y-1.5">
               {weekDates.map(({ day, iso }) => {
                 const workoutNames = dayList(workoutPlan[day]);
@@ -749,12 +749,12 @@ export default function Home({
                     onClick={() => goToDay(iso)}
                     className={`w-full flex items-center gap-3 rounded-xl px-3 py-2 text-left transition-colors hover:bg-gray-50 dark:bg-violet-400/5 ${isToday ? 'bg-violet-50 dark:bg-violet-500/10 hover:bg-violet-50 dark:bg-violet-500/10' : ''}`}
                   >
-                    <span className={`text-xs w-24 flex-shrink-0 ${isToday ? 'font-bold text-violet-600' : 'text-gray-500 dark:text-gray-400'}`}>
-                      {day.slice(0, 3)}{isToday ? ' •' : ''} <span className="text-gray-300 dark:text-gray-600">{iso.slice(5)}</span>
+                    <span className={`text-xs w-24 flex-shrink-0 ${isToday ? 'font-bold text-violet-600' : 'text-black dark:text-white'}`}>
+                      {day.slice(0, 3)}{isToday ? ' •' : ''} <span className="text-black dark:text-white">{iso.slice(5)}</span>
                     </span>
                     <div className="flex-1 min-w-0 flex flex-wrap items-center gap-1.5">
                       {workoutNames.length === 0 && mealCount === 0 && taskCount === 0 && (
-                        <span className="text-[11px] text-gray-300 dark:text-gray-600">Nothing planned</span>
+                        <span className="text-[11px] text-black dark:text-white">Nothing planned</span>
                       )}
                       {workoutNames.map(name => (
                         <span key={name} className="text-[10px] bg-orange-100 text-orange-700 rounded-full px-2 py-0.5">{name}</span>

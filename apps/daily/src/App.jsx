@@ -285,8 +285,8 @@ export default function App() {
       <div className="min-h-screen bg-[#f7f7f5] flex items-center justify-center">
         <div className="flex flex-col items-center gap-6 w-72">
           <div className="text-center">
-            <div className="text-2xl font-semibold text-gray-900">Summit</div>
-            <div className="text-xs text-gray-400 mt-1">Daily</div>
+            <div className="text-2xl font-semibold text-black">Summit</div>
+            <div className="text-xs text-black mt-1">Daily</div>
           </div>
           <div className={`w-full flex flex-col gap-3 ${passwordError ? 'animate-bounce' : ''}`}>
             <input
@@ -296,7 +296,7 @@ export default function App() {
               onChange={e => setPasswordInput(e.target.value)}
               onKeyDown={e => e.key === 'Enter' && handleUnlock()}
               autoFocus
-              className={`w-full bg-white border ${passwordError ? 'border-red-400' : 'border-gray-200'} rounded-lg px-4 py-3 text-gray-900 text-sm outline-none focus:border-violet-500 transition-colors`}
+              className={`w-full bg-white border ${passwordError ? 'border-red-400' : 'border-gray-200'} rounded-lg px-4 py-3 text-black text-sm outline-none focus:border-violet-500 transition-colors`}
             />
             <button
               onClick={handleUnlock}

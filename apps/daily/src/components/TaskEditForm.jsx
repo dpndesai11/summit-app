@@ -18,43 +18,43 @@ export default function TaskEditForm({ task, projects, onSave, onCancel }) {
   return (
     <div className="space-y-4 text-sm">
       <div>
-        <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Name</label>
+        <label className="block text-xs font-medium text-black dark:text-white mb-1">Name</label>
         <input
           type="text"
           value={draft.name}
           onChange={(e) => setField('name', e.target.value)}
           autoFocus
-          className="w-full bg-gray-50 dark:bg-violet-400/5 border border-gray-200 dark:border-violet-400/15 text-gray-900 dark:text-gray-100 rounded-lg p-2.5 focus:outline-none focus:border-violet-500"
+          className="w-full bg-gray-50 dark:bg-violet-400/5 border border-gray-200 dark:border-violet-400/15 text-black dark:text-white rounded-lg p-2.5 focus:outline-none focus:border-violet-500"
         />
       </div>
 
       <div className="grid grid-cols-2 gap-3">
         <div>
-          <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Deadline</label>
+          <label className="block text-xs font-medium text-black dark:text-white mb-1">Deadline</label>
           <input
             type="date"
             value={draft.dueDate || ''}
             onChange={(e) => setField('dueDate', e.target.value)}
-            className="w-full bg-gray-50 dark:bg-violet-400/5 border border-gray-200 dark:border-violet-400/15 text-gray-900 dark:text-gray-100 rounded-lg p-2.5 focus:outline-none focus:border-violet-500"
+            className="w-full bg-gray-50 dark:bg-violet-400/5 border border-gray-200 dark:border-violet-400/15 text-black dark:text-white rounded-lg p-2.5 focus:outline-none focus:border-violet-500"
           />
         </div>
         <div>
-          <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Target date</label>
+          <label className="block text-xs font-medium text-black dark:text-white mb-1">Target date</label>
           <input
             type="date"
             value={draft.targetDate || ''}
             onChange={(e) => setField('targetDate', e.target.value)}
-            className="w-full bg-gray-50 dark:bg-violet-400/5 border border-gray-200 dark:border-violet-400/15 text-gray-900 dark:text-gray-100 rounded-lg p-2.5 focus:outline-none focus:border-violet-500"
+            className="w-full bg-gray-50 dark:bg-violet-400/5 border border-gray-200 dark:border-violet-400/15 text-black dark:text-white rounded-lg p-2.5 focus:outline-none focus:border-violet-500"
           />
         </div>
       </div>
 
       <div>
-        <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Notes</label>
+        <label className="block text-xs font-medium text-black dark:text-white mb-1">Notes</label>
         <textarea
           value={draft.notes}
           onChange={(e) => setField('notes', e.target.value)}
-          className="w-full bg-gray-50 dark:bg-violet-400/5 border border-gray-200 dark:border-violet-400/15 text-gray-900 dark:text-gray-100 rounded-lg p-2.5 focus:outline-none focus:border-violet-500 h-20"
+          className="w-full bg-gray-50 dark:bg-violet-400/5 border border-gray-200 dark:border-violet-400/15 text-black dark:text-white rounded-lg p-2.5 focus:outline-none focus:border-violet-500 h-20"
         />
       </div>
 
@@ -67,7 +67,7 @@ export default function TaskEditForm({ task, projects, onSave, onCancel }) {
 
       <div className="grid grid-cols-2 gap-3">
         <div>
-          <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Priority</label>
+          <label className="block text-xs font-medium text-black dark:text-white mb-1">Priority</label>
           <div className="flex gap-1.5">
             {PRIORITIES.map(p => (
               <button
@@ -77,7 +77,7 @@ export default function TaskEditForm({ task, projects, onSave, onCancel }) {
                 className={`text-xs font-medium px-2.5 py-1 rounded-md transition-colors ${
                   draft.properties?.priority === p
                     ? 'bg-violet-600 text-white'
-                    : 'bg-gray-100 dark:bg-violet-400/10 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-white/20'
+                    : 'bg-gray-100 dark:bg-violet-400/10 text-black dark:text-white hover:bg-gray-200 dark:hover:bg-white/20'
                 }`}
               >
                 {p}
@@ -86,11 +86,11 @@ export default function TaskEditForm({ task, projects, onSave, onCancel }) {
           </div>
         </div>
         <div>
-          <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Project</label>
+          <label className="block text-xs font-medium text-black dark:text-white mb-1">Project</label>
           <select
             value={draft.properties?.projectId ?? ''}
             onChange={(e) => setProperty('projectId', e.target.value ? Number(e.target.value) : null)}
-            className="w-full bg-gray-50 dark:bg-violet-400/5 border border-gray-200 dark:border-violet-400/15 text-gray-900 dark:text-gray-100 rounded-lg p-2 text-xs focus:outline-none focus:border-violet-500"
+            className="w-full bg-gray-50 dark:bg-violet-400/5 border border-gray-200 dark:border-violet-400/15 text-black dark:text-white rounded-lg p-2 text-xs focus:outline-none focus:border-violet-500"
           >
             <option value="">No project</option>
             {projects.map(p => (
@@ -104,7 +104,7 @@ export default function TaskEditForm({ task, projects, onSave, onCancel }) {
         <button
           type="button"
           onClick={onCancel}
-          className="flex-1 text-sm font-medium px-3 py-2 rounded-lg border border-gray-200 dark:border-violet-400/15 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-violet-400/10 transition-colors"
+          className="flex-1 text-sm font-medium px-3 py-2 rounded-lg border border-gray-200 dark:border-violet-400/15 text-black dark:text-white hover:bg-gray-50 dark:hover:bg-violet-400/10 transition-colors"
         >
           Cancel
         </button>

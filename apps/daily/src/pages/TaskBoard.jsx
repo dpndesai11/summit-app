@@ -52,25 +52,25 @@ export default function TaskBoard({
     <div className="space-y-6">
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div className="bg-white dark:bg-[#211b34] border border-gray-200 dark:border-violet-400/15 rounded-xl p-4 text-center">
-          <span className="text-xs text-gray-400 dark:text-gray-500 block">Completion velocity</span>
-          <span className="text-2xl font-semibold text-gray-900 dark:text-gray-100 block my-1">
+          <span className="text-xs text-black dark:text-white block">Completion velocity</span>
+          <span className="text-2xl font-semibold text-black dark:text-white block my-1">
             {velocity === null ? '—' : `${Math.round(velocity * 100)}%`}
           </span>
-          <span className="text-xs text-gray-400">{velocity === null ? 'No checklist data yet' : 'Across all checklists'}</span>
+          <span className="text-xs text-black dark:text-white">{velocity === null ? 'No checklist data yet' : 'Across all checklists'}</span>
         </div>
         <div className="bg-white dark:bg-[#211b34] border border-gray-200 dark:border-violet-400/15 rounded-xl p-4 text-center">
-          <span className="text-xs text-gray-400 dark:text-gray-500 block">Load today</span>
-          <span className="text-2xl font-semibold text-gray-900 dark:text-gray-100 block my-1">
+          <span className="text-xs text-black dark:text-white block">Load today</span>
+          <span className="text-2xl font-semibold text-black dark:text-white block my-1">
             {getDistributedMilestonesCount(new Date().toISOString().split('T')[0])}
           </span>
-          <span className="text-xs text-gray-400">Distributed milestone points</span>
+          <span className="text-xs text-black dark:text-white">Distributed milestone points</span>
         </div>
         <div className="bg-white dark:bg-[#211b34] border border-gray-200 dark:border-violet-400/15 rounded-xl p-4 text-center">
-          <span className="text-xs text-gray-400 dark:text-gray-500 block">Open tasks</span>
-          <span className="text-2xl font-semibold text-gray-900 dark:text-gray-100 block my-1">
+          <span className="text-xs text-black dark:text-white block">Open tasks</span>
+          <span className="text-2xl font-semibold text-black dark:text-white block my-1">
             {tasks.filter(t => !t.isCompleted).length}
           </span>
-          <span className="text-xs text-gray-400">
+          <span className="text-xs text-black dark:text-white">
             {overdueTasks.length > 0 ? `${overdueTasks.length} overdue` : 'All on schedule'}
           </span>
         </div>
@@ -79,7 +79,7 @@ export default function TaskBoard({
       <div>
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-3">
-            <h2 className="text-sm font-semibold text-gray-900 dark:text-gray-100">
+            <h2 className="text-sm font-semibold text-black dark:text-white">
               {view === 'board' ? 'Board' : 'Planner'}
             </h2>
             <div className="flex gap-1">
@@ -90,7 +90,7 @@ export default function TaskBoard({
                   className={`text-xs font-medium capitalize px-2.5 py-1 rounded-md transition-colors ${
                     view === v
                       ? 'bg-violet-600 text-white'
-                      : 'bg-gray-100 dark:bg-violet-400/10 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-white/20'
+                      : 'bg-gray-100 dark:bg-violet-400/10 text-black dark:text-white hover:bg-gray-200 dark:hover:bg-white/20'
                   }`}
                 >
                   {v}
@@ -135,7 +135,7 @@ export default function TaskBoard({
       </div>
 
       <div className="bg-white dark:bg-[#211b34] border border-gray-200 dark:border-violet-400/15 rounded-xl p-5">
-        <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-4">14-day load forecast</h3>
+        <h3 className="text-sm font-semibold text-black dark:text-white mb-4">14-day load forecast</h3>
         <div className="grid grid-cols-2 sm:grid-cols-7 lg:grid-cols-14 gap-2">
           {Array.from({ length: 14 }).map((_, idx) => {
             const targetDateObj = new Date();
@@ -146,7 +146,7 @@ export default function TaskBoard({
 
             return (
               <div key={idx} className="bg-gray-50 dark:bg-violet-400/5 border border-gray-200 dark:border-violet-400/15 rounded-lg p-2 flex flex-col justify-between items-center text-center">
-                <span className="text-[10px] text-gray-400">
+                <span className="text-[10px] text-black dark:text-white">
                   {targetDateObj.toLocaleDateString('en-US', { weekday: 'short' })}
                 </span>
                 <div className="w-3 bg-gray-200 dark:bg-violet-400/10 h-16 rounded-full my-1.5 relative overflow-hidden flex items-end">
@@ -155,8 +155,8 @@ export default function TaskBoard({
                     style={{ height: `${fillHeight || 8}%` }}
                   ></div>
                 </div>
-                <span className="text-xs font-medium text-gray-800 dark:text-gray-200">{milestonesValue}</span>
-                <span className="text-[9px] text-gray-400">
+                <span className="text-xs font-medium text-black dark:text-white">{milestonesValue}</span>
+                <span className="text-[9px] text-black dark:text-white">
                   {targetDateObj.toLocaleDateString('de-CH', { day: '2-digit', month: '2-digit' })}
                 </span>
               </div>

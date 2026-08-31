@@ -28,8 +28,8 @@ function DesktopSidebar({ section, setSection, darkMode, setDarkMode }) {
           <Mountain className="w-3.5 h-3.5 text-white" />
         </div>
         <div className="min-w-0">
-          <span className="font-semibold text-sm text-[#37352f] dark:text-[#e6e6e6] block leading-tight">Summit</span>
-          <span className="text-[10px] text-[#9b9b9b] block leading-tight">Daily</span>
+          <span className="font-semibold text-sm text-black dark:text-white block leading-tight">Summit</span>
+          <span className="text-[10px] text-black dark:text-white block leading-tight">Daily</span>
         </div>
       </div>
 
@@ -41,7 +41,7 @@ function DesktopSidebar({ section, setSection, darkMode, setDarkMode }) {
               key={id}
               onClick={() => setSection(id)}
               className={`flex items-center gap-2.5 px-2.5 py-1.5 rounded-md text-sm text-left transition-colors ${
-                active ? 'bg-black/6 dark:bg-violet-400/10 text-[#37352f] dark:text-white font-medium' : 'text-[#6b7280] dark:text-[#9b9b9b] hover:bg-black/5 dark:hover:bg-violet-400/10'
+                active ? 'bg-black/6 dark:bg-violet-400/10 text-black dark:text-white font-medium' : 'text-black dark:text-white hover:bg-black/5 dark:hover:bg-violet-400/10'
               }`}
             >
               <Icon className="w-4 h-4" />
@@ -55,7 +55,7 @@ function DesktopSidebar({ section, setSection, darkMode, setDarkMode }) {
 
       <button
         onClick={() => setDarkMode(m => !m)}
-        className="flex items-center gap-2.5 px-2.5 py-1.5 rounded-md text-sm text-[#6b7280] dark:text-[#9b9b9b] hover:bg-black/5 dark:hover:bg-violet-400/10 transition-colors"
+        className="flex items-center gap-2.5 px-2.5 py-1.5 rounded-md text-sm text-black dark:text-white hover:bg-black/5 dark:hover:bg-violet-400/10 transition-colors"
       >
         {darkMode ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
         {darkMode ? 'Light mode' : 'Dark mode'}
@@ -68,22 +68,22 @@ export default function DailyApp({ section, setSection, darkMode, setDarkMode, t
   const current = SECTIONS.find(s => s.id === section) || SECTIONS[0];
 
   return (
-    <div className="min-h-screen bg-[#f7f7f5] dark:bg-[#14101f] text-[#37352f] dark:text-[#e6e6e6] font-sans antialiased md:flex">
+    <div className="min-h-screen bg-[#f7f7f5] dark:bg-[#14101f] text-black dark:text-white font-sans antialiased md:flex">
       <DesktopSidebar section={section} setSection={setSection} darkMode={darkMode} setDarkMode={setDarkMode} />
 
       <div className="flex-1 min-w-0">
         {/* Mobile-only header */}
         <div className="md:hidden sticky top-0 z-30 bg-[#f7f7f5]/90 dark:bg-[#14101f]/90 backdrop-blur px-4 pt-3 pb-2">
           <div className="flex items-center gap-1.5 mb-1">
-            <span className="text-[10px] font-bold tracking-widest uppercase text-gray-400">Summit</span>
+            <span className="text-[10px] font-bold tracking-widest uppercase text-black dark:text-white">Summit</span>
             <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-violet-600 text-white">Daily</span>
           </div>
-          <h1 className="text-xl font-bold text-gray-900 dark:text-gray-100">{current.label}</h1>
+          <h1 className="text-xl font-bold text-black dark:text-white">{current.label}</h1>
         </div>
 
         {/* Desktop-only header — the sidebar already carries nav */}
         <div className="hidden md:block px-6 lg:px-10 pt-8 pb-4">
-          <h1 className="text-xl font-bold text-gray-900 dark:text-gray-100">{current.label}</h1>
+          <h1 className="text-xl font-bold text-black dark:text-white">{current.label}</h1>
         </div>
 
         {toast && (
@@ -91,7 +91,7 @@ export default function DailyApp({ section, setSection, darkMode, setDarkMode, t
             className={`fixed top-4 right-4 z-50 px-4 py-3 rounded-lg border text-sm shadow-lg flex items-center gap-2 animate-toast-in-right ${
               toast.isError
                 ? 'bg-red-50 border-red-200 text-red-600 dark:bg-red-500/10 dark:border-red-500/30 dark:text-red-400'
-                : 'bg-white border-gray-200 text-gray-700 dark:bg-[#211b34] dark:border-violet-400/15 dark:text-gray-200'
+                : 'bg-white border-gray-200 text-black dark:bg-[#211b34] dark:border-violet-400/15 dark:text-white'
             }`}
           >
             {toast.isError ? <AlertTriangle className="w-4 h-4" /> : <Check className="w-4 h-4" />}
@@ -120,7 +120,7 @@ export default function DailyApp({ section, setSection, darkMode, setDarkMode, t
         <div className="max-w-md mx-auto flex">
           {SECTIONS.map(({ id, label, icon: Icon, active }) => (
             <button key={id} onClick={() => setSection(id)}
-              className={`flex-1 flex flex-col items-center gap-0.5 py-2.5 ${section === id ? active : 'text-gray-400'}`}
+              className={`flex-1 flex flex-col items-center gap-0.5 py-2.5 ${section === id ? active : 'text-black dark:text-white'}`}
             >
               <Icon className="w-5 h-5" />
               <span className="text-[10px] font-medium">{label}</span>

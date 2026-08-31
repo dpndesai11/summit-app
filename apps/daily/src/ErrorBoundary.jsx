@@ -31,8 +31,8 @@ export default class ErrorBoundary extends Component {
             <div className="w-10 h-10 rounded-full bg-red-50 flex items-center justify-center mx-auto">
               <AlertTriangle className="w-5 h-5 text-red-500" />
             </div>
-            <h1 className="text-sm font-semibold text-gray-900">Something went wrong</h1>
-            <p className="text-xs text-gray-500">
+            <h1 className="text-sm font-semibold text-black">Something went wrong</h1>
+            <p className="text-xs text-black">
               This page hit an error and couldn't render. Your data is safe — nothing was saved from this broken state.
               Reloading usually fixes it.
             </p>
@@ -43,8 +43,8 @@ export default class ErrorBoundary extends Component {
               Reload
             </button>
             <details className="text-left">
-              <summary className="text-[11px] text-gray-400 cursor-pointer">Technical details</summary>
-              <pre className="text-[10px] text-gray-400 mt-1 whitespace-pre-wrap break-words">{String(this.state.error?.stack || this.state.error)}</pre>
+              <summary className="text-[11px] text-black cursor-pointer">Technical details</summary>
+              <pre className="text-[10px] text-black mt-1 whitespace-pre-wrap break-words">{String(this.state.error?.stack || this.state.error)}</pre>
             </details>
           </div>
         </div>

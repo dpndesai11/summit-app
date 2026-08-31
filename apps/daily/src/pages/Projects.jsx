@@ -79,7 +79,7 @@ export default function Projects({
               onChange={(e) => setNewProjectName(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && handleAddProject()}
               placeholder="New project"
-              className="flex-1 bg-gray-50 dark:bg-violet-400/5 border border-gray-200 dark:border-violet-400/15 text-gray-900 dark:text-gray-100 rounded-lg px-2.5 py-1.5 text-xs focus:outline-none focus:border-violet-500"
+              className="flex-1 bg-gray-50 dark:bg-violet-400/5 border border-gray-200 dark:border-violet-400/15 text-black dark:text-white rounded-lg px-2.5 py-1.5 text-xs focus:outline-none focus:border-violet-500"
             />
             <button
               onClick={handleAddProject}
@@ -91,7 +91,7 @@ export default function Projects({
           </div>
 
           {projects.length === 0 ? (
-            <p className="text-xs text-gray-400 dark:text-gray-600 text-center py-4">No projects yet.</p>
+            <p className="text-xs text-black dark:text-white text-center py-4">No projects yet.</p>
           ) : (
             <div className="space-y-1">
               {projects.map(project => (
@@ -112,22 +112,22 @@ export default function Projects({
                       onClick={(e) => e.stopPropagation()}
                       onKeyDown={(e) => e.key === 'Enter' && commitRename()}
                       onBlur={commitRename}
-                      className="flex-1 bg-white dark:bg-[#2a2340] border border-violet-500 rounded-md px-1.5 py-0.5 text-xs text-gray-900 dark:text-gray-100 focus:outline-none"
+                      className="flex-1 bg-white dark:bg-[#2a2340] border border-violet-500 rounded-md px-1.5 py-0.5 text-xs text-black dark:text-white focus:outline-none"
                     />
                   ) : (
-                    <span className={`flex-1 text-sm truncate ${selectedProjectId === project.id ? 'text-violet-700 dark:text-violet-400 font-medium' : 'text-gray-700 dark:text-gray-300'}`}>
+                    <span className={`flex-1 text-sm truncate ${selectedProjectId === project.id ? 'text-violet-700 dark:text-violet-400 font-medium' : 'text-black dark:text-white'}`}>
                       {project.name}
                     </span>
                   )}
                   <button
                     onClick={(e) => { e.stopPropagation(); startRename(project); }}
-                    className="opacity-0 group-hover:opacity-100 text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 transition-opacity"
+                    className="opacity-0 group-hover:opacity-100 text-black dark:text-white hover:text-black dark:hover:text-white transition-opacity"
                   >
                     <Pencil className="w-3 h-3" />
                   </button>
                   <button
                     onClick={(e) => { e.stopPropagation(); setConfirmDeleteId(project.id); }}
-                    className="opacity-0 group-hover:opacity-100 text-gray-400 hover:text-red-500 transition-opacity"
+                    className="opacity-0 group-hover:opacity-100 text-black dark:text-white hover:text-red-500 transition-opacity"
                   >
                     <Trash2 className="w-3 h-3" />
                   </button>
@@ -146,7 +146,7 @@ export default function Projects({
               onOpenTask={onOpenTask}
             />
           ) : (
-            <p className="text-sm text-gray-400 dark:text-gray-600 text-center py-10">
+            <p className="text-sm text-black dark:text-white text-center py-10">
               {projects.length === 0 ? 'Create a project to get started.' : 'Select a project.'}
             </p>
           )}

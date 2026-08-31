@@ -10,12 +10,12 @@ export default function ConfirmDialog({ open, title, message, confirmLabel = 'Co
         className="bg-white dark:bg-[#211b34] border border-gray-200 dark:border-violet-400/15 rounded-xl shadow-xl w-full max-w-sm p-5"
         onClick={(e) => e.stopPropagation()}
       >
-        <h2 className="text-sm font-semibold text-gray-900 dark:text-gray-100">{title}</h2>
-        {message && <p className="text-xs text-gray-500 dark:text-gray-400 mt-1.5">{message}</p>}
+        <h2 className="text-sm font-semibold text-black dark:text-white">{title}</h2>
+        {message && <p className="text-xs text-black dark:text-white mt-1.5">{message}</p>}
         <div className="flex gap-2 justify-end mt-4">
           <button
             onClick={onCancel}
-            className="text-sm font-medium px-3 py-1.5 rounded-lg border border-gray-200 dark:border-violet-400/15 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-violet-400/10 transition-colors"
+            className="text-sm font-medium px-3 py-1.5 rounded-lg border border-gray-200 dark:border-violet-400/15 text-black dark:text-white hover:bg-gray-50 dark:hover:bg-violet-400/10 transition-colors"
           >
             {cancelLabel}
           </button>

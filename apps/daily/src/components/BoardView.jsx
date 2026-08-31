@@ -25,7 +25,7 @@ export default function BoardView({ tasks, formatToSwissDate, onOpenTask, onUpda
 
   if (tasks.length === 0) {
     return (
-      <div className="text-sm text-gray-400 dark:text-gray-600 text-center py-10">
+      <div className="text-sm text-black dark:text-white text-center py-10">
         No tasks match the current filters.
       </div>
     );
