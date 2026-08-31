@@ -1,3 +1,16 @@
+// ---------------------------------------------------------------------------
+// ARCHIVED — this was the standalone "Tasks" app (task/project management,
+// its own password gate, deployed at the site root). Retired 2026-08-30 when
+// it merged with the old Daily (Fitness+Eat) app into one app under the
+// Daily identity — see /apps/daily. Every idea here survived the merge:
+// the kanban/planner board, Today Focus, Projects, and their components all
+// moved over unchanged into apps/daily/src/{pages,components}; only the
+// duplicate "Fitness Dashboard" page below (FitnessDeck) was dropped, since
+// apps/daily's Workouts section already owned that data properly.
+// Kept here for reference only — not built or deployed. Moved into
+// /legacy on 2026-08-31 alongside apps/fitness and apps/eat, its
+// once-siblings from before the merge.
+// ---------------------------------------------------------------------------
 import { useState, useEffect } from 'react';
 import { AlertTriangle } from 'lucide-react';
 import { dbGet, dbSet } from './lib/db';
