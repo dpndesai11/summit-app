@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
-import { Plus, Pencil, Trash2 } from 'lucide-react';
+import { Plus, Pencil, Trash2, Check, Folder } from 'lucide-react';
 import ConfirmDialog from '../components/ConfirmDialog';
 import ProjectDetail from '../components/ProjectDetail';
 import OrphanedTasksBanner from '../components/OrphanedTasksBanner';
+import CollapsibleCard from '../components/CollapsibleCard';
 
 export default function Projects({
   tasks,
@@ -15,26 +16,27 @@ export default function Projects({
   pendingNav,
   clearPendingNav,
 }) {
-  const [selectedProjectId, setSelectedProjectId] = useState(projects[0]?.id ?? null);
   const [newProjectName, setNewProjectName] = useState('');
   const [renamingId, setRenamingId] = useState(null);
   const [renameValue, setRenameValue] = useState('');
   const [confirmDeleteId, setConfirmDeleteId] = useState(null);
+  // Every project's card is collapsed by default and stays that way until
+  // the user opens it — this set just tracks which ones they've expanded.
+  const [expandedIds, setExpandedIds] = useState(() => new Set());
 
   // Deep link from a task's detail view ("its project should be a clickable
-  // link that navigates to that project's notes page"). Consumed during
-  // render rather than in a useEffect — see the matching comment in
-  // TaskBoard.jsx for why.
+  // link that navigates to that project's notes page") — force that one
+  // project's card open, without touching the others' collapsed state.
   const [consumedNav, setConsumedNav] = useState(null);
   if (pendingNav && pendingNav !== consumedNav) {
     setConsumedNav(pendingNav);
-    if (pendingNav.projectId) setSelectedProjectId(pendingNav.projectId);
+    if (pendingNav.projectId) {
+      setExpandedIds(prev => new Set(prev).add(pendingNav.projectId));
+    }
   }
   useEffect(() => {
     if (pendingNav) clearPendingNav();
   }, [pendingNav]);
-
-  const selectedProject = projects.find(p => p.id === selectedProjectId) || null;
 
   const validProjectIds = new Set(projects.map(p => p.id));
   const orphanedTasks = tasks.filter(
@@ -45,9 +47,10 @@ export default function Projects({
 
   const handleAddProject = () => {
     if (!newProjectName.trim()) return;
-    const id = handleCreateProject(newProjectName);
+    handleCreateProject(newProjectName);
     setNewProjectName('');
-    if (id) setSelectedProjectId(id);
+    // Stays collapsed like every other project card — no auto-expand, so
+    // "collapsed by default" holds even for the one you just created.
   };
 
   const startRename = (project) => {
@@ -62,7 +65,6 @@ export default function Projects({
 
   const confirmDelete = () => {
     handleDeleteProject(confirmDeleteId);
-    if (selectedProjectId === confirmDeleteId) setSelectedProjectId(null);
     setConfirmDeleteId(null);
   };
 
@@ -70,88 +72,84 @@ export default function Projects({
     <div className="space-y-6">
       <OrphanedTasksBanner tasks={orphanedTasks} onOpenTask={onOpenTask} />
 
-      <div className="grid grid-cols-1 lg:grid-cols-[240px_1fr] gap-6">
-        <div className="bg-white dark:bg-[#211b34] border border-gray-200 dark:border-violet-400/15 rounded-xl p-4 h-fit">
-          <div className="flex gap-1.5 mb-3">
-            <input
-              type="text"
-              value={newProjectName}
-              onChange={(e) => setNewProjectName(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && handleAddProject()}
-              placeholder="New project"
-              className="flex-1 bg-gray-50 dark:bg-violet-400/5 border border-gray-200 dark:border-violet-400/15 text-black dark:text-white rounded-lg px-2.5 py-1.5 text-xs focus:outline-none focus:border-violet-500"
-            />
-            <button
-              onClick={handleAddProject}
-              disabled={!newProjectName.trim()}
-              className="bg-violet-600 hover:bg-violet-700 text-white rounded-lg px-2 disabled:opacity-40 transition-colors"
-            >
-              <Plus className="w-3.5 h-3.5" />
-            </button>
-          </div>
-
-          {projects.length === 0 ? (
-            <p className="text-xs text-black dark:text-white text-center py-4">No projects yet.</p>
-          ) : (
-            <div className="space-y-1">
-              {projects.map(project => (
-                <div
-                  key={project.id}
-                  onClick={() => setSelectedProjectId(project.id)}
-                  className={`group flex items-center gap-1 rounded-lg px-2 py-1.5 cursor-pointer transition-colors ${
-                    selectedProjectId === project.id
-                      ? 'bg-violet-50 dark:bg-violet-500/10'
-                      : 'hover:bg-gray-50 dark:hover:bg-violet-400/10'
-                  }`}
-                >
-                  {renamingId === project.id ? (
-                    <input
-                      autoFocus
-                      value={renameValue}
-                      onChange={(e) => setRenameValue(e.target.value)}
-                      onClick={(e) => e.stopPropagation()}
-                      onKeyDown={(e) => e.key === 'Enter' && commitRename()}
-                      onBlur={commitRename}
-                      className="flex-1 bg-white dark:bg-[#2a2340] border border-violet-500 rounded-md px-1.5 py-0.5 text-xs text-black dark:text-white focus:outline-none"
-                    />
-                  ) : (
-                    <span className={`flex-1 text-sm truncate ${selectedProjectId === project.id ? 'text-violet-700 dark:text-violet-400 font-medium' : 'text-black dark:text-white'}`}>
-                      {project.name}
-                    </span>
-                  )}
-                  <button
-                    onClick={(e) => { e.stopPropagation(); startRename(project); }}
-                    className="opacity-0 group-hover:opacity-100 text-black dark:text-white hover:text-black dark:hover:text-white transition-opacity"
-                  >
-                    <Pencil className="w-3 h-3" />
-                  </button>
-                  <button
-                    onClick={(e) => { e.stopPropagation(); setConfirmDeleteId(project.id); }}
-                    className="opacity-0 group-hover:opacity-100 text-black dark:text-white hover:text-red-500 transition-opacity"
-                  >
-                    <Trash2 className="w-3 h-3" />
-                  </button>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-
-        <div className="bg-white dark:bg-[#211b34] border border-gray-200 dark:border-violet-400/15 rounded-xl p-5">
-          {selectedProject ? (
-            <ProjectDetail
-              project={selectedProject}
-              tasks={tasks}
-              onUpdateNotes={handleUpdateProjectNotes}
-              onOpenTask={onOpenTask}
-            />
-          ) : (
-            <p className="text-sm text-black dark:text-white text-center py-10">
-              {projects.length === 0 ? 'Create a project to get started.' : 'Select a project.'}
-            </p>
-          )}
+      <div className="bg-white dark:bg-[#211b34] border border-gray-200 dark:border-violet-400/15 rounded-xl p-4">
+        <div className="flex gap-1.5">
+          <input
+            type="text"
+            value={newProjectName}
+            onChange={(e) => setNewProjectName(e.target.value)}
+            onKeyDown={(e) => e.key === 'Enter' && handleAddProject()}
+            placeholder="New project"
+            className="flex-1 bg-gray-50 dark:bg-violet-400/5 border border-gray-200 dark:border-violet-400/15 text-black dark:text-white rounded-lg px-2.5 py-1.5 text-sm focus:outline-none focus:border-violet-500"
+          />
+          <button
+            onClick={handleAddProject}
+            disabled={!newProjectName.trim()}
+            className="bg-violet-600 hover:bg-violet-700 text-white rounded-lg px-3 disabled:opacity-40 transition-colors flex items-center gap-1 text-sm font-medium"
+          >
+            <Plus className="w-3.5 h-3.5" /> Add
+          </button>
         </div>
       </div>
+
+      {projects.length === 0 ? (
+        <p className="text-sm text-black dark:text-white text-center py-10">Create a project to get started.</p>
+      ) : (
+        <div className="space-y-3">
+          {projects.map(project => {
+            const linkedCount = tasks.filter(t => t.properties?.projectId === project.id).length;
+            const isRenaming = renamingId === project.id;
+            return (
+              <CollapsibleCard
+                key={project.id}
+                icon={Folder}
+                iconColor="text-violet-600"
+                title={isRenaming ? '' : project.name}
+                badge={!isRenaming && linkedCount > 0 ? `${linkedCount} task${linkedCount === 1 ? '' : 's'}` : null}
+                open={expandedIds.has(project.id)}
+                onToggle={(next) => setExpandedIds(prev => {
+                  const s = new Set(prev);
+                  next ? s.add(project.id) : s.delete(project.id);
+                  return s;
+                })}
+                actions={
+                  isRenaming ? (
+                    <>
+                      <input
+                        autoFocus
+                        value={renameValue}
+                        onChange={(e) => setRenameValue(e.target.value)}
+                        onKeyDown={(e) => e.key === 'Enter' && commitRename()}
+                        onBlur={commitRename}
+                        className="bg-white dark:bg-[#2a2340] border border-violet-500 rounded-md px-1.5 py-0.5 text-sm text-black dark:text-white focus:outline-none w-40"
+                      />
+                      <button onClick={commitRename} className="text-violet-600" aria-label="Save name">
+                        <Check className="w-3.5 h-3.5" />
+                      </button>
+                    </>
+                  ) : (
+                    <>
+                      <button onClick={() => startRename(project)} className="text-black dark:text-white hover:text-violet-600" aria-label="Rename project">
+                        <Pencil className="w-3.5 h-3.5" />
+                      </button>
+                      <button onClick={() => setConfirmDeleteId(project.id)} className="text-black dark:text-white hover:text-red-500" aria-label="Delete project">
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </>
+                  )
+                }
+              >
+                <ProjectDetail
+                  project={project}
+                  tasks={tasks}
+                  onUpdateNotes={handleUpdateProjectNotes}
+                  onOpenTask={onOpenTask}
+                />
+              </CollapsibleCard>
+            );
+          })}
+        </div>
+      )}
 
       <ConfirmDialog
         open={confirmDeleteId !== null}

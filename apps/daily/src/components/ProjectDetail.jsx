@@ -13,13 +13,6 @@ export default function ProjectDetail({ project, tasks, onUpdateNotes, onOpenTas
   return (
     <div className="space-y-5">
       <div>
-        <h2 className="text-base font-semibold text-black dark:text-white">{project.name}</h2>
-        <p className="text-xs text-black dark:text-white mt-0.5">
-          {linkedTasks.length} linked task{linkedTasks.length === 1 ? '' : 's'}
-        </p>
-      </div>
-
-      <div>
         <label className="block text-xs font-medium text-black dark:text-white mb-1.5">Notes</label>
         <textarea
           value={project.notes}

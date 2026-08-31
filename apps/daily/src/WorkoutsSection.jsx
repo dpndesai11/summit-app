@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import {
   Dumbbell, CalendarDays, History, Flame, Timer, Trash2, Plus,
   Check, Minus, Moon, ChevronDown, Activity, X, AlertTriangle,
-  Lock, RefreshCw, MapPin, ClipboardList, PersonStanding, Trophy, Clock
+  Lock, Unlock, RefreshCw, MapPin, ClipboardList, PersonStanding, Trophy, Clock, Pencil
 } from 'lucide-react';
 import { dbGet, dbSet, dbRefresh } from './lib/db';
 import { routeDistanceKm } from './lib/geo';
@@ -361,6 +361,9 @@ export default function WorkoutsSection() {
     draftName: '', draftType: 'weight'
   });
   const [builderOpen, setBuilderOpen] = useState(false);
+  // null while creating a new workout; a template id while the builder is
+  // pre-filled with an existing one's name/exercises for editing.
+  const [editingTemplateId, setEditingTemplateId] = useState(null);
 
   const [cardioSheetOpen, setCardioSheetOpen] = useState(false);
   const [cardioForm, setCardioForm] = useState({ activity: 'Running', duration: 30, distance: 5, routeId: '' });
@@ -539,6 +542,19 @@ export default function WorkoutsSection() {
     showToast(nextEx ? `${exerciseName} locked — next up: ${nextEx.name}` : `${exerciseName} locked`);
   };
 
+  // Undo a lock — reopens the exercise for editing (add/remove sets) and
+  // makes it the active card again, in case a set was mis-logged.
+  const unlockExercise = (session, exerciseName) => {
+    const ex = session.exercises[exerciseName];
+    if (!ex) return;
+    patchSession(sessionKey(session), s => ({
+      ...s,
+      exercises: { ...s.exercises, [exerciseName]: { ...ex, locked: false } },
+      activeExercise: exerciseName,
+    }));
+    showToast(`${exerciseName} unlocked`);
+  };
+
   const completeWorkout = (session) => {
     const template = templates.find(t => t.name === session.templateName);
     const entries = Object.entries(session.exercises)
@@ -664,12 +680,32 @@ export default function WorkoutsSection() {
     }));
   };
 
-  const createTemplate = () => {
-    if (!builder.name.trim() || builder.exercises.length === 0) return;
-    updateTemplates([...templates, { id: Date.now(), name: builder.name.trim(), exercises: builder.exercises }]);
+  const startEditTemplate = (t) => {
+    setBuilder({ name: t.name, exercises: t.exercises, mode: 'list', bulkText: '', bulkType: 'weight', draftName: '', draftType: 'weight' });
+    setEditingTemplateId(t.id);
+    setBuilderOpen(true);
+  };
+
+  const closeBuilder = () => {
     setBuilder({ name: '', exercises: [], mode: 'list', bulkText: '', bulkType: 'weight', draftName: '', draftType: 'weight' });
+    setEditingTemplateId(null);
     setBuilderOpen(false);
-    showToast('Workout created');
+  };
+
+  const saveTemplate = () => {
+    if (!builder.name.trim() || builder.exercises.length === 0) return;
+    if (editingTemplateId) {
+      updateTemplates(templates.map(t =>
+        t.id === editingTemplateId ? { ...t, name: builder.name.trim(), exercises: builder.exercises } : t
+      ));
+      showToast('Workout updated');
+    } else {
+      updateTemplates([...templates, { id: Date.now(), name: builder.name.trim(), exercises: builder.exercises }]);
+      showToast('Workout created');
+    }
+    setBuilder({ name: '', exercises: [], mode: 'list', bulkText: '', bulkType: 'weight', draftName: '', draftType: 'weight' });
+    setEditingTemplateId(null);
+    setBuilderOpen(false);
   };
 
   const cycleTemplateExerciseType = (templateId, exerciseIndex) => {
@@ -757,7 +793,13 @@ export default function WorkoutsSection() {
           <div className="flex items-center gap-2 mb-2">
             <Check className="w-4 h-4 text-green-500" />
             <span className="font-semibold text-black dark:text-white text-sm">{ex.name}</span>
-            <span className="text-[10px] text-black dark:text-white ml-auto">{exSession.sets.length} set{exSession.sets.length === 1 ? '' : 's'} locked</span>
+            <span className="text-[10px] text-black dark:text-white">{exSession.sets.length} set{exSession.sets.length === 1 ? '' : 's'} locked</span>
+            <button
+              onClick={() => unlockExercise(session, ex.name)}
+              className="ml-auto flex items-center gap-1 text-[10px] font-medium text-violet-600 bg-violet-50 dark:bg-violet-500/10 px-2 py-0.5 rounded-full active:bg-violet-100"
+            >
+              <Unlock className="w-3 h-3" /> Unlock
+            </button>
           </div>
           <div className="flex flex-wrap gap-1.5">
             {exSession.sets.map(s => (
@@ -1065,7 +1107,7 @@ export default function WorkoutsSection() {
         title="Workouts"
         badge={`${templates.length}`}
         actions={
-          <button onClick={() => setBuilderOpen(o => !o)}
+          <button onClick={() => (builderOpen ? closeBuilder() : setBuilderOpen(true))}
             className="flex items-center gap-1 text-[11px] font-medium text-violet-600 bg-violet-50 dark:bg-violet-500/10 px-2.5 py-1 rounded-lg active:bg-violet-100">
             {builderOpen ? <X className="w-3 h-3" /> : <Plus className="w-3 h-3" />}
             {builderOpen ? 'Cancel' : 'New'}
@@ -1170,10 +1212,10 @@ export default function WorkoutsSection() {
                 })}
               </div>
             )}
-            <button onClick={createTemplate}
+            <button onClick={saveTemplate}
               disabled={!builder.name.trim() || builder.exercises.length === 0}
               className="w-full h-10 bg-violet-600 text-white rounded-lg text-sm font-semibold disabled:opacity-40 active:bg-violet-700">
-              Create workout
+              {editingTemplateId ? 'Save changes' : 'Create workout'}
             </button>
           </div>
         )}
@@ -1183,9 +1225,14 @@ export default function WorkoutsSection() {
             <div key={t.id} className="border border-gray-200 dark:border-violet-400/15 rounded-xl p-3">
               <div className="flex items-center justify-between mb-1.5">
                 <span className="text-sm font-medium text-black dark:text-white">{t.name}</span>
-                <button onClick={() => deleteTemplate(t.id)} className="text-black dark:text-white active:text-red-500 p-1">
-                  <Trash2 className="w-4 h-4" />
-                </button>
+                <div className="flex items-center gap-1">
+                  <button onClick={() => startEditTemplate(t)} className="text-black dark:text-white active:text-violet-600 p-1" aria-label={`Edit ${t.name}`}>
+                    <Pencil className="w-4 h-4" />
+                  </button>
+                  <button onClick={() => deleteTemplate(t.id)} className="text-black dark:text-white active:text-red-500 p-1" aria-label={`Delete ${t.name}`}>
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </div>
               </div>
               <div className="flex flex-wrap gap-1">
                 {t.exercises.map((ex, i) => (
@@ -1209,7 +1256,6 @@ export default function WorkoutsSection() {
       <CollapsibleCard
         title="Routes"
         badge={routes.length > 0 ? `${routes.length}` : null}
-        defaultOpen={routes.length > 0}
         actions={
           <button onClick={() => setPlannerOpen(true)}
             className="flex items-center gap-1 text-[11px] font-medium text-violet-600 bg-violet-50 dark:bg-violet-500/10 px-2.5 py-1 rounded-lg active:bg-violet-100">

@@ -1,7 +1,8 @@
 import { useState, useEffect, useRef } from 'react';
 import {
   Dumbbell, Coffee, Apple, Sandwich, Cookie, CookingPot,
-  CheckSquare, Check, ChevronDown, ChevronLeft, ChevronRight, RefreshCw, AlertTriangle, Circle, CircleCheck, CalendarRange, Bell, X
+  CheckSquare, Check, ChevronDown, ChevronLeft, ChevronRight, RefreshCw, AlertTriangle, Circle, CircleCheck, CalendarRange, Bell, X,
+  Repeat, Plus, Pencil, Trash2
 } from 'lucide-react';
 import { dbGet, dbSet, dbRefresh } from '../lib/db';
 import { toISODate, startOfWeek, addDays, getTodayFocusTasks } from '../lib/taskUtils';
@@ -33,7 +34,24 @@ const STORAGE_KEYS = {
   weeklyMealPlan: 'summit_weekly_meal_plan',
   mealTimes: 'summit_meal_times',
   taskTimes: 'summit_task_times',
+  recurringBlocks: 'summit_recurring_blocks',
 };
+
+// Recurring background blocks — user-defined repeating commitments (work
+// hours, uni hours, commute) that aren't tasks/workouts/meals but still
+// belong on the calendar as a lighter-colour band behind everything else.
+// A small fixed palette (not free-form colour data) so the exact Tailwind
+// classes exist in this file for the build to pick up — same convention as
+// TYPE_META/SLOT_META elsewhere in this codebase.
+const BLOCK_COLOR_PRESETS = {
+  slate: { label: 'Slate', band: 'bg-slate-400/20 dark:bg-slate-300/10 border-slate-400/40', text: 'text-slate-700 dark:text-slate-300', chip: 'bg-slate-100 dark:bg-slate-400/10 text-slate-700 dark:text-slate-300' },
+  blue: { label: 'Blue', band: 'bg-blue-400/20 dark:bg-blue-300/10 border-blue-400/40', text: 'text-blue-700 dark:text-blue-300', chip: 'bg-blue-100 dark:bg-blue-400/10 text-blue-700 dark:text-blue-300' },
+  amber: { label: 'Amber', band: 'bg-amber-400/20 dark:bg-amber-300/10 border-amber-400/40', text: 'text-amber-700 dark:text-amber-300', chip: 'bg-amber-100 dark:bg-amber-400/10 text-amber-700 dark:text-amber-300' },
+  rose: { label: 'Rose', band: 'bg-rose-400/20 dark:bg-rose-300/10 border-rose-400/40', text: 'text-rose-700 dark:text-rose-300', chip: 'bg-rose-100 dark:bg-rose-400/10 text-rose-700 dark:text-rose-300' },
+  teal: { label: 'Teal', band: 'bg-teal-400/20 dark:bg-teal-300/10 border-teal-400/40', text: 'text-teal-700 dark:text-teal-300', chip: 'bg-teal-100 dark:bg-teal-400/10 text-teal-700 dark:text-teal-300' },
+};
+const BLOCK_COLORS = Object.keys(BLOCK_COLOR_PRESETS);
+const DEFAULT_RECURRING_BLOCK = { name: '', color: 'slate', days: [], time: '09:00', duration: 60 };
 
 const DEFAULT_WORKOUT_TIME = '07:00';
 const DEFAULT_WORKOUT_DURATION = 60;
@@ -143,6 +161,10 @@ export default function Home({
   // {[isoDate]: {[taskId]: {time, duration}}}. Keyed by real date (not
   // weekday) since tasks are one-off, not a recurring weekly plan.
   const [taskTimes, setTaskTimes] = useState({});
+  const [recurringBlocks, setRecurringBlocks] = useState([]);
+  const [blockBuilder, setBlockBuilder] = useState(DEFAULT_RECURRING_BLOCK);
+  const [blockBuilderOpen, setBlockBuilderOpen] = useState(false);
+  const [editingBlockId, setEditingBlockId] = useState(null);
   const [toast, setToast] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -195,7 +217,7 @@ export default function Home({
         return fallback;
       }
     };
-    const [wt, wwp, wtm, rc, wmp, mt, tt] = await Promise.all([
+    const [wt, wwp, wtm, rc, wmp, mt, tt, rb] = await Promise.all([
       loadData(STORAGE_KEYS.workoutTemplates, []),
       loadData(STORAGE_KEYS.weeklyWorkoutPlan, {}),
       loadData(STORAGE_KEYS.workoutTimes, {}),
@@ -203,6 +225,7 @@ export default function Home({
       loadData(STORAGE_KEYS.weeklyMealPlan, {}),
       loadData(STORAGE_KEYS.mealTimes, {}),
       loadData(STORAGE_KEYS.taskTimes, {}),
+      loadData(STORAGE_KEYS.recurringBlocks, []),
     ]);
     setTemplates(Array.isArray(wt) ? wt : []);
     setWorkoutPlan(wwp && typeof wwp === 'object' ? wwp : {});
@@ -211,6 +234,7 @@ export default function Home({
     setMealPlan(wmp && typeof wmp === 'object' ? wmp : {});
     setMealTimes(mt && typeof mt === 'object' ? mt : {});
     setTaskTimes(tt && typeof tt === 'object' ? tt : {});
+    setRecurringBlocks(Array.isArray(rb) ? rb : []);
   };
 
   useEffect(() => {
@@ -355,6 +379,44 @@ export default function Home({
   };
   const isTaskScheduled = (taskId) => Object.prototype.hasOwnProperty.call(taskTimes[selectedISO] || {}, String(taskId))
     || Object.prototype.hasOwnProperty.call(taskTimes[selectedISO] || {}, taskId);
+
+  // --- Recurring background blocks (work/uni hours, commute, ...) --------------
+  // Not tasks or a weekly workout/meal plan — just a repeating time range that
+  // should show as a lighter-colour band on whichever days it applies to.
+  const saveRecurringBlocks = (next) => {
+    setRecurringBlocks(next);
+    dbSetSafe(STORAGE_KEYS.recurringBlocks, next);
+  };
+  const toggleBuilderDay = (day) => setBlockBuilder(p => ({
+    ...p, days: p.days.includes(day) ? p.days.filter(d => d !== day) : [...p.days, day]
+  }));
+  const startEditBlock = (b) => {
+    setBlockBuilder({ name: b.name, color: b.color, days: b.days, time: b.time, duration: b.duration });
+    setEditingBlockId(b.id);
+    setBlockBuilderOpen(true);
+  };
+  const closeBlockBuilder = () => {
+    setBlockBuilder(DEFAULT_RECURRING_BLOCK);
+    setEditingBlockId(null);
+    setBlockBuilderOpen(false);
+  };
+  const saveBlock = () => {
+    if (!blockBuilder.name.trim() || blockBuilder.days.length === 0) return;
+    const clean = { ...blockBuilder, name: blockBuilder.name.trim() };
+    if (editingBlockId) {
+      saveRecurringBlocks(recurringBlocks.map(b => (b.id === editingBlockId ? { ...b, ...clean } : b)));
+      showToast('Block updated');
+    } else {
+      saveRecurringBlocks([...recurringBlocks, { id: Date.now(), ...clean }]);
+      showToast('Block added');
+    }
+    closeBlockBuilder();
+  };
+  const deleteBlock = (id) => {
+    saveRecurringBlocks(recurringBlocks.filter(b => b.id !== id));
+    if (editingBlockId === id) closeBlockBuilder();
+  };
+  const dayRecurringBlocks = recurringBlocks.filter(b => b.days.includes(selectedDayName));
 
   const handleBlockPointerDown = (block, mode, e) => {
     if (e.button != null && e.button !== 0) return;
@@ -521,6 +583,24 @@ export default function Home({
                 </div>
               ))}
 
+              {dayRecurringBlocks.map(b => {
+                const preset = BLOCK_COLOR_PRESETS[b.color] || BLOCK_COLOR_PRESETS.slate;
+                const start = timeToMinutes(b.time);
+                const clampedStart = Math.max(TIMELINE_START_MIN, Math.min(TIMELINE_END_MIN, start));
+                const clampedEnd = Math.max(TIMELINE_START_MIN, Math.min(TIMELINE_END_MIN, start + b.duration));
+                const top = ((clampedStart - TIMELINE_START_MIN) / 60) * HOUR_HEIGHT;
+                const height = Math.max(20, ((clampedEnd - clampedStart) / 60) * HOUR_HEIGHT);
+                return (
+                  <div
+                    key={b.id}
+                    className={`absolute left-14 right-2 rounded-lg border pointer-events-none px-2 py-1 ${preset.band}`}
+                    style={{ top, height }}
+                  >
+                    <span className={`text-[10px] font-medium ${preset.text}`}>{b.name}</span>
+                  </div>
+                );
+              })}
+
               {isViewingToday && nowMinutes >= TIMELINE_START_MIN && nowMinutes <= TIMELINE_END_MIN && (
                 <div
                   className="absolute left-10 right-0 flex items-center gap-1 z-10 pointer-events-none"
@@ -641,6 +721,121 @@ export default function Home({
           {allBlocks.length === 0 && (
             <p className="text-xs text-black dark:text-white text-center -mt-2">Nothing scheduled yet — add times to workouts and meals in their own tabs.</p>
           )}
+
+          <CollapsibleCard
+            title="Recurring blocks"
+            icon={Repeat}
+            iconColor="text-violet-600"
+            badge={recurringBlocks.length > 0 ? `${recurringBlocks.length}` : null}
+            actions={
+              <button
+                onClick={() => (blockBuilderOpen ? closeBlockBuilder() : setBlockBuilderOpen(true))}
+                className="flex items-center gap-1 text-[11px] font-medium text-violet-600 bg-violet-50 dark:bg-violet-500/10 px-2.5 py-1 rounded-lg active:bg-violet-100"
+              >
+                {blockBuilderOpen ? <X className="w-3 h-3" /> : <Plus className="w-3 h-3" />}
+                {blockBuilderOpen ? 'Cancel' : 'New'}
+              </button>
+            }
+          >
+            <p className="text-xs text-black dark:text-white mb-3">
+              Repeating commitments that aren't tasks, workouts, or meals — work hours, uni hours, commute — shown as a lighter band on the days you pick.
+            </p>
+
+            {blockBuilderOpen && (
+              <div className="bg-gray-50 dark:bg-violet-400/5 rounded-xl p-3 mb-3 space-y-2.5">
+                <input
+                  value={blockBuilder.name}
+                  onChange={(e) => setBlockBuilder(p => ({ ...p, name: e.target.value }))}
+                  placeholder="Name (e.g. Work hours, Commute)"
+                  className="w-full bg-white dark:bg-[#211b34] border border-gray-200 dark:border-violet-400/15 rounded-lg px-3 py-2 text-sm text-black dark:text-white outline-none focus:border-violet-500"
+                />
+
+                <div className="flex flex-wrap gap-1.5">
+                  {BLOCK_COLORS.map(c => (
+                    <button
+                      key={c}
+                      onClick={() => setBlockBuilder(p => ({ ...p, color: c }))}
+                      className={`text-[10px] font-medium px-2.5 py-1 rounded-full border ${BLOCK_COLOR_PRESETS[c].chip} ${blockBuilder.color === c ? 'border-current' : 'border-transparent opacity-50'}`}
+                    >
+                      {BLOCK_COLOR_PRESETS[c].label}
+                    </button>
+                  ))}
+                </div>
+
+                <div className="flex flex-wrap gap-1.5">
+                  {DAYS.map(day => (
+                    <button
+                      key={day}
+                      onClick={() => toggleBuilderDay(day)}
+                      className={`text-[11px] font-medium w-11 h-7 rounded-full ${blockBuilder.days.includes(day) ? 'bg-violet-600 text-white' : 'bg-white dark:bg-[#211b34] text-black dark:text-white border border-gray-200 dark:border-violet-400/15'}`}
+                    >
+                      {day.slice(0, 3)}
+                    </button>
+                  ))}
+                </div>
+
+                <div className="flex gap-2">
+                  <div className="flex-1">
+                    <label className="block text-[10px] text-black dark:text-white mb-1">Start time</label>
+                    <input
+                      type="time"
+                      value={blockBuilder.time}
+                      onChange={(e) => setBlockBuilder(p => ({ ...p, time: e.target.value }))}
+                      className="w-full bg-white dark:bg-[#211b34] border border-gray-200 dark:border-violet-400/15 rounded-lg px-2 py-1.5 text-sm text-black dark:text-white outline-none focus:border-violet-500"
+                    />
+                  </div>
+                  <div className="flex-1">
+                    <label className="block text-[10px] text-black dark:text-white mb-1">Duration (min)</label>
+                    <input
+                      type="number"
+                      min={5}
+                      step={5}
+                      value={blockBuilder.duration}
+                      onChange={(e) => setBlockBuilder(p => ({ ...p, duration: Math.max(5, Number(e.target.value) || 5) }))}
+                      className="w-full bg-white dark:bg-[#211b34] border border-gray-200 dark:border-violet-400/15 rounded-lg px-2 py-1.5 text-sm text-black dark:text-white outline-none focus:border-violet-500"
+                    />
+                  </div>
+                </div>
+
+                <button
+                  onClick={saveBlock}
+                  disabled={!blockBuilder.name.trim() || blockBuilder.days.length === 0}
+                  className="w-full h-10 bg-violet-600 text-white rounded-lg text-sm font-semibold disabled:opacity-40 active:bg-violet-700"
+                >
+                  {editingBlockId ? 'Save changes' : 'Add block'}
+                </button>
+              </div>
+            )}
+
+            {recurringBlocks.length === 0 ? (
+              <p className="text-xs text-black dark:text-white text-center py-2">No recurring blocks yet — add one above.</p>
+            ) : (
+              <div className="space-y-2">
+                {recurringBlocks.map(b => {
+                  const preset = BLOCK_COLOR_PRESETS[b.color] || BLOCK_COLOR_PRESETS.slate;
+                  return (
+                    <div key={b.id} className="border border-gray-200 dark:border-violet-400/15 rounded-xl p-3">
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full ${preset.chip}`}>{b.name}</span>
+                        <span className="text-[10px] text-black dark:text-white ml-auto">{formatTime(b.time)} · {formatDuration(b.duration)}</span>
+                        <button onClick={() => startEditBlock(b)} className="text-black dark:text-white active:text-violet-600 p-1" aria-label={`Edit ${b.name}`}>
+                          <Pencil className="w-3.5 h-3.5" />
+                        </button>
+                        <button onClick={() => deleteBlock(b.id)} className="text-black dark:text-white active:text-red-500 p-1" aria-label={`Delete ${b.name}`}>
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                      <div className="flex flex-wrap gap-1">
+                        {b.days.map(d => (
+                          <span key={d} className="text-[9px] text-black dark:text-white bg-gray-100 dark:bg-violet-400/10 rounded px-1.5 py-0.5">{d.slice(0, 3)}</span>
+                        ))}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </CollapsibleCard>
           </div>
 
           {/* Tasks for the selected day — due/overdue/picked for today, or a
