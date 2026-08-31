@@ -51,7 +51,37 @@ const BLOCK_COLOR_PRESETS = {
   teal: { label: 'Teal', band: 'bg-teal-400/20 dark:bg-teal-300/10 border-teal-400/40', text: 'text-teal-700 dark:text-teal-300', chip: 'bg-teal-100 dark:bg-teal-400/10 text-teal-700 dark:text-teal-300' },
 };
 const BLOCK_COLORS = Object.keys(BLOCK_COLOR_PRESETS);
-const DEFAULT_RECURRING_BLOCK = { name: '', color: 'slate', days: [], time: '09:00', duration: 60 };
+const DEFAULT_RECURRING_BLOCK = { name: '', color: 'slate', days: {} };
+
+// Life happens — Mon-Thu work might end at a different time than Friday, so
+// each day a block applies to carries its own time/duration rather than one
+// shared time for every day, same as workouts/meals already do per-day.
+// Normalizes the older single-time/array-of-days shape (this block's first
+// version) into the per-day shape on read, without rewriting stored data
+// until the block is actually edited.
+const normalizeBlockDays = (b) => {
+  if (b.days && !Array.isArray(b.days) && typeof b.days === 'object') return b.days;
+  const days = Array.isArray(b.days) ? b.days : [];
+  const time = b.time || '09:00';
+  const duration = b.duration > 0 ? b.duration : 60;
+  const out = {};
+  days.forEach(d => { out[d] = { time, duration }; });
+  return out;
+};
+// Compact summary: days sharing the exact same time/duration collapse into
+// one line (e.g. "Mon Tue Wed Thu · 8:00 AM · 8h") instead of one row each.
+const groupBlockDays = (days) => {
+  const groups = [];
+  DAYS.forEach(day => {
+    const entry = days[day];
+    if (!entry) return;
+    const key = `${entry.time}|${entry.duration}`;
+    let g = groups.find(g => g.key === key);
+    if (!g) { g = { key, time: entry.time, duration: entry.duration, dayNames: [] }; groups.push(g); }
+    g.dayNames.push(day);
+  });
+  return groups;
+};
 
 const DEFAULT_WORKOUT_TIME = '07:00';
 const DEFAULT_WORKOUT_DURATION = 60;
@@ -387,11 +417,25 @@ export default function Home({
     setRecurringBlocks(next);
     dbSetSafe(STORAGE_KEYS.recurringBlocks, next);
   };
-  const toggleBuilderDay = (day) => setBlockBuilder(p => ({
-    ...p, days: p.days.includes(day) ? p.days.filter(d => d !== day) : [...p.days, day]
+  // Toggling a day on copies another already-picked day's time/duration
+  // (most days share the same hours — only the exception, like an earlier
+  // Friday finish, needs its own edit) rather than resetting to a default
+  // every time.
+  const toggleBuilderDay = (day) => setBlockBuilder(p => {
+    const next = { ...p.days };
+    if (next[day]) {
+      delete next[day];
+    } else {
+      const existing = Object.values(p.days)[0];
+      next[day] = existing ? { ...existing } : { time: '09:00', duration: 60 };
+    }
+    return { ...p, days: next };
+  });
+  const setBuilderDayField = (day, field, value) => setBlockBuilder(p => ({
+    ...p, days: { ...p.days, [day]: { ...p.days[day], [field]: value } }
   }));
   const startEditBlock = (b) => {
-    setBlockBuilder({ name: b.name, color: b.color, days: b.days, time: b.time, duration: b.duration });
+    setBlockBuilder({ name: b.name, color: b.color, days: normalizeBlockDays(b) });
     setEditingBlockId(b.id);
     setBlockBuilderOpen(true);
   };
@@ -401,8 +445,8 @@ export default function Home({
     setBlockBuilderOpen(false);
   };
   const saveBlock = () => {
-    if (!blockBuilder.name.trim() || blockBuilder.days.length === 0) return;
-    const clean = { ...blockBuilder, name: blockBuilder.name.trim() };
+    if (!blockBuilder.name.trim() || Object.keys(blockBuilder.days).length === 0) return;
+    const clean = { name: blockBuilder.name.trim(), color: blockBuilder.color, days: blockBuilder.days };
     if (editingBlockId) {
       saveRecurringBlocks(recurringBlocks.map(b => (b.id === editingBlockId ? { ...b, ...clean } : b)));
       showToast('Block updated');
@@ -416,7 +460,9 @@ export default function Home({
     saveRecurringBlocks(recurringBlocks.filter(b => b.id !== id));
     if (editingBlockId === id) closeBlockBuilder();
   };
-  const dayRecurringBlocks = recurringBlocks.filter(b => b.days.includes(selectedDayName));
+  const dayRecurringBlocks = recurringBlocks
+    .map(b => ({ block: b, entry: normalizeBlockDays(b)[selectedDayName] }))
+    .filter(x => x.entry);
 
   const handleBlockPointerDown = (block, mode, e) => {
     if (e.button != null && e.button !== 0) return;
@@ -583,20 +629,20 @@ export default function Home({
                 </div>
               ))}
 
-              {dayRecurringBlocks.map(b => {
-                const preset = BLOCK_COLOR_PRESETS[b.color] || BLOCK_COLOR_PRESETS.slate;
-                const start = timeToMinutes(b.time);
+              {dayRecurringBlocks.map(({ block, entry }) => {
+                const preset = BLOCK_COLOR_PRESETS[block.color] || BLOCK_COLOR_PRESETS.slate;
+                const start = timeToMinutes(entry.time);
                 const clampedStart = Math.max(TIMELINE_START_MIN, Math.min(TIMELINE_END_MIN, start));
-                const clampedEnd = Math.max(TIMELINE_START_MIN, Math.min(TIMELINE_END_MIN, start + b.duration));
+                const clampedEnd = Math.max(TIMELINE_START_MIN, Math.min(TIMELINE_END_MIN, start + entry.duration));
                 const top = ((clampedStart - TIMELINE_START_MIN) / 60) * HOUR_HEIGHT;
                 const height = Math.max(20, ((clampedEnd - clampedStart) / 60) * HOUR_HEIGHT);
                 return (
                   <div
-                    key={b.id}
+                    key={block.id}
                     className={`absolute left-14 right-2 rounded-lg border pointer-events-none px-2 py-1 ${preset.band}`}
                     style={{ top, height }}
                   >
-                    <span className={`text-[10px] font-medium ${preset.text}`}>{b.name}</span>
+                    <span className={`text-[10px] font-medium ${preset.text}`}>{block.name}</span>
                   </div>
                 );
               })}
@@ -721,121 +767,6 @@ export default function Home({
           {allBlocks.length === 0 && (
             <p className="text-xs text-black dark:text-white text-center -mt-2">Nothing scheduled yet — add times to workouts and meals in their own tabs.</p>
           )}
-
-          <CollapsibleCard
-            title="Recurring blocks"
-            icon={Repeat}
-            iconColor="text-violet-600"
-            badge={recurringBlocks.length > 0 ? `${recurringBlocks.length}` : null}
-            actions={
-              <button
-                onClick={() => (blockBuilderOpen ? closeBlockBuilder() : setBlockBuilderOpen(true))}
-                className="flex items-center gap-1 text-[11px] font-medium text-violet-600 bg-violet-50 dark:bg-violet-500/10 px-2.5 py-1 rounded-lg active:bg-violet-100"
-              >
-                {blockBuilderOpen ? <X className="w-3 h-3" /> : <Plus className="w-3 h-3" />}
-                {blockBuilderOpen ? 'Cancel' : 'New'}
-              </button>
-            }
-          >
-            <p className="text-xs text-black dark:text-white mb-3">
-              Repeating commitments that aren't tasks, workouts, or meals — work hours, uni hours, commute — shown as a lighter band on the days you pick.
-            </p>
-
-            {blockBuilderOpen && (
-              <div className="bg-gray-50 dark:bg-violet-400/5 rounded-xl p-3 mb-3 space-y-2.5">
-                <input
-                  value={blockBuilder.name}
-                  onChange={(e) => setBlockBuilder(p => ({ ...p, name: e.target.value }))}
-                  placeholder="Name (e.g. Work hours, Commute)"
-                  className="w-full bg-white dark:bg-[#211b34] border border-gray-200 dark:border-violet-400/15 rounded-lg px-3 py-2 text-sm text-black dark:text-white outline-none focus:border-violet-500"
-                />
-
-                <div className="flex flex-wrap gap-1.5">
-                  {BLOCK_COLORS.map(c => (
-                    <button
-                      key={c}
-                      onClick={() => setBlockBuilder(p => ({ ...p, color: c }))}
-                      className={`text-[10px] font-medium px-2.5 py-1 rounded-full border ${BLOCK_COLOR_PRESETS[c].chip} ${blockBuilder.color === c ? 'border-current' : 'border-transparent opacity-50'}`}
-                    >
-                      {BLOCK_COLOR_PRESETS[c].label}
-                    </button>
-                  ))}
-                </div>
-
-                <div className="flex flex-wrap gap-1.5">
-                  {DAYS.map(day => (
-                    <button
-                      key={day}
-                      onClick={() => toggleBuilderDay(day)}
-                      className={`text-[11px] font-medium w-11 h-7 rounded-full ${blockBuilder.days.includes(day) ? 'bg-violet-600 text-white' : 'bg-white dark:bg-[#211b34] text-black dark:text-white border border-gray-200 dark:border-violet-400/15'}`}
-                    >
-                      {day.slice(0, 3)}
-                    </button>
-                  ))}
-                </div>
-
-                <div className="flex gap-2">
-                  <div className="flex-1">
-                    <label className="block text-[10px] text-black dark:text-white mb-1">Start time</label>
-                    <input
-                      type="time"
-                      value={blockBuilder.time}
-                      onChange={(e) => setBlockBuilder(p => ({ ...p, time: e.target.value }))}
-                      className="w-full bg-white dark:bg-[#211b34] border border-gray-200 dark:border-violet-400/15 rounded-lg px-2 py-1.5 text-sm text-black dark:text-white outline-none focus:border-violet-500"
-                    />
-                  </div>
-                  <div className="flex-1">
-                    <label className="block text-[10px] text-black dark:text-white mb-1">Duration (min)</label>
-                    <input
-                      type="number"
-                      min={5}
-                      step={5}
-                      value={blockBuilder.duration}
-                      onChange={(e) => setBlockBuilder(p => ({ ...p, duration: Math.max(5, Number(e.target.value) || 5) }))}
-                      className="w-full bg-white dark:bg-[#211b34] border border-gray-200 dark:border-violet-400/15 rounded-lg px-2 py-1.5 text-sm text-black dark:text-white outline-none focus:border-violet-500"
-                    />
-                  </div>
-                </div>
-
-                <button
-                  onClick={saveBlock}
-                  disabled={!blockBuilder.name.trim() || blockBuilder.days.length === 0}
-                  className="w-full h-10 bg-violet-600 text-white rounded-lg text-sm font-semibold disabled:opacity-40 active:bg-violet-700"
-                >
-                  {editingBlockId ? 'Save changes' : 'Add block'}
-                </button>
-              </div>
-            )}
-
-            {recurringBlocks.length === 0 ? (
-              <p className="text-xs text-black dark:text-white text-center py-2">No recurring blocks yet — add one above.</p>
-            ) : (
-              <div className="space-y-2">
-                {recurringBlocks.map(b => {
-                  const preset = BLOCK_COLOR_PRESETS[b.color] || BLOCK_COLOR_PRESETS.slate;
-                  return (
-                    <div key={b.id} className="border border-gray-200 dark:border-violet-400/15 rounded-xl p-3">
-                      <div className="flex items-center gap-2 mb-1">
-                        <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full ${preset.chip}`}>{b.name}</span>
-                        <span className="text-[10px] text-black dark:text-white ml-auto">{formatTime(b.time)} · {formatDuration(b.duration)}</span>
-                        <button onClick={() => startEditBlock(b)} className="text-black dark:text-white active:text-violet-600 p-1" aria-label={`Edit ${b.name}`}>
-                          <Pencil className="w-3.5 h-3.5" />
-                        </button>
-                        <button onClick={() => deleteBlock(b.id)} className="text-black dark:text-white active:text-red-500 p-1" aria-label={`Delete ${b.name}`}>
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
-                      </div>
-                      <div className="flex flex-wrap gap-1">
-                        {b.days.map(d => (
-                          <span key={d} className="text-[9px] text-black dark:text-white bg-gray-100 dark:bg-violet-400/10 rounded px-1.5 py-0.5">{d.slice(0, 3)}</span>
-                        ))}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </CollapsibleCard>
           </div>
 
           {/* Tasks for the selected day — due/overdue/picked for today, or a
@@ -901,6 +832,129 @@ export default function Home({
                 </div>
               )}
             </div>
+
+            <CollapsibleCard
+              title="Recurring blocks"
+              icon={Repeat}
+              iconColor="text-violet-600"
+              badge={recurringBlocks.length > 0 ? `${recurringBlocks.length}` : null}
+              actions={
+                <button
+                  onClick={() => (blockBuilderOpen ? closeBlockBuilder() : setBlockBuilderOpen(true))}
+                  className="flex items-center gap-1 text-[11px] font-medium text-violet-600 bg-violet-50 dark:bg-violet-500/10 px-2.5 py-1 rounded-lg active:bg-violet-100"
+                >
+                  {blockBuilderOpen ? <X className="w-3 h-3" /> : <Plus className="w-3 h-3" />}
+                  {blockBuilderOpen ? 'Cancel' : 'New'}
+                </button>
+              }
+            >
+              <p className="text-xs text-black dark:text-white mb-3">
+                Repeating commitments that aren't tasks, workouts, or meals — work hours, uni hours, commute — shown as a lighter band on the days you pick. Life happens, so each day gets its own time — edit them all here.
+              </p>
+
+              {blockBuilderOpen && (
+                <div className="bg-gray-50 dark:bg-violet-400/5 rounded-xl p-3 mb-3 space-y-2.5">
+                  <input
+                    value={blockBuilder.name}
+                    onChange={(e) => setBlockBuilder(p => ({ ...p, name: e.target.value }))}
+                    placeholder="Name (e.g. Work hours, Commute)"
+                    className="w-full bg-white dark:bg-[#211b34] border border-gray-200 dark:border-violet-400/15 rounded-lg px-3 py-2 text-sm text-black dark:text-white outline-none focus:border-violet-500"
+                  />
+
+                  <div className="flex flex-wrap gap-1.5">
+                    {BLOCK_COLORS.map(c => (
+                      <button
+                        key={c}
+                        onClick={() => setBlockBuilder(p => ({ ...p, color: c }))}
+                        className={`text-[10px] font-medium px-2.5 py-1 rounded-full border ${BLOCK_COLOR_PRESETS[c].chip} ${blockBuilder.color === c ? 'border-current' : 'border-transparent opacity-50'}`}
+                      >
+                        {BLOCK_COLOR_PRESETS[c].label}
+                      </button>
+                    ))}
+                  </div>
+
+                  <div className="flex flex-wrap gap-1.5">
+                    {DAYS.map(day => (
+                      <button
+                        key={day}
+                        onClick={() => toggleBuilderDay(day)}
+                        className={`text-[11px] font-medium w-11 h-7 rounded-full ${blockBuilder.days[day] ? 'bg-violet-600 text-white' : 'bg-white dark:bg-[#211b34] text-black dark:text-white border border-gray-200 dark:border-violet-400/15'}`}
+                      >
+                        {day.slice(0, 3)}
+                      </button>
+                    ))}
+                  </div>
+
+                  {/* Every picked day gets its own time/duration, all editable
+                      right here — e.g. Mon-Thu 8:00-16:00 and a Friday that
+                      finishes at 15:00 instead, without a separate step. */}
+                  {Object.keys(blockBuilder.days).length > 0 && (
+                    <div className="space-y-1.5">
+                      {DAYS.filter(d => blockBuilder.days[d]).map(day => (
+                        <div key={day} className="flex items-center gap-1.5">
+                          <span className="text-[11px] font-medium text-black dark:text-white w-9 flex-shrink-0">{day.slice(0, 3)}</span>
+                          <input
+                            type="time"
+                            value={blockBuilder.days[day].time}
+                            onChange={(e) => setBuilderDayField(day, 'time', e.target.value)}
+                            className="flex-1 min-w-0 bg-white dark:bg-[#211b34] border border-gray-200 dark:border-violet-400/15 rounded-lg px-2 py-1.5 text-xs text-black dark:text-white outline-none focus:border-violet-500"
+                          />
+                          <input
+                            type="number"
+                            min={5}
+                            step={5}
+                            value={blockBuilder.days[day].duration}
+                            onChange={(e) => setBuilderDayField(day, 'duration', Math.max(5, Number(e.target.value) || 5))}
+                            className="w-16 flex-shrink-0 bg-white dark:bg-[#211b34] border border-gray-200 dark:border-violet-400/15 rounded-lg px-2 py-1.5 text-xs text-black dark:text-white outline-none focus:border-violet-500"
+                          />
+                          <span className="text-[10px] text-black dark:text-white flex-shrink-0">min</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  <button
+                    onClick={saveBlock}
+                    disabled={!blockBuilder.name.trim() || Object.keys(blockBuilder.days).length === 0}
+                    className="w-full h-10 bg-violet-600 text-white rounded-lg text-sm font-semibold disabled:opacity-40 active:bg-violet-700"
+                  >
+                    {editingBlockId ? 'Save changes' : 'Add block'}
+                  </button>
+                </div>
+              )}
+
+              {recurringBlocks.length === 0 ? (
+                <p className="text-xs text-black dark:text-white text-center py-2">No recurring blocks yet — add one above.</p>
+              ) : (
+                <div className="space-y-2">
+                  {recurringBlocks.map(b => {
+                    const preset = BLOCK_COLOR_PRESETS[b.color] || BLOCK_COLOR_PRESETS.slate;
+                    const groups = groupBlockDays(normalizeBlockDays(b));
+                    return (
+                      <div key={b.id} className="border border-gray-200 dark:border-violet-400/15 rounded-xl p-3">
+                        <div className="flex items-center gap-2 mb-1.5">
+                          <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full ${preset.chip}`}>{b.name}</span>
+                          <button onClick={() => startEditBlock(b)} className="ml-auto text-black dark:text-white active:text-violet-600 p-1" aria-label={`Edit ${b.name}`}>
+                            <Pencil className="w-3.5 h-3.5" />
+                          </button>
+                          <button onClick={() => deleteBlock(b.id)} className="text-black dark:text-white active:text-red-500 p-1" aria-label={`Delete ${b.name}`}>
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                        <div className="space-y-0.5">
+                          {groups.map(g => (
+                            <div key={g.key} className="text-[10px] text-black dark:text-white">
+                              <span className="font-medium">{g.dayNames.map(d => d.slice(0, 3)).join(' ')}</span>
+                              {' · '}{formatTime(g.time)} · {formatDuration(g.duration)}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </CollapsibleCard>
 
             {isViewingToday && (
               <CollapsibleCard title="Pick today's focus" badge={openTasks.length ? `${openTasks.length}` : null}>
