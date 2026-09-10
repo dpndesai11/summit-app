@@ -37,9 +37,9 @@ const CARB_TARGETS = {
   Sunday: 'Duration-scaled — use daily target + intra-ride g/hour once rides exceed ~90min',
 };
 const PRE_WORKOUT_FUEL = {
-  Tuesday: 'Banana, or bread/roll + jam, or small oats (60-90min before the 10km run)',
-  Thursday: 'Banana + orange (60-90min before cricket nets)',
-  Saturday: 'Banana + orange (60-90min before gym + run)',
+  Tuesday: 'Banana + orange (60-90min before the long run)',
+  Thursday: 'Banana + orange (60-90min before the easy run)',
+  Saturday: 'Banana + orange (60-90min before gym)',
 };
 
 const SLOTS = ['breakfast', 'snack1', 'lunch', 'snack2', 'dinner'];
