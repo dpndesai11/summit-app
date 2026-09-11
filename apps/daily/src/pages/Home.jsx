@@ -636,13 +636,30 @@ export default function Home({
                 const clampedEnd = Math.max(TIMELINE_START_MIN, Math.min(TIMELINE_END_MIN, start + entry.duration));
                 const top = ((clampedStart - TIMELINE_START_MIN) / 60) * HOUR_HEIGHT;
                 const height = Math.max(20, ((clampedEnd - clampedStart) / 60) * HOUR_HEIGHT);
+                // A single label anchored at the band's very top can end up
+                // permanently hidden — an 8-hour Work band with a workout
+                // block sitting on its first 40px would otherwise show no
+                // name at all for the rest of the day. Repeat it every ~2h
+                // down the band instead, as a small pill (not just floating
+                // text) so it stays legible over the tinted background —
+                // closer to how Apple Calendar keeps long blocks labeled.
+                const REPEAT_PX = HOUR_HEIGHT * 2;
+                const repeatCount = Math.max(1, Math.floor((height - 1) / REPEAT_PX) + 1);
                 return (
                   <div
                     key={block.id}
-                    className={`absolute left-14 right-2 rounded-lg border pointer-events-none px-2 py-1 ${preset.band}`}
+                    className={`absolute left-14 right-2 rounded-lg border pointer-events-none overflow-hidden ${preset.band}`}
                     style={{ top, height }}
                   >
-                    <span className={`text-[10px] font-medium ${preset.text}`}>{block.name}</span>
+                    {Array.from({ length: repeatCount }).map((_, i) => (
+                      <span
+                        key={i}
+                        className={`absolute left-2 px-1.5 py-0.5 rounded text-[10px] font-medium whitespace-nowrap ${preset.chip}`}
+                        style={{ top: i * REPEAT_PX + 4 }}
+                      >
+                        {block.name}
+                      </span>
+                    ))}
                   </div>
                 );
               })}
