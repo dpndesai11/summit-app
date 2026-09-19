@@ -15,9 +15,22 @@ import { CARDIO_ACTIVITIES } from './lib/model';
 // calendar reads the templates, weekly plan and times).
 export default function App() {
   const [tab, setTab] = useState('today');
+  // The day whose editor is open on the Plan tab (also opened by tapping a day in Today's week strip).
+  const [openDay, setOpenDay] = useState(null);
   const w = useWorkoutData();
   const { toast, isLoading, isRefreshing, refreshFromRemote, loadError, plannerOpen, setPlannerOpen, saveRoute } = w;
   const title = TABS.find(t => t.id === tab).label;
+
+  const refreshButton = (
+    <button
+      onClick={refreshFromRemote}
+      disabled={isRefreshing}
+      aria-label="Refresh data"
+      className="w-11 h-11 -mr-2 flex items-center justify-center text-black dark:text-white disabled:opacity-40"
+    >
+      <RefreshCw className={`w-5 h-5 ${isRefreshing ? 'animate-spin' : ''}`} />
+    </button>
+  );
 
   if (isLoading) {
     return (
@@ -33,7 +46,7 @@ export default function App() {
   }
 
   return (
-    <AppFrame appId="fitness" title={title}>
+    <AppFrame appId="fitness" title={title} action={refreshButton}>
       <div className="relative">
         {toast && (
           <div className={`fixed top-4 left-1/2 -translate-x-1/2 z-[60] text-xs px-4 py-2.5 rounded-full shadow-lg flex items-center gap-1.5 whitespace-nowrap animate-toast-in animate-success-pulse ${
@@ -44,16 +57,8 @@ export default function App() {
           </div>
         )}
 
-        <div className="flex items-center justify-between mb-3">
+        <div className="hidden md:block mb-3">
           <TabBar tab={tab} setTab={setTab} variant="top" />
-          <button
-            onClick={refreshFromRemote}
-            disabled={isRefreshing}
-            aria-label="Refresh data"
-            className="ml-auto p-2 text-black dark:text-white disabled:opacity-40"
-          >
-            <RefreshCw className={`w-5 h-5 ${isRefreshing ? 'animate-spin' : ''}`} />
-          </button>
         </div>
 
         {loadError && (
@@ -63,8 +68,8 @@ export default function App() {
           </div>
         )}
 
-        {tab === 'today' && <TodayTab w={w} onOpenPlan={() => setTab('plan')} />}
-        {tab === 'plan' && <PlanTab w={w} />}
+        {tab === 'today' && <TodayTab w={w} onOpenPlan={(day) => { setOpenDay(day); setTab('plan'); }} />}
+        {tab === 'plan' && <PlanTab w={w} openDay={openDay} setOpenDay={setOpenDay} />}
         {tab === 'progress' && <ProgressTab w={w} />}
 
         <button

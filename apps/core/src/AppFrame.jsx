@@ -7,7 +7,7 @@ import useDarkMode from './useDarkMode';
 // app's content in the same responsive container the merged app used
 // (phone-width column that widens on desktop). The Planner has its own
 // richer shell (sidebar + bottom nav) and only borrows AppSwitcher.
-export default function AppFrame({ appId, title, children }) {
+export default function AppFrame({ appId, title, action, children }) {
   const [darkMode, setDarkMode] = useDarkMode();
   return (
     <div className="min-h-screen bg-[#f7f7f5] dark:bg-[#14101f] text-black dark:text-white font-sans antialiased">
@@ -22,7 +22,11 @@ export default function AppFrame({ appId, title, children }) {
             {darkMode ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
           </button>
         </div>
-        <h1 className="text-xl font-bold text-black dark:text-white">{title}</h1>
+        <div className="flex items-center justify-between gap-2">
+          <h1 className="text-xl font-bold text-black dark:text-white">{title}</h1>
+          {/* Optional page-level action (e.g. a refresh button) beside the title */}
+          {action}
+        </div>
       </header>
       <main className="max-w-md md:max-w-5xl mx-auto px-4 md:px-6 lg:px-10 pb-24 md:pb-10">
         {children}
