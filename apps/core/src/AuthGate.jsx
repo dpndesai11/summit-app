@@ -25,6 +25,9 @@ export default function AuthGate({ title = 'Summit', subtitle, children }) {
     }
   };
 
+  // The password field is auto-focused on every launch, and iOS Safari zooms
+  // into any focused input whose text is under 16px (and stays zoomed after
+  // unlocking) — hence text-base here and maximum-scale=1 in each index.html.
   return (
     <div className="min-h-screen bg-[#f7f7f5] flex items-center justify-center">
       <div className="flex flex-col items-center gap-6 w-72">
@@ -40,7 +43,7 @@ export default function AuthGate({ title = 'Summit', subtitle, children }) {
             onChange={e => setPasswordInput(e.target.value)}
             onKeyDown={e => e.key === 'Enter' && handleUnlock()}
             autoFocus
-            className={`w-full bg-white border ${passwordError ? 'border-red-400' : 'border-gray-200'} rounded-lg px-4 py-3 text-black text-sm outline-none focus:border-violet-500 transition-colors`}
+            className={`w-full bg-white border ${passwordError ? 'border-red-400' : 'border-gray-200'} rounded-lg px-4 py-3 text-black text-base outline-none focus:border-violet-500 transition-colors`}
           />
           <button
             onClick={handleUnlock}
