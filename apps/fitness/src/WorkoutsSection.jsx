@@ -4,10 +4,10 @@ import {
   Check, Minus, Moon, ChevronDown, Activity, X, AlertTriangle,
   Lock, Unlock, RefreshCw, MapPin, ClipboardList, PersonStanding, Trophy, Clock, Pencil
 } from 'lucide-react';
-import { dbGet, dbSet, dbRefresh } from './lib/db';
+import { dbGet, dbSet, dbRefresh } from '@summit/core/db';
 import { routeDistanceKm } from './lib/geo';
 import RoutePlanner from './RoutePlanner';
-import CollapsibleCard from './components/CollapsibleCard';
+import { CollapsibleCard } from '@summit/core';
 
 // ---------------------------------------------------------------------------
 // Summit Daily — Workouts section (formerly the standalone Fitness app).

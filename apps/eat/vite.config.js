@@ -4,11 +4,8 @@ import tailwindcss from '@tailwindcss/vite'
 
 export default defineConfig({
   plugins: [react(), tailwindcss()],
-  base: '/summit-app/',
+  // Served under the same GitHub Pages site as the other Summit apps.
+  base: '/summit-app/eat/',
   // One shared env file for all three apps (apps/.env.local) instead of one each.
   envDir: '..',
-  test: {
-    environment: 'node',
-    globals: false,
-  },
 })

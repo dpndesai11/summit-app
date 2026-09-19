@@ -1,13 +1,11 @@
 import { Component } from 'react';
 import { AlertTriangle } from 'lucide-react';
 
-// Catches render/lifecycle errors anywhere in the tree below it. Since the
-// 2026-08-30 merge this one app covers Home/Tasks/Projects/Workouts/Meals,
-// so an uncaught error used to only take down whichever standalone app hit
-// it — now, without this, it would white-screen everything including your
-// task list. This can't catch errors from async code (event handlers,
-// dbSet/dbGet promises) — those still need their own try/catch — only
-// errors thrown during rendering.
+// Catches render/lifecycle errors anywhere in the tree below it, so one
+// broken component shows a "Something went wrong / Reload" card instead of
+// white-screening the whole app. This can't catch errors from async code
+// (event handlers, dbSet/dbGet promises) — those still need their own
+// try/catch — only errors thrown during rendering.
 export default class ErrorBoundary extends Component {
   constructor(props) {
     super(props);

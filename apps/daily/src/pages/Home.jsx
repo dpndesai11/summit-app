@@ -4,11 +4,11 @@ import {
   CheckSquare, Check, ChevronDown, ChevronLeft, ChevronRight, RefreshCw, AlertTriangle, Circle, CircleCheck, CalendarRange, Bell, X,
   Repeat, Plus, Pencil, Trash2
 } from 'lucide-react';
-import { dbGet, dbSet, dbRefresh } from '../lib/db';
+import { dbGet, dbSet, dbRefresh } from '@summit/core/db';
 import { toISODate, startOfWeek, addDays, getTodayFocusTasks } from '../lib/taskUtils';
 import TaskDetailModal from '../components/TaskDetailModal';
 import WeeklyReview from '../components/WeeklyReview';
-import CollapsibleCard from '../components/CollapsibleCard';
+import { CollapsibleCard } from '@summit/core';
 
 // ---------------------------------------------------------------------------
 // Summit Daily — Home: the app's opening page. A "Day" view (hour-by-hour
@@ -782,7 +782,7 @@ export default function Home({
           </div>
 
           {allBlocks.length === 0 && (
-            <p className="text-xs text-black dark:text-white text-center -mt-2">Nothing scheduled yet — add times to workouts and meals in their own tabs.</p>
+            <p className="text-xs text-black dark:text-white text-center -mt-2">Nothing scheduled yet — add times to workouts and meals in the Fitness and Eat apps.</p>
           )}
           </div>
 

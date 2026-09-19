@@ -3,7 +3,7 @@ import { Plus, Pencil, Trash2, Check, Folder } from 'lucide-react';
 import ConfirmDialog from '../components/ConfirmDialog';
 import ProjectDetail from '../components/ProjectDetail';
 import OrphanedTasksBanner from '../components/OrphanedTasksBanner';
-import CollapsibleCard from '../components/CollapsibleCard';
+import { CollapsibleCard } from '@summit/core';
 
 export default function Projects({
   tasks,

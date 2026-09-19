@@ -1,19 +1,18 @@
-import { LayoutDashboard, Dumbbell, Salad, Mountain, CheckSquare, Folder, Sun, Moon, AlertTriangle, Check } from 'lucide-react';
+import { LayoutDashboard, Mountain, CheckSquare, Folder, Sun, Moon, AlertTriangle, Check } from 'lucide-react';
+import { AppSwitcher } from '@summit/core';
 import Home from './pages/Home';
 import TaskBoard from './pages/TaskBoard';
 import Projects from './pages/Projects';
-import WorkoutsSection from './WorkoutsSection';
-import MealsSection from './MealsSection';
 
-// One app now — Tasks and the old Daily (Fitness + Eat) merged under the
-// Daily identity, deployed at the site root (2026-08-30). No more cross-app
-// switcher: everything below is a section of this one app.
+// The Planner: Home (calendar + today's focus), Tasks and Projects. Fitness
+// and Eat used to be sections here (merged 2026-08-30) and were split back
+// out into their own apps; Home's timeline still shows their workouts and
+// meals by reading the same shared data, and the AppSwitcher below links to
+// them.
 const SECTIONS = [
   { id: 'Home', label: 'Home', icon: LayoutDashboard, active: 'text-violet-600' },
   { id: 'Task Dashboard', label: 'Tasks', icon: CheckSquare, active: 'text-violet-600' },
   { id: 'Projects', label: 'Projects', icon: Folder, active: 'text-violet-600' },
-  { id: 'Workouts', label: 'Workouts', icon: Dumbbell, active: 'text-violet-600' },
-  { id: 'Meals', label: 'Meals', icon: Salad, active: 'text-violet-600' },
 ];
 
 // Desktop sidebar — hidden below the `md` breakpoint, where the mobile
@@ -53,6 +52,8 @@ function DesktopSidebar({ section, setSection, darkMode, setDarkMode }) {
 
       <div className="flex-1" />
 
+      <AppSwitcher current="daily" className="px-1 mb-2 flex-wrap" />
+
       <button
         onClick={() => setDarkMode(m => !m)}
         className="flex items-center gap-2.5 px-2.5 py-1.5 rounded-md text-sm text-black dark:text-white hover:bg-black/5 dark:hover:bg-violet-400/10 transition-colors"
@@ -77,6 +78,7 @@ export default function DailyApp({ section, setSection, darkMode, setDarkMode, t
           <div className="flex items-center gap-1.5 mb-1">
             <span className="text-[10px] font-bold tracking-widest uppercase text-black dark:text-white">Summit</span>
             <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-violet-600 text-white">Daily</span>
+            <AppSwitcher current="daily" className="ml-auto" />
           </div>
           <h1 className="text-xl font-bold text-black dark:text-white">{current.label}</h1>
         </div>
@@ -110,8 +112,6 @@ export default function DailyApp({ section, setSection, darkMode, setDarkMode, t
           {section === 'Home' && <Home {...taskProps} />}
           {section === 'Task Dashboard' && <TaskBoard {...taskProps} />}
           {section === 'Projects' && <Projects {...taskProps} />}
-          {section === 'Workouts' && <WorkoutsSection />}
-          {section === 'Meals' && <MealsSection />}
         </div>
       </div>
 

@@ -3,8 +3,8 @@ import {
   CalendarDays, ShoppingCart, ChefHat, Coffee, Apple, Sandwich, Cookie, CookingPot,
   Plus, X, Trash2, Check, ChevronDown, AlertTriangle, RefreshCw, ClipboardList, Pencil, Target, Database, Clock
 } from 'lucide-react';
-import { dbGet, dbSet, dbRefresh } from './lib/db';
-import CollapsibleCard from './components/CollapsibleCard';
+import { dbGet, dbSet, dbRefresh } from '@summit/core/db';
+import { CollapsibleCard } from '@summit/core';
 
 // ---------------------------------------------------------------------------
 // Summit Daily — Meals section (formerly the standalone Eat app).

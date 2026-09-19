@@ -2,7 +2,9 @@
 // ARCHIVED — this was the standalone "Tasks" app (task/project management,
 // its own password gate, deployed at the site root). Retired 2026-08-30 when
 // it merged with the old Daily (Fitness+Eat) app into one app under the
-// Daily identity — see /apps/daily. Every idea here survived the merge:
+// Daily identity — see /apps/daily (the Planner: Home, Tasks, Projects;
+// Fitness and Eat were split out into /apps/fitness and /apps/eat on
+// 2026-09-19). Every idea here survived the merge:
 // the kanban/planner board, Today Focus, Projects, and their components all
 // moved over unchanged into apps/daily/src/{pages,components}; only the
 // duplicate "Fitness Dashboard" page below (FitnessDeck) was dropped, since
