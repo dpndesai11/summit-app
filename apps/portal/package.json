@@ -6,8 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview",
-    "test": "vitest run"
+    "preview": "vite preview"
   },
   "dependencies": {
     "@summit/core": "*",
@@ -19,7 +18,6 @@
     "@tailwindcss/vite": "^4.3.1",
     "@vitejs/plugin-react": "^6.0.1",
     "tailwindcss": "^4.3.1",
-    "vite": "^8.0.12",
-    "vitest": "^4.1.11"
+    "vite": "^8.0.12"
   }
 }
