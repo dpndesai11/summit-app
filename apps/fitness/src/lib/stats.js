@@ -109,3 +109,109 @@ export const weekDates = (today = new Date()) => {
     return { day, iso, isToday: iso === todayISO, isFuture: iso > todayISO };
   });
 };
+
+// ---------------------------------------------------------------------------
+// Progress: weekly totals and per-exercise history (feeds the Progress charts)
+// ---------------------------------------------------------------------------
+
+// The Monday (as YYYY-MM-DD) of the week containing an ISO date.
+export const mondayOf = (iso) => {
+  const [y, m, d] = iso.split('-').map(Number);
+  const dt = new Date(y, m - 1, d);
+  dt.setDate(dt.getDate() - (dt.getDay() === 0 ? 6 : dt.getDay() - 1));
+  return toISO(dt);
+};
+
+// The last `weeks` Monday-start weeks (oldest first, zero weeks included, so a
+// deload week shows as a low bar rather than vanishing): kilograms lifted,
+// cardio minutes, and days with anything logged.
+export const weeklyAggregates = (strengthLogs, cardioLogs, weeks = 10, today = new Date()) => {
+  const [y, m, d] = mondayOf(toISO(today)).split('-').map(Number);
+  const list = [];
+  for (let i = weeks - 1; i >= 0; i--) {
+    list.push({ weekStart: toISO(new Date(y, m - 1, d - 7 * i)), volume: 0, cardioMin: 0, days: new Set() });
+  }
+  const byWeek = Object.fromEntries(list.map(w => [w.weekStart, w]));
+  strengthLogs.forEach(l => {
+    const wk = byWeek[mondayOf(l.date)];
+    if (!wk) return;
+    wk.volume += logVolume(l);
+    wk.days.add(l.date);
+  });
+  cardioLogs.forEach(l => {
+    const wk = byWeek[mondayOf(l.date)];
+    if (!wk) return;
+    wk.cardioMin += Number(l.duration) || 0;
+    wk.days.add(l.date);
+  });
+  return list.map(({ days, ...wk }) => ({ ...wk, activeDays: days.size }));
+};
+
+const bestOfLog = (log) => {
+  const type = logType(log);
+  return expandLogSets(log).reduce((m, s) => Math.max(m, setMetric(s, type)), 0);
+};
+
+// One point per date for an exercise: the best weight (or reps / seconds) that
+// day. `isPR` is true only when a day beat everything before it — the very first
+// day is a starting point, not a record.
+export const exerciseSeries = (exercise, strengthLogs) => {
+  const logs = strengthLogs.filter(l => l.exercise === exercise);
+  if (logs.length === 0) return [];
+  const type = logType(logs[0]);
+  const timed = type === 'bodyweight' && logs.some(l => expandLogSets(l).some(s => Number(s.seconds) > 0 && !(Number(s.reps) > 0)));
+  const unit = type !== 'bodyweight' ? 'kg' : timed ? 's' : 'reps';
+  const byDate = {};
+  logs.forEach(l => {
+    const best = bestOfLog(l);
+    if (best > 0) byDate[l.date] = Math.max(byDate[l.date] || 0, best);
+  });
+  let runningBest = 0;
+  return Object.keys(byDate).sort().map((date, i) => {
+    const value = byDate[date];
+    const isPR = i > 0 && value > runningBest;
+    runningBest = Math.max(runningBest, value);
+    return { date, value, type, unit, isPR };
+  });
+};
+
+// Should this logged entry wear a "PR" badge? Only if it beat every earlier day —
+// never for the first time you logged the exercise.
+export const prBadgeFor = (log, strengthLogs) => {
+  const mine = bestOfLog(log);
+  if (mine <= 0) return false;
+  let hasEarlier = false;
+  let earlierBest = 0;
+  strengthLogs.forEach(l => {
+    if (l.exercise === log.exercise && l.date < log.date) {
+      hasEarlier = true;
+      earlierBest = Math.max(earlierBest, bestOfLog(l));
+    }
+  });
+  return hasEarlier && mine > earlierBest;
+};
+
+// Every exercise you've logged, most recently trained first, with what the
+// Progress list shows (latest, best, how many days, how many real PRs).
+export const exerciseSummaries = (strengthLogs) => {
+  const names = [...new Set(strengthLogs.map(l => l.exercise))];
+  return names
+    .map(exercise => {
+      const series = exerciseSeries(exercise, strengthLogs);
+      if (series.length === 0) return null;
+      const last = series[series.length - 1];
+      return {
+        exercise,
+        type: last.type,
+        unit: last.unit,
+        series,
+        latest: last.value,
+        latestDate: last.date,
+        best: Math.max(...series.map(p => p.value)),
+        sessions: series.length,
+        prCount: series.filter(p => p.isPR).length,
+      };
+    })
+    .filter(Boolean)
+    .sort((a, b) => b.latestDate.localeCompare(a.latestDate) || a.exercise.localeCompare(b.exercise));
+};

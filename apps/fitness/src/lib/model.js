@@ -74,3 +74,6 @@ export const normalizePlan = (raw) => {
   DAYS.forEach(d => { plan[d] = dayList(raw?.[d]); });
   return plan;
 };
+
+// "14 Sep" — short date for chart axes and lists.
+export const formatShortDate = (iso) => new Date(`${iso}T00:00:00`).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
