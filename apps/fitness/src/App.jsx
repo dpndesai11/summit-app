@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { RefreshCw, AlertTriangle, Check, Trophy, Activity } from 'lucide-react';
+import { RefreshCw, AlertTriangle, Check, Trophy } from 'lucide-react';
 import { AppFrame } from '@summit/core';
 import useWorkoutData from './useWorkoutData';
 import TabBar, { TABS } from './components/TabBar';
@@ -62,8 +62,8 @@ export default function App() {
         </div>
 
         {loadError && (
-          <div className="mb-3 bg-red-50 dark:bg-red-500/10 border border-red-200 rounded-xl p-3 flex items-start gap-2 text-xs text-red-600">
-            <AlertTriangle className="w-4 h-4 mt-0.5 flex-shrink-0" />
+          <div className="mb-3 bg-red-50 dark:bg-red-500/10 border border-red-300 rounded-xl p-3 flex items-start gap-2 text-sm text-black dark:text-white">
+            <AlertTriangle className="w-5 h-5 mt-0.5 flex-shrink-0 text-red-500" />
             <span>{loadError}</span>
           </div>
         )}
@@ -71,17 +71,6 @@ export default function App() {
         {tab === 'today' && <TodayTab w={w} onOpenPlan={(day) => { setOpenDay(day); setTab('plan'); }} />}
         {tab === 'plan' && <PlanTab w={w} openDay={openDay} setOpenDay={setOpenDay} />}
         {tab === 'progress' && <ProgressTab w={w} />}
-
-        <button
-          onClick={() => {
-            w.setCardioForm(p => ({ ...p, routeId: '' }));
-            w.setCardioSheetOpen(true);
-          }}
-          aria-label="Log quick cardio"
-          className="fixed bottom-[calc(5.5rem+env(safe-area-inset-bottom))] md:bottom-6 right-4 z-40 w-14 h-14 bg-violet-500 text-white rounded-full shadow-lg shadow-violet-500/30 flex items-center justify-center active:bg-violet-600"
-        >
-          <Activity className="w-6 h-6" />
-        </button>
 
         <CardioSheet w={w} />
 

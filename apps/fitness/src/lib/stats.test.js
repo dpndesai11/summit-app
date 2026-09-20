@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import {
   calcCurrentStreak, computeAllTimeBests, expandLogSets, logSetCount, logVolume, logType,
   sessionKey, sessionHasProgress, sessionSetCount, groupByDate, weekDates,
+  setMetric, lastSetFor, defaultSetInputs, formatSetText,
 } from './stats';
 import { toISO } from './model';
 
@@ -96,5 +97,64 @@ describe('weekDates', () => {
     const week = weekDates(new Date(2026, 8, 20));
     expect(week[0].iso).toBe('2026-09-14');
     expect(week.find(d => d.isToday).day).toBe('Sunday');
+  });
+});
+
+describe('setMetric', () => {
+  it('uses weight for lifts, reps or seconds for bodyweight', () => {
+    expect(setMetric({ weight: 80, reps: 5 }, 'weight')).toBe(80);
+    expect(setMetric({ reps: 12, weight: 0 }, 'bodyweight')).toBe(12);
+    expect(setMetric({ reps: 0, weight: 0, seconds: 60 }, 'bodyweight')).toBe(60);
+  });
+  it('lets a timed hold count as a personal best', () => {
+    const bests = computeAllTimeBests([
+      { exercise: 'Plank', type: 'bodyweight', setDetails: [{ reps: 0, weight: 0, seconds: 45 }] },
+      { exercise: 'Plank', type: 'bodyweight', setDetails: [{ reps: 0, weight: 0, seconds: 60 }] },
+    ]);
+    expect(bests.Plank).toEqual({ value: 60, type: 'bodyweight' });
+  });
+});
+
+describe('lastSetFor', () => {
+  const logs = [
+    { exercise: 'Squat', date: '2026-09-01', setDetails: [{ weight: 100, reps: 5 }, { weight: 105, reps: 5 }] },
+    { exercise: 'Row', date: '2026-09-10', setDetails: [{ weight: 50, reps: 10 }] },
+    { exercise: 'Squat', date: '2026-09-08', setDetails: [{ weight: 110, reps: 4 }, { weight: 115, reps: 3 }] },
+  ];
+  it('returns the last set of the newest entry for that exercise', () => {
+    expect(lastSetFor('Squat', logs)).toMatchObject({ weight: 115, reps: 3, date: '2026-09-08' });
+  });
+  it('breaks date ties by log order', () => {
+    const tied = [
+      { exercise: 'Squat', date: '2026-09-08', setDetails: [{ weight: 90, reps: 5 }] },
+      { exercise: 'Squat', date: '2026-09-08', setDetails: [{ weight: 95, reps: 5 }] },
+    ];
+    expect(lastSetFor('Squat', tied).weight).toBe(95);
+  });
+  it('reads older aggregate logs too', () => {
+    expect(lastSetFor('Press', [{ exercise: 'Press', date: '2026-08-01', weight: 40, sets: 3, reps: 8 }])).toMatchObject({ weight: 40, reps: 8 });
+  });
+  it('is null when never logged', () => {
+    expect(lastSetFor('Deadlift', logs)).toBeNull();
+  });
+});
+
+describe('defaultSetInputs', () => {
+  it('falls back to 40 kg x 8 and 8 reps with no history', () => {
+    expect(defaultSetInputs(false, null)).toEqual({ weight: 40, reps: 8 });
+    expect(defaultSetInputs(true, null)).toEqual({ reps: 8 });
+  });
+  it('uses the last set when there is one', () => {
+    expect(defaultSetInputs(false, { weight: 62.5, reps: 6 })).toEqual({ weight: 62.5, reps: 6 });
+    expect(defaultSetInputs(true, { reps: 15 })).toEqual({ reps: 15 });
+  });
+});
+
+describe('formatSetText', () => {
+  it('formats lifts, reps and timed holds', () => {
+    expect(formatSetText({ weight: 60, reps: 8 }, false)).toBe('60kg × 8');
+    expect(formatSetText({ reps: 12 }, true)).toBe('12 reps');
+    expect(formatSetText({ reps: 0, seconds: 45 }, true)).toBe('45s');
+    expect(formatSetText({ reps: 0, seconds: 30, perSide: true }, true)).toBe('30s/side');
   });
 });

@@ -1,6 +1,6 @@
 import { Dumbbell, Flame, Timer, Trash2, ChevronDown, Activity, Trophy } from 'lucide-react';
 import { formatSwiss } from '../lib/model';
-import { expandLogSets, logSetCount, logType, groupByDate } from '../lib/stats';
+import { expandLogSets, logSetCount, logType, groupByDate, setMetric } from '../lib/stats';
 import StatCard from '../components/StatCard';
 import EditableSetRow from '../components/EditableSetRow';
 import StreakCalendar, { STREAK_WEEKS } from '../components/StreakCalendar';
@@ -62,7 +62,7 @@ export default function ProgressTab({ w }) {
                     const expanded = expandedLogId === l.id;
                     const type = logType(l);
                     const best = allTimeBests[l.exercise];
-                    const isPR = !!best && sets.some(s => (type === 'bodyweight' ? Number(s.reps) : Number(s.weight)) === best.value);
+                    const isPR = !!best && sets.some(s => setMetric(s, type) === best.value);
                     return (
                       <div key={l.id} className="bg-gray-50 dark:bg-violet-400/5 rounded-lg px-3 py-2">
                         <button

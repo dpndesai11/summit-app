@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import { STORAGE_KEYS, DEFAULT_TEMPLATES, DEFAULT_PLAN, DAYS, DEFAULT_WORKOUT_TIME, DEFAULT_WORKOUT_DURATION, normalizeTimeEntry, toISO, dayList, normalizePlan } from './lib/model';
-import { cycleExerciseType, normalizeTemplateExercises } from './lib/exercises';
-import { calcCurrentStreak, computeAllTimeBests, expandLogSets, logVolume, sessionKey, sessionHasProgress } from './lib/stats';
+import { cycleExerciseType, normalizeTemplateExercises, parseExercise } from './lib/exercises';
+import { calcCurrentStreak, computeAllTimeBests, expandLogSets, logVolume, sessionKey, sessionHasProgress, setMetric, lastSetFor, defaultSetInputs } from './lib/stats';
+import useTimer from './useTimer';
 import { dbGet, dbSet, dbRefresh } from '@summit/core/db';
 import { routeDistanceKm } from './lib/geo';
 
@@ -10,6 +11,8 @@ import { routeDistanceKm } from './lib/geo';
 // share it. Nothing here renders anything; it loads/saves the summit_* keys through
 // the shared data layer and returns everything the tabs need.
 export default function useWorkoutData() {
+  // The drill timer lives here (not in a tab) so switching tabs doesn't lose it.
+  const timer = useTimer();
   const [templates, setTemplates] = useState(DEFAULT_TEMPLATES);
   const [plan, setPlan] = useState(DEFAULT_PLAN);
   const [workoutTimes, setWorkoutTimes] = useState({});
@@ -176,7 +179,8 @@ export default function useWorkoutData() {
     const sKey = sessionKey(session);
     const ik = inputKey(sKey, exDef.name);
     const isBodyweight = exDef.type === 'bodyweight';
-    const inp = strengthInputs[ik] || (isBodyweight ? { reps: 8 } : { weight: 40, reps: 8 });
+    // New sets start from what you did last time (falls back to 40 kg x 8 / 8 reps).
+    const inp = strengthInputs[ik] || defaultSetInputs(isBodyweight, lastSetFor(exDef.name, strengthLogs));
     const ex = session.exercises[exDef.name] || { sets: [], locked: false };
     if (ex.locked) return;
     const newSet = {
@@ -189,6 +193,28 @@ export default function useWorkoutData() {
       ...s,
       exercises: { ...s.exercises, [exDef.name]: { ...ex, sets: [...ex.sets, newSet] } }
     }));
+  };
+
+  // A set logged from the drill timer: `seconds` instead of reps (perSide when it
+  // was run once per side). Additive field — older code just sees reps 0.
+  const addTimedSet = (session, exDef, seconds, perSide = false) => {
+    const sKey = sessionKey(session);
+    const ex = session.exercises[exDef.name] || { sets: [], locked: false };
+    if (ex.locked) return;
+    const newSet = {
+      setNumber: ex.sets.length + 1,
+      reps: 0,
+      weight: 0,
+      seconds: Number(seconds) || 0,
+      ...(perSide ? { perSide: true } : {}),
+      timestamp: Date.now()
+    };
+    patchSession(sKey, s => ({
+      ...s,
+      exercises: { ...s.exercises, [exDef.name]: { ...ex, sets: [...ex.sets, newSet] } }
+    }));
+    timer.closeTimer();
+    showToast(`${seconds}s${perSide ? '/side' : ''} logged`);
   };
 
   const removeSetFromSession = (session, exerciseName, index) => {
@@ -248,12 +274,12 @@ export default function useWorkoutData() {
     }
     const prMessages = entries
       .map(entry => {
-        const bestNow = entry.setDetails.reduce((m, s) => Math.max(m,
-          entry.type === 'bodyweight' ? (Number(s.reps) || 0) : (Number(s.weight) || 0)
-        ), 0);
+        const bestNow = entry.setDetails.reduce((m, s) => Math.max(m, setMetric(s, entry.type)), 0);
         const prior = allTimeBests[entry.exercise];
         if (!prior || bestNow <= prior.value) return null;
-        return `${entry.exercise} ${entry.type === 'bodyweight' ? `${bestNow} reps` : `${bestNow}kg`}`;
+        const timed = entry.type === 'bodyweight' && entry.setDetails.some(s => Number(s.seconds) > 0 && !(Number(s.reps) > 0));
+        const unit = entry.type !== 'bodyweight' ? 'kg' : timed ? 's' : ' reps';
+        return `${parseExercise(entry.exercise).label} ${bestNow}${unit}`;
       })
       .filter(Boolean);
 
@@ -420,6 +446,8 @@ export default function useWorkoutData() {
   const allTimeBests = computeAllTimeBests(strengthLogs);
 
   return {
+    timer,
+    addTimedSet,
     templates,
     setTemplates,
     plan,

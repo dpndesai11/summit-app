@@ -14,12 +14,19 @@ export const calcCurrentStreak = (activeDates) => {
   return count;
 };
 
+// The number that decides "better" for a set: weight for lifts; reps for
+// bodyweight, or seconds for a timed hold (a set logged from the timer has
+// reps 0 and a `seconds` field).
+export const setMetric = (s, type) => (
+  type === 'bodyweight' ? (Number(s.reps) || Number(s.seconds) || 0) : (Number(s.weight) || 0)
+);
+
 export const computeAllTimeBests = (strengthLogs) => {
   const bests = {};
   strengthLogs.forEach(log => {
     const type = logType(log);
     expandLogSets(log).forEach(s => {
-      const value = type === 'bodyweight' ? Number(s.reps) || 0 : Number(s.weight) || 0;
+      const value = setMetric(s, type);
       if (value > 0 && (!bests[log.exercise] || value > bests[log.exercise].value)) {
         bests[log.exercise] = { value, type };
       }
@@ -52,6 +59,38 @@ export const groupByDate = (logs) => {
   const map = {};
   logs.forEach(l => { (map[l.date] = map[l.date] || []).push(l); });
   return Object.entries(map).sort((a, b) => b[0].localeCompare(a[0]));
+};
+
+// The most recent set logged for an exercise (last set of its newest entry), or
+// null. Used to pre-fill the next session and to show "Last: 60 kg × 8".
+export const lastSetFor = (exercise, strengthLogs) => {
+  let best = null;
+  strengthLogs.forEach((log, idx) => {
+    if (log.exercise !== exercise) return;
+    const sets = expandLogSets(log);
+    if (sets.length === 0) return;
+    if (!best || log.date > best.date || (log.date === best.date && idx > best.idx)) {
+      best = { date: log.date, idx, set: sets[sets.length - 1] };
+    }
+  });
+  return best ? { ...best.set, date: best.date } : null;
+};
+
+// Starting weight/reps for a new set: what you did last time, else 40 kg x 8
+// (lifts) or 8 reps (bodyweight).
+export const defaultSetInputs = (isBodyweight, last) => (
+  isBodyweight
+    ? { reps: Number(last?.reps) || 8 }
+    : { weight: last ? Number(last.weight) || 0 : 40, reps: Number(last?.reps) || 8 }
+);
+
+// How a logged set reads: "60kg × 8", "12 reps", "45s" or "30s/side".
+export const formatSetText = (s, isBodyweight) => {
+  if (isBodyweight) {
+    if (Number(s.seconds) > 0 && !(Number(s.reps) > 0)) return `${s.seconds}s${s.perSide ? '/side' : ''}`;
+    return `${s.reps} reps`;
+  }
+  return `${s.weight}kg × ${s.reps}`;
 };
 
 // The Monday-start week containing `today`, one entry per day. Used by the
