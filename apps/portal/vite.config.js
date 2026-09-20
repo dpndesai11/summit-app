@@ -4,11 +4,8 @@ import tailwindcss from '@tailwindcss/vite'
 
 export default defineConfig({
   plugins: [react(), tailwindcss()],
-  base: '/summit-app/planner/',
-  // One shared env file for all three apps (apps/.env.local) instead of one each.
+  // The portal is the site root; the apps it links to live in subfolders.
+  base: '/summit-app/',
+  // One shared env file for all the apps (apps/.env.local) instead of one each.
   envDir: '..',
-  test: {
-    environment: 'node',
-    globals: false,
-  },
 })

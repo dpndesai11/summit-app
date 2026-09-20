@@ -27,14 +27,14 @@ jobs:
           node-version: 20
           cache: npm
           cache-dependency-path: apps/package-lock.json
-      # apps/ is the npm workspace root (core + daily + fitness + eat), so one
-      # install and one test run cover all three apps and the shared package.
+      # apps/ is the npm workspace root (core + portal + daily + fitness + eat), so one
+      # install and one test run cover every app and the shared package.
       - run: npm ci
         working-directory: apps
       - run: npm test
         working-directory: apps
-      # Each app builds with its own base path (/summit-app/, /summit-app/fitness/,
-      # /summit-app/eat/), so their outputs can be dropped into one Pages site.
+      # Each app builds with its own base path (/summit-app/ for the portal, then
+      # /summit-app/planner/, /fitness/, /eat/), so their outputs can be dropped into one Pages site.
       - run: npm run build
         working-directory: apps
         env:
@@ -42,10 +42,11 @@ jobs:
           VITE_GITHUB_REPO: ${{ secrets.VITE_GITHUB_REPO }}
           VITE_GITHUB_TOKEN: ${{ secrets.VITE_GITHUB_TOKEN }}
           VITE_APP_PASSWORD: ${{ secrets.VITE_APP_PASSWORD }}
-      - name: Assemble the site (Planner at the root, Fitness and Eat in subfolders)
+      - name: Assemble the site (portal at the root, the apps in subfolders)
         run: |
-          mkdir -p site/fitness site/eat
-          cp -r apps/daily/dist/. site/
+          mkdir -p site/planner site/fitness site/eat
+          cp -r apps/portal/dist/. site/
+          cp -r apps/daily/dist/. site/planner/
           cp -r apps/fitness/dist/. site/fitness/
           cp -r apps/eat/dist/. site/eat/
       - uses: actions/upload-pages-artifact@v3

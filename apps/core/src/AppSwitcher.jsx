@@ -1,9 +1,10 @@
-// Links between the three Summit apps. They are separate deployed apps under
+// Links between the Summit apps. They are separate deployed apps under
 // one GitHub Pages site, so these are plain links (full page load) — the
 // password unlock (sessionStorage) and dark mode (localStorage) both carry
 // over because everything is on the same origin.
 export const SUMMIT_APPS = [
-  { id: 'daily', label: 'Daily', href: '/summit-app/' },
+  { id: 'portal', label: 'Summit', href: '/summit-app/' },
+  { id: 'daily', label: 'Planner', href: '/summit-app/planner/' },
   { id: 'fitness', label: 'Fitness', href: '/summit-app/fitness/' },
   { id: 'eat', label: 'Eat', href: '/summit-app/eat/' },
 ];
