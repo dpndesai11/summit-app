@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Plus, X, ClipboardList, Trash2 } from 'lucide-react';
+import { Plus, X, ClipboardList, Timer, Trash2 } from 'lucide-react';
 import BottomSheet from './BottomSheet';
 import { TYPE_META, cycleExerciseType, parseExercise } from '../lib/exercises';
 
@@ -57,7 +57,10 @@ export default function TemplateSheet({ w }) {
                         {p.prescription && <span className="block text-sm text-black dark:text-white">{p.prescription}</span>}
                       </span>
                     </button>
-                    <span className="text-sm font-semibold text-black dark:text-white flex-shrink-0">{meta.label}</span>
+                    <span className="text-sm font-semibold text-black dark:text-white flex-shrink-0 flex items-center gap-1">
+                      {ex.type === 'bodyweight' && <Timer className="w-4 h-4 text-violet-600" aria-hidden="true" />}
+                      {meta.label}
+                    </span>
                     <button
                       onClick={() => setBuilder(prev => ({ ...prev, exercises: prev.exercises.filter((_, j) => j !== i) }))}
                       aria-label={`Remove ${p.label}`}
@@ -102,6 +105,7 @@ export default function TemplateSheet({ w }) {
                 >
                   {(() => { const Icon = TYPE_META[builder.bulkType].icon; return <Icon className={`w-5 h-5 ${TYPE_META[builder.bulkType].iconText}`} />; })()}
                   {TYPE_META[builder.bulkType].label}
+                  {builder.bulkType === 'bodyweight' && <Timer className="w-4 h-4 text-violet-600" aria-hidden="true" />}
                 </button>
                 <button
                   onClick={addBulkExercises}
@@ -127,6 +131,7 @@ export default function TemplateSheet({ w }) {
               >
                 {(() => { const Icon = TYPE_META[builder.draftType].icon; return <Icon className={`w-5 h-5 ${TYPE_META[builder.draftType].iconText}`} />; })()}
                 {TYPE_META[builder.draftType].label}
+                {builder.draftType === 'bodyweight' && <Timer className="w-4 h-4 text-violet-600" aria-hidden="true" />}
               </button>
               <button onClick={addDraftExercise} aria-label="Add exercise"
                 className="w-12 min-h-[48px] rounded-xl bg-violet-600 text-white flex items-center justify-center flex-shrink-0">
