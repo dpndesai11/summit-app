@@ -1,8 +1,9 @@
 import { useState } from 'react';
-import { Activity, ChevronDown, ChevronRight, Dumbbell, Flame, Search, Timer, Trash2, Trophy } from 'lucide-react';
+import { Activity, ChevronDown, ChevronRight, Dumbbell, Download, Flame, Search, Timer, Trash2, Trophy } from 'lucide-react';
 import { CollapsibleCard } from '@summit/core';
-import { formatSwiss } from '../lib/model';
+import { formatSwiss, toISO } from '../lib/model';
 import { parseExercise } from '../lib/exercises';
+import { downloadFitnessCsv } from '../lib/exportCsv';
 import {
   exerciseSummaries, expandLogSets, groupByDate, logSetCount, logType, prBadgeFor, weeklyAggregates,
 } from '../lib/stats';
@@ -41,6 +42,14 @@ export default function ProgressTab({ w }) {
         <StatCard icon={Timer} label="Cardio" value={`${totalCardioMin}m`} sub="lifetime" />
         <StatCard icon={Flame} label="Streak" value={currentStreak} sub={currentStreak === 1 ? 'day' : 'days'} />
       </div>
+
+      <button
+        onClick={() => downloadFitnessCsv(strengthLogs, cardioLogs, `summit-fitness-${toISO(new Date())}.csv`)}
+        disabled={strengthLogs.length === 0 && cardioLogs.length === 0}
+        className="w-full min-h-[48px] rounded-xl text-base font-semibold text-black dark:text-white bg-gray-100 dark:bg-violet-400/10 disabled:opacity-40 flex items-center justify-center gap-2"
+      >
+        <Download className="w-5 h-5" /> Export CSV
+      </button>
 
       <section>
         <h2 className="text-lg font-bold text-black dark:text-white mb-2">Last 10 weeks</h2>
