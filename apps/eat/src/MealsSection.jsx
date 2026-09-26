@@ -1,29 +1,20 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import {
   CalendarDays, ShoppingCart, ChefHat, Coffee, Apple, Sandwich, Cookie, CookingPot,
-  Plus, X, Trash2, Check, ChevronDown, AlertTriangle, RefreshCw, ClipboardList, Pencil, Target, Database, Clock
+  Plus, X, Trash2, Check, ChevronDown, ClipboardList, Pencil, Target, Database, Clock
 } from 'lucide-react';
-import { dbGet, dbSet, dbRefresh } from '@summit/core/db';
 import { CollapsibleCard } from '@summit/core';
+import { DAYS, SLOTS, emptyDay, EMPTY_PLAN, ingredientKey, normalizeIngredientName } from './lib/model';
 
 // ---------------------------------------------------------------------------
 // Summit Daily — Meals section (formerly the standalone Eat app).
 // Persists through lib/db (summit-data.json) via the GitHub API, same keys
 // the old Eat app used. Its own "Today" tab is gone — that's now the shared
 // Dashboard, which reads summit_meal_times (new here, with sensible
-// slot-based defaults) to place meals on a timeline.
+// slot-based defaults) to place meals on a timeline. Data loading/saving lives
+// in useMealsData.js (App.jsx owns it); this component takes it as `m` plus
+// which of App.jsx's tabs (`subTab`) is active.
 // ---------------------------------------------------------------------------
-
-const STORAGE_KEYS = {
-  recipes: 'summit_recipes',
-  weeklyMealPlan: 'summit_weekly_meal_plan',
-  mealTimes: 'summit_meal_times',
-  shoppingChecked: 'summit_shopping_checked',
-  shoppingExtras: 'summit_shopping_extras',
-  ingredients: 'summit_ingredients',
-};
-
-const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
 
 const parseRange = (s) => {
   const m = s.match(/(\d+)-(\d+)/);
@@ -42,7 +33,6 @@ const PRE_WORKOUT_FUEL = {
   Saturday: 'Banana + orange (60-90min before gym)',
 };
 
-const SLOTS = ['breakfast', 'snack1', 'lunch', 'snack2', 'dinner'];
 const SLOT_META = {
   breakfast: { label: 'Breakfast', icon: Coffee, text: 'text-amber-600', badge: 'bg-amber-50 dark:bg-amber-500/10 text-amber-700', bg: 'bg-amber-500', defaultTime: '08:00', defaultDuration: 20 },
   snack1: { label: 'Snack 1', icon: Apple, text: 'text-rose-500', badge: 'bg-rose-50 dark:bg-rose-500/10 text-rose-600', bg: 'bg-rose-500', defaultTime: '11:00', defaultDuration: 10 },
@@ -59,102 +49,6 @@ const normalizeTimeEntry = (v, defaultTime, defaultDuration) => {
   if (typeof v === 'string' && v) return { time: v, duration: defaultDuration };
   return { time: defaultTime, duration: defaultDuration };
 };
-
-const emptyDay = () => ({ breakfast: [], snack1: [], lunch: [], snack2: [], dinner: [] });
-const EMPTY_PLAN = DAYS.reduce((acc, d) => ({ ...acc, [d]: emptyDay() }), {});
-
-const DEFAULT_RECIPES = [
-  { id: 1, name: 'Overnight Oats', ingredients: ['Rolled oats', 'Milk', 'Chia seeds', 'Honey', 'Berries'], notes: 'Mix and refrigerate overnight.' },
-  { id: 2, name: 'Chicken Stir-fry', ingredients: ['Chicken breast', 'Broccoli', 'Bell pepper', 'Soy sauce', 'Garlic', 'Rice'], notes: '' },
-];
-
-const DEFAULT_INGREDIENTS = [
-  { id: 1786600000000, name: 'Little gem lettuce', protein: 1.2, carbs: 1.3, fibre: 1.3 },
-  { id: 1786600000001, name: 'Spinach', protein: 2.6, carbs: 0.5, fibre: 1.0 },
-  { id: 1786600000002, name: 'Tomato', protein: 0.5, carbs: 2.9, fibre: 1.0 },
-  { id: 1786600000003, name: 'Brown onions', protein: 1.0, carbs: 7.6, fibre: 1.1 },
-  { id: 1786600000004, name: 'Fresh chilli', protein: 1.8, carbs: 4.2, fibre: 1.5 },
-  { id: 1786600000005, name: 'Bananas', protein: 1.1, carbs: 19.3, fibre: 1.4 },
-  { id: 1786600000006, name: 'Nectarines', protein: 1.4, carbs: 9.0, fibre: 1.7 },
-  { id: 1786600000007, name: 'Oranges (Easy Peelers)', protein: 0.9, carbs: 9.1, fibre: 1.2 },
-  { id: 1786600000008, name: 'Apple', protein: 0.6, carbs: 11.1, fibre: 1.2 },
-  { id: 1786600000009, name: 'Baby potatoes', protein: 1.8, carbs: 13.6, fibre: 1.8 },
-  { id: 1786600000010, name: 'Bread roll', protein: 9.0, carbs: 49.0, fibre: 2.5 },
-  { id: 1786600000011, name: 'Pitta bread', protein: 11.9, carbs: 40.0, fibre: 5.7 },
-  { id: 1786600000012, name: 'Croissant', protein: 8.6, carbs: 43.4, fibre: 1.6 },
-  { id: 1786600000013, name: 'Morning rolls', protein: 9.7, carbs: 47.7, fibre: 1.8 },
-  { id: 1786600000014, name: 'Feta', protein: 16.5, carbs: 0.7, fibre: 0.5 },
-  { id: 1786600000015, name: 'Protein yogurt', protein: 5.9, carbs: 4.5, fibre: 1.0 },
-  { id: 1786600000016, name: 'Mature Cheddar', protein: 25.4, carbs: 0.5, fibre: 0.5 },
-  { id: 1786600000017, name: 'Grated Four Cheese Mix', protein: 22.2, carbs: 5.3, fibre: 0.5 },
-  { id: 1786600000018, name: 'Firm tofu', protein: 16.5, carbs: 1.1, fibre: 1.9 },
-  { id: 1786600000019, name: 'Paneer', protein: 22.0, carbs: 3.2, fibre: 0.5 },
-  { id: 1786600000020, name: 'Hummus', protein: 6.7, carbs: 10.7, fibre: 4.9 },
-  { id: 1786600000021, name: 'Rana Gnocchi or Ravioli', protein: 6.0, carbs: 28.0, fibre: 2.0 },
-  { id: 1786600000022, name: 'Frozen mixed veg', protein: 2.7, carbs: 6.6, fibre: 4.4 },
-  { id: 1786600000023, name: 'Frozen butternut squash chunks', protein: 0.9, carbs: 7.4, fibre: 1.4 },
-  { id: 1786600000024, name: 'Frozen peas', protein: 5.7, carbs: 9.2, fibre: 6.9 },
-  { id: 1786600000025, name: 'Frozen edamame', protein: 12.0, carbs: 2.6, fibre: 4.9 },
-  { id: 1786600000026, name: 'Poppi', protein: 0.1, carbs: 1.6, fibre: 0.9 },
-  { id: 1786600000027, name: 'Coffee (instant, dry)', protein: 14.0, carbs: 44.0, fibre: 0.0 },
-  { id: 1786600000028, name: 'Alpro Barista Coconut', protein: 1.5, carbs: 3.3, fibre: 0.5 },
-  { id: 1786600000029, name: 'Ginger & Garlic paste', protein: 1.5, carbs: 18.0, fibre: 2.0 },
-  { id: 1786600000030, name: 'Ghee', protein: 0.5, carbs: 0.5, fibre: 0.5 },
-  { id: 1786600000031, name: 'Lemon juice', protein: 0.5, carbs: 1.2, fibre: 0.5 },
-  { id: 1786600000032, name: 'Mustard', protein: 7.9, carbs: 3.8, fibre: 1.9 },
-  { id: 1786600000033, name: 'Almonds', protein: 21.2, carbs: 21.7, fibre: 12.5 },
-  { id: 1786600000034, name: 'Green curry paste', protein: 2.5, carbs: 19.0, fibre: 0.5 },
-  { id: 1786600000035, name: 'Red curry paste', protein: 2.2, carbs: 12.0, fibre: 0.5 },
-  { id: 1786600000036, name: 'Canned coconut milk (light)', protein: 0.5, carbs: 3.1, fibre: 0.0 },
-  { id: 1786600000037, name: 'Passata', protein: 1.5, carbs: 4.2, fibre: 0.5 },
-  { id: 1786600000038, name: 'Soy sauce', protein: 1.0, carbs: 15.5, fibre: 1.9 },
-  { id: 1786600000039, name: 'Chickpeas, canned', protein: 7.7, carbs: 16.5, fibre: 6.1 },
-  { id: 1786600000040, name: 'Kidney beans, canned', protein: 8.1, carbs: 12.8, fibre: 7.8 },
-  { id: 1786600000041, name: 'Rice', protein: 2.8, carbs: 26.5, fibre: 0.6 },
-  { id: 1786600000042, name: 'Quinoa', protein: 3.5, carbs: 14.9, fibre: 2.3 },
-  { id: 1786600000043, name: 'Red Lentil Penne', protein: 12.4, carbs: 24.0, fibre: 3.6 },
-  { id: 1786600000044, name: 'Soba noodles', protein: 15.0, carbs: 69.0, fibre: 4.6 },
-  { id: 1786600000045, name: 'Olive oil', protein: 0.1, carbs: 0.1, fibre: 0.1 },
-  { id: 1786600000046, name: 'Black pepper', protein: 11.0, carbs: 65.0, fibre: 27.0 },
-  { id: 1786600000047, name: 'Peanuts', protein: 29.0, carbs: 7.2, fibre: 7.3 },
-  { id: 1786600000048, name: 'Walnuts', protein: 14.7, carbs: 3.3, fibre: 4.1 },
-  { id: 1786600000049, name: 'Whey protein isolate', protein: 79.0, carbs: 3.1, fibre: 0.0 },
-  { id: 1786600000050, name: 'Creatine monohydrate', protein: 0.0, carbs: 0.0, fibre: 0.0 },
-  { id: 1786600000051, name: 'SiS Go Hydro tablets', protein: 0.5, carbs: 16.0, fibre: 4.1 },
-  { id: 1786600000052, name: 'Love Corn', protein: 7.4, carbs: 66.0, fibre: 7.0 },
-  { id: 1786600000053, name: 'Pickles', protein: 0.9, carbs: 4.4, fibre: 1.4 },
-  { id: 1786600000054, name: 'Olives, pitted', protein: 1.0, carbs: 0.5, fibre: 3.9 },
-  { id: 1786600000055, name: 'Jam', protein: 0.5, carbs: 58.4, fibre: 1.2 },
-  { id: 1786600000056, name: 'Chia seeds', protein: 21.8, carbs: 8.6, fibre: 33.7 },
-  { id: 1786600000057, name: 'Barebells Protein Bar', protein: 30.0, carbs: 32.0, fibre: 3.0 },
-  { id: 1786600000058, name: 'Deliciously Ella oat bars', protein: 8.0, carbs: 55.0, fibre: 5.0 },
-  { id: 1786600000059, name: 'Merchant Gourmet Thai Green Lentil Curry', protein: 5.0, carbs: 12.0, fibre: 3.0 },
-  { id: 1786600000060, name: 'Merchant Gourmet 3 Bean & Lentil Chilli', protein: 4.0, carbs: 11.0, fibre: 4.0 },
-];
-
-const slotList = (v) => {
-  if (Array.isArray(v)) return v.filter(n => typeof n === 'string' && n.trim());
-  if (typeof v === 'string' && v.trim()) return [v];
-  return [];
-};
-
-const normalizeDay = (raw) => {
-  const day = emptyDay();
-  SLOTS.forEach(s => { day[s] = slotList(raw?.[s]); });
-  return day;
-};
-
-const normalizePlan = (raw) => DAYS.reduce((acc, d) => ({ ...acc, [d]: normalizeDay(raw?.[d]) }), {});
-
-const normalizeIngredientName = (s) => s.trim().replace(/\s+/g, ' ');
-const ingredientKey = (s) => normalizeIngredientName(s).toLowerCase();
-
-const normalizeIngredient = (ing) => (
-  typeof ing === 'string'
-    ? { name: normalizeIngredientName(ing), quantity: null }
-    : { name: normalizeIngredientName(ing.name || ''), quantity: ing.quantity || null }
-);
-const normalizeRecipeIngredients = (ingredients) => (Array.isArray(ingredients) ? ingredients.map(normalizeIngredient) : []);
 
 function StatCard({ icon: Icon, label, value, sub }) {
   return (
@@ -192,18 +86,12 @@ function MacroBar({ label, actual, range, targetLabel }) {
   );
 }
 
-export default function MealsSection() {
-  const [subTab, setSubTab] = useState('week');
-  const [recipes, setRecipes] = useState(DEFAULT_RECIPES);
-  const [plan, setPlan] = useState(EMPTY_PLAN);
-  const [mealTimes, setMealTimes] = useState({});
-  const [shoppingChecked, setShoppingChecked] = useState({});
-  const [shoppingExtras, setShoppingExtras] = useState([]);
-  const [ingredientDb, setIngredientDb] = useState(DEFAULT_INGREDIENTS);
-  const [toast, setToast] = useState(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [loadError, setLoadError] = useState(null);
-  const [isRefreshing, setIsRefreshing] = useState(false);
+export default function MealsSection({ m, subTab }) {
+  const {
+    recipes, plan, mealTimes, shoppingChecked, shoppingExtras, ingredientDb,
+    updateRecipes, updatePlan, updateMealTimes, updateShoppingChecked, updateShoppingExtras, updateIngredientDb,
+    showToast,
+  } = m;
 
   const [expandedDays, setExpandedDays] = useState({});
   const [expandedRecipeId, setExpandedRecipeId] = useState(null);
@@ -223,75 +111,6 @@ export default function MealsSection() {
   const [extraInput, setExtraInput] = useState('');
 
   const todayName = new Date().toLocaleDateString('en-US', { weekday: 'long' });
-
-  const showToast = (msg, isError = false) => {
-    setToast({ message: msg, isError });
-    setTimeout(() => setToast(null), 2200);
-  };
-
-  const saveToStorage = (storageKey, data) => {
-    dbSet(storageKey, data).catch(() => {
-      showToast('Save failed — change may not persist.', true);
-    });
-  };
-
-  const loadAll = async () => {
-    const loadData = async (storageKey, fallback) => {
-      try {
-        const val = await dbGet(storageKey);
-        return val ?? fallback;
-      } catch {
-        return fallback;
-      }
-    };
-    const [rc, wmp, mt, sc, se, ing] = await Promise.all([
-      loadData(STORAGE_KEYS.recipes, DEFAULT_RECIPES),
-      loadData(STORAGE_KEYS.weeklyMealPlan, EMPTY_PLAN),
-      loadData(STORAGE_KEYS.mealTimes, {}),
-      loadData(STORAGE_KEYS.shoppingChecked, {}),
-      loadData(STORAGE_KEYS.shoppingExtras, []),
-      loadData(STORAGE_KEYS.ingredients, DEFAULT_INGREDIENTS),
-    ]);
-    setRecipes((Array.isArray(rc) ? rc : DEFAULT_RECIPES).map(r => ({ ...r, ingredients: normalizeRecipeIngredients(r.ingredients) })));
-    setPlan(normalizePlan(wmp));
-    setMealTimes(mt && typeof mt === 'object' ? mt : {});
-    setShoppingChecked(sc && typeof sc === 'object' ? sc : {});
-    setShoppingExtras(Array.isArray(se) ? se : []);
-    setIngredientDb(Array.isArray(ing) ? ing : DEFAULT_INGREDIENTS);
-  };
-
-  useEffect(() => {
-    (async () => {
-      try {
-        await loadAll();
-      } catch {
-        setLoadError('Could not load saved data. Starting fresh — new entries will still try to save.');
-      } finally {
-        setIsLoading(false);
-      }
-    })();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  const refreshFromRemote = async () => {
-    setIsRefreshing(true);
-    try {
-      await dbRefresh();
-      await loadAll();
-      showToast('Refreshed');
-    } catch {
-      showToast('Refresh failed — check your connection', true);
-    } finally {
-      setIsRefreshing(false);
-    }
-  };
-
-  const updateRecipes = (next) => { setRecipes(next); saveToStorage(STORAGE_KEYS.recipes, next); };
-  const updatePlan = (next) => { setPlan(next); saveToStorage(STORAGE_KEYS.weeklyMealPlan, next); };
-  const updateMealTimes = (next) => { setMealTimes(next); saveToStorage(STORAGE_KEYS.mealTimes, next); };
-  const updateShoppingChecked = (next) => { setShoppingChecked(next); saveToStorage(STORAGE_KEYS.shoppingChecked, next); };
-  const updateShoppingExtras = (next) => { setShoppingExtras(next); saveToStorage(STORAGE_KEYS.shoppingExtras, next); };
-  const updateIngredientDb = (next) => { setIngredientDb(next); saveToStorage(STORAGE_KEYS.ingredients, next); };
 
   // Time-of-day the Dashboard places this day/slot at. Each slot has a
   // sensible default (breakfast=08:00 etc.) so meals show up on the timeline
@@ -1169,69 +988,13 @@ export default function MealsSection() {
     </div>
   );
 
-  const SUB_TABS = [
-    { id: 'week', label: 'Week', icon: CalendarDays },
-    { id: 'shopping', label: 'Shopping', icon: ShoppingCart },
-  ];
-
-  if (isLoading) {
-    return (
-      <div className="space-y-3">
-        <div className="skeleton h-6 w-24" />
-        <div className="flex gap-2">
-          <div className="skeleton h-[74px] flex-1" />
-          <div className="skeleton h-[74px] flex-1" />
-          <div className="skeleton h-[74px] flex-1" />
-        </div>
-        <div className="skeleton h-20 w-full" />
-        <div className="skeleton h-16 w-full" />
-        <div className="skeleton h-16 w-full" />
-      </div>
-    );
-  }
-
+  // Loading skeleton, toast, refresh button, tab bar and the load-error banner
+  // are all App.jsx's job now (the shared AppFrame + TabBar shell, same as
+  // every other Summit app) — this just renders whichever page is active.
   return (
-    <div className="relative">
-      {toast && (
-        <div className={`fixed top-4 left-1/2 -translate-x-1/2 z-[60] text-xs px-4 py-2.5 rounded-full shadow-lg flex items-center gap-1.5 whitespace-nowrap animate-toast-in ${
-          toast.isError ? 'bg-red-600 text-white' : 'bg-gray-900 text-white'
-        }`}>
-          {toast.isError ? <AlertTriangle className="w-3.5 h-3.5" /> : <Check className="w-3.5 h-3.5" />}
-          {toast.message}
-        </div>
-      )}
-
-      <div className="flex items-center justify-between mb-3">
-        <div className="flex bg-gray-200/60 dark:bg-violet-400/10 rounded-lg p-0.5">
-          {SUB_TABS.map(({ id, label, icon: Icon }) => (
-            <button key={id} onClick={() => setSubTab(id)}
-              className={`flex items-center gap-1 px-3 py-1.5 rounded-md text-xs font-medium ${
-                subTab === id ? 'bg-white dark:bg-[#211b34] text-violet-600 shadow-sm' : 'text-black dark:text-white'
-              }`}
-            >
-              <Icon className="w-3.5 h-3.5" /> {label}
-            </button>
-          ))}
-        </div>
-        <button
-          onClick={refreshFromRemote}
-          disabled={isRefreshing}
-          aria-label="Refresh data"
-          className="text-black dark:text-white active:text-black dark:text-white disabled:opacity-40"
-        >
-          <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
-        </button>
-      </div>
-
-      {loadError && (
-        <div className="mb-3 bg-red-50 dark:bg-red-500/10 border border-red-200 rounded-xl p-3 flex items-start gap-2 text-xs text-red-600">
-          <AlertTriangle className="w-4 h-4 mt-0.5 flex-shrink-0" />
-          <span>{loadError}</span>
-        </div>
-      )}
-
+    <>
       {subTab === 'week' && WeekPage}
       {subTab === 'shopping' && ShoppingPage}
-    </div>
+    </>
   );
 }
