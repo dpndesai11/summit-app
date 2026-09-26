@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { CalendarCheck, ChevronRight, Dumbbell, Moon, Sun, UtensilsCrossed } from 'lucide-react';
+import { CalendarCheck, ChevronRight, Dumbbell, Flame, Moon, Sun, UtensilsCrossed } from 'lucide-react';
 import { useDarkMode } from '@summit/core';
 import { dbGet } from '@summit/core/db';
 
@@ -17,10 +17,12 @@ const asList = (v) => (Array.isArray(v) ? v : v ? [v] : []);
 async function loadSummaries(now) {
   const today = toISO(now);
   const day = DAYS[now.getDay()];
-  const [tasks, workoutPlan, mealPlan] = await Promise.all([
+  const [tasks, workoutPlan, mealPlan, habits, habitLogs] = await Promise.all([
     dbGet('summit_tasks'),
     dbGet('summit_weekly_workout_plan'),
     dbGet('summit_weekly_meal_plan'),
+    dbGet('summit_habits'),
+    dbGet('summit_habit_logs'),
   ]);
 
   let planner = null;
@@ -41,13 +43,26 @@ async function loadSummaries(now) {
     eat = dinner.length === 0 ? 'No dinner planned' : `Dinner: ${dinner.join(', ')}`;
   }
 
-  return { daily: planner, fitness, eat };
+  let habitsSummary = null;
+  if (Array.isArray(habits)) {
+    const active = habits.filter(h => !h.archived);
+    if (active.length > 0) {
+      const done = Array.isArray(habitLogs?.[today]) ? habitLogs[today] : [];
+      const doneCount = active.filter(h => done.includes(h.id)).length;
+      habitsSummary = `${doneCount} of ${active.length} done today`;
+    } else {
+      habitsSummary = 'No habits yet';
+    }
+  }
+
+  return { daily: planner, fitness, eat, habits: habitsSummary };
 }
 
 const APPS = [
   { id: 'daily', title: 'Planner', blurb: 'Calendar, tasks and projects', href: '/summit-app/planner/', Icon: CalendarCheck },
   { id: 'fitness', title: 'Fitness', blurb: 'Log workouts and see progress', href: '/summit-app/fitness/', Icon: Dumbbell },
   { id: 'eat', title: 'Eat', blurb: 'Recipes, meal plan and shopping', href: '/summit-app/eat/', Icon: UtensilsCrossed },
+  { id: 'habits', title: 'Habits', blurb: 'Daily checklist and streaks', href: '/summit-app/habits/', Icon: Flame },
 ];
 
 function greeting(hour) {
@@ -90,7 +105,7 @@ export default function App() {
           </button>
         </div>
 
-        <nav aria-label="Summit apps" className="grid gap-3 md:grid-cols-3">
+        <nav aria-label="Summit apps" className="grid gap-3 md:grid-cols-2">
           {APPS.map(({ id, title, blurb, href, Icon }) => {
             const summary = summaries?.[id];
             return (

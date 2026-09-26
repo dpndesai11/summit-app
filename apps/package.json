@@ -2,12 +2,13 @@
   "name": "summit-apps",
   "private": true,
   "description": "npm workspace root for the Summit apps. Lives in apps/ (not the repo root — the repo root is the home directory).",
-  "workspaces": ["core", "portal", "daily", "fitness", "eat"],
+  "workspaces": ["core", "portal", "daily", "fitness", "eat", "habits"],
   "scripts": {
     "dev:portal": "npm run dev -w portal -- --port 5176",
     "dev:daily": "npm run dev -w daily",
     "dev:fitness": "npm run dev -w fitness -- --port 5174",
     "dev:eat": "npm run dev -w eat -- --port 5175",
+    "dev:habits": "npm run dev -w habits -- --port 5177",
     "test": "npm test --workspaces --if-present",
     "build": "npm run build --workspaces --if-present"
   }

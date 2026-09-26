@@ -7,11 +7,12 @@ export const SUMMIT_APPS = [
   { id: 'daily', label: 'Planner', href: '/summit-app/planner/' },
   { id: 'fitness', label: 'Fitness', href: '/summit-app/fitness/' },
   { id: 'eat', label: 'Eat', href: '/summit-app/eat/' },
+  { id: 'habits', label: 'Habits', href: '/summit-app/habits/' },
 ];
 
 export default function AppSwitcher({ current, className = '' }) {
   return (
-    <nav aria-label="Switch app" className={`flex items-center gap-1 ${className}`}>
+    <nav aria-label="Switch app" className={`flex items-center flex-wrap gap-1 ${className}`}>
       {SUMMIT_APPS.map(app => (
         <a
           key={app.id}
