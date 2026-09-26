@@ -1,8 +1,7 @@
 import { useState } from 'react';
-import { RefreshCw, AlertTriangle, Check, Trophy } from 'lucide-react';
-import { AppFrame } from '@summit/core';
+import { RefreshCw, AlertTriangle, Check, Trophy, CalendarCheck, CalendarDays, TrendingUp } from 'lucide-react';
+import { AppFrame, TabBar } from '@summit/core';
 import useWorkoutData from './useWorkoutData';
-import TabBar, { TABS } from './components/TabBar';
 import CardioSheet from './components/CardioSheet';
 import RoutePlanner from './RoutePlanner';
 import TodayTab from './tabs/TodayTab';
@@ -10,9 +9,17 @@ import PlanTab from './tabs/PlanTab';
 import ProgressTab from './tabs/ProgressTab';
 import { CARDIO_ACTIVITIES } from './lib/model';
 
+const TABS = [
+  { id: 'today', label: 'Today', icon: CalendarCheck },
+  { id: 'plan', label: 'Plan', icon: CalendarDays },
+  { id: 'progress', label: 'Progress', icon: TrendingUp },
+];
+
 // Fitness: three tabs over one shared data hook. The data it reads/writes is
 // the same summit-data.json and the same summit_* keys as before (the Planner's
-// calendar reads the templates, weekly plan and times).
+// calendar reads the templates, weekly plan and times). TabBar itself is
+// shared (@summit/core) — every Summit app uses the same tab-bar mechanism,
+// just its own `tabs` list.
 export default function App() {
   const [tab, setTab] = useState('today');
   // The day whose editor is open on the Plan tab (also opened by tapping a day in Today's week strip).
@@ -58,7 +65,7 @@ export default function App() {
         )}
 
         <div className="hidden md:block mb-3">
-          <TabBar tab={tab} setTab={setTab} variant="top" />
+          <TabBar tabs={TABS} tab={tab} setTab={setTab} variant="top" />
         </div>
 
         {loadError && (
@@ -82,7 +89,7 @@ export default function App() {
           />
         )}
       </div>
-      <TabBar tab={tab} setTab={setTab} variant="bottom" />
+      <TabBar tabs={TABS} tab={tab} setTab={setTab} variant="bottom" />
     </AppFrame>
   );
 }
