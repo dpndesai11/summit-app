@@ -8,6 +8,7 @@ export const SUMMIT_APPS = [
   { id: 'fitness', label: 'Fitness', href: '/summit-app/fitness/' },
   { id: 'eat', label: 'Eat', href: '/summit-app/eat/' },
   { id: 'habits', label: 'Habits', href: '/summit-app/habits/' },
+  { id: 'finance', label: 'Finance', href: '/summit-app/finance/' },
 ];
 
 export default function AppSwitcher({ current, className = '' }) {
