@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { dbGet, dbSet } from '@summit/core/db';
-import { useDarkMode } from '@summit/core';
+import { AppFrame } from '@summit/core';
 import { migrateTasksAndProjects, weightedCompletion, toISODate, startOfWeek } from './lib/taskUtils';
 import DailyApp from './DailyApp';
 
@@ -49,8 +49,6 @@ export default function App() {
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState(null);
   const [toast, setToast] = useState(null);
-
-  const [darkMode, setDarkMode] = useDarkMode();
 
   const showToast = (message, isError = false) => {
     setToast({ message, isError });
@@ -265,15 +263,8 @@ export default function App() {
   // ---------------------------------------------------------------------------
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-[#f7f7f5] flex">
-        <div className="hidden md:block w-56 shrink-0 h-screen border-r border-black/8 px-3 py-4 space-y-1">
-          <div className="skeleton h-6 w-24 mb-4" />
-          <div className="skeleton h-8 w-full" />
-          <div className="skeleton h-8 w-full" />
-          <div className="skeleton h-8 w-full" />
-        </div>
-        <div className="flex-1 max-w-5xl mx-auto px-4 md:px-6 lg:px-10 py-8 space-y-3">
-          <div className="skeleton h-7 w-40" />
+      <AppFrame appId="daily" title={section === 'Home' ? 'Home' : section === 'Task Dashboard' ? 'Tasks' : 'Projects'}>
+        <div className="space-y-3">
           <div className="skeleton h-32 w-full" />
           <div className="flex gap-3">
             <div className="skeleton h-40 flex-1" />
@@ -281,7 +272,7 @@ export default function App() {
             <div className="skeleton h-40 flex-1" />
           </div>
         </div>
-      </div>
+      </AppFrame>
     );
   }
 
@@ -292,8 +283,6 @@ export default function App() {
     <DailyApp
       section={section}
       setSection={setSection}
-      darkMode={darkMode}
-      setDarkMode={setDarkMode}
       toast={toast}
       loadError={loadError}
       taskProps={{
