@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { CalendarCheck, ChevronRight, Dumbbell, Flame, Moon, Sun, UtensilsCrossed, Wallet } from 'lucide-react';
+import { CalendarCheck, ChevronRight, Dumbbell, Flame, Moon, Sun, UtensilsCrossed } from 'lucide-react';
 import { useDarkMode } from '@summit/core';
 import { dbGet } from '@summit/core/db';
 
@@ -17,14 +17,12 @@ const asList = (v) => (Array.isArray(v) ? v : v ? [v] : []);
 async function loadSummaries(now) {
   const today = toISO(now);
   const day = DAYS[now.getDay()];
-  const [tasks, workoutPlan, mealPlan, habits, habitLogs, bills, billPayments] = await Promise.all([
+  const [tasks, workoutPlan, mealPlan, habits, habitLogs] = await Promise.all([
     dbGet('summit_tasks'),
     dbGet('summit_weekly_workout_plan'),
     dbGet('summit_weekly_meal_plan'),
     dbGet('summit_habits'),
     dbGet('summit_habit_logs'),
-    dbGet('summit_bills'),
-    dbGet('summit_bill_payments'),
   ]);
 
   let planner = null;
@@ -57,19 +55,7 @@ async function loadSummaries(now) {
     }
   }
 
-  let financeSummary = null;
-  if (Array.isArray(bills)) {
-    if (bills.length > 0) {
-      const monthKeyValue = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
-      const paid = billPayments?.[monthKeyValue] || {};
-      const overdue = bills.filter(b => !paid[b.id] && now.getDate() > (Number(b.dueDay) || 1)).length;
-      financeSummary = overdue === 0 ? 'All bills on track' : `${overdue} bill${overdue === 1 ? '' : 's'} overdue`;
-    } else {
-      financeSummary = 'No bills yet';
-    }
-  }
-
-  return { daily: planner, fitness, eat, habits: habitsSummary, finance: financeSummary };
+  return { daily: planner, fitness, eat, habits: habitsSummary };
 }
 
 const APPS = [
@@ -77,7 +63,6 @@ const APPS = [
   { id: 'fitness', title: 'Fitness', blurb: 'Log workouts and see progress', href: '/summit-app/fitness/', Icon: Dumbbell },
   { id: 'eat', title: 'Eat', blurb: 'Recipes, meal plan and shopping', href: '/summit-app/eat/', Icon: UtensilsCrossed },
   { id: 'habits', title: 'Habits', blurb: 'Daily checklist and streaks', href: '/summit-app/habits/', Icon: Flame },
-  { id: 'finance', title: 'Finance', blurb: 'Bills and net worth', href: '/summit-app/finance/', Icon: Wallet },
 ];
 
 function greeting(hour) {
