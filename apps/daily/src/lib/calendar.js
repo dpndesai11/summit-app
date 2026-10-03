@@ -239,4 +239,69 @@ export const dayMarkers = (data, iso) => {
   };
 };
 
+// Step a date by whole months, keeping the day-of-month where it exists and
+// clamping to the last day otherwise (31 Jan + 1 month = 28 Feb).
+export const addMonths = (date, delta) => {
+  const target = new Date(date.getFullYear(), date.getMonth() + delta, 1);
+  target.setDate(Math.min(date.getDate(), daysInMonth(target.getFullYear(), target.getMonth() + 1)));
+  return target;
+};
+
+// Recurring background blocks (work hours, commute, ...): a small fixed colour
+// palette so the exact Tailwind classes exist in source for the build to pick
+// up — same convention as TYPE_META / SLOT_META. These are category colours,
+// deliberately separate from the design system's status colours.
+export const BLOCK_COLOR_PRESETS = {
+  slate: { label: 'Slate', band: 'bg-slate-400/20 dark:bg-slate-300/10 border-slate-400/40', text: 'text-slate-700 dark:text-slate-300', chip: 'bg-slate-100 dark:bg-slate-400/10 text-slate-700 dark:text-slate-300' },
+  blue: { label: 'Blue', band: 'bg-blue-400/20 dark:bg-blue-300/10 border-blue-400/40', text: 'text-blue-700 dark:text-blue-300', chip: 'bg-blue-100 dark:bg-blue-400/10 text-blue-700 dark:text-blue-300' },
+  amber: { label: 'Amber', band: 'bg-amber-400/20 dark:bg-amber-300/10 border-amber-400/40', text: 'text-amber-700 dark:text-amber-300', chip: 'bg-amber-100 dark:bg-amber-400/10 text-amber-700 dark:text-amber-300' },
+  rose: { label: 'Rose', band: 'bg-rose-400/20 dark:bg-rose-300/10 border-rose-400/40', text: 'text-rose-700 dark:text-rose-300', chip: 'bg-rose-100 dark:bg-rose-400/10 text-rose-700 dark:text-rose-300' },
+  teal: { label: 'Teal', band: 'bg-teal-400/20 dark:bg-teal-300/10 border-teal-400/40', text: 'text-teal-700 dark:text-teal-300', chip: 'bg-teal-100 dark:bg-teal-400/10 text-teal-700 dark:text-teal-300' },
+};
+export const BLOCK_COLORS = Object.keys(BLOCK_COLOR_PRESETS);
+
+// Compact summary: days sharing the exact same time/duration collapse into one
+// line (e.g. "Mon Tue Wed Thu · 8:00 AM · 8h") instead of one row each.
+export const groupBlockDays = (days) => {
+  const groups = [];
+  DAYS.forEach(day => {
+    const entry = days[day];
+    if (!entry) return;
+    const key = `${entry.time}|${entry.duration}`;
+    let g = groups.find(g => g.key === key);
+    if (!g) { g = { key, time: entry.time, duration: entry.duration, dayNames: [] }; groups.push(g); }
+    g.dayNames.push(day);
+  });
+  return groups;
+};
+
+// Side-by-side layout for overlapping timed items in one day column: each item
+// gets a `lane` (0-based) and `lanes` (how many lanes its overlap cluster
+// needs), so it can be drawn lane/lanes of the way across, like Google Calendar.
+export const layoutLanes = (timed) => {
+  const startOf = (i) => timeToMinutes(i.time);
+  const sorted = [...timed].sort((a, b) => startOf(a) - startOf(b) || b.duration - a.duration);
+  const out = [];
+  let cluster = [];
+  let laneEnds = [];
+  let clusterEnd = 0;
+  const flush = () => {
+    cluster.forEach(c => out.push({ ...c, lanes: laneEnds.length }));
+    cluster = [];
+    laneEnds = [];
+    clusterEnd = 0;
+  };
+  sorted.forEach(item => {
+    const s = startOf(item);
+    const e = s + item.duration;
+    if (cluster.length && s >= clusterEnd) flush();
+    let lane = laneEnds.findIndex(end => end <= s);
+    if (lane === -1) { lane = laneEnds.length; laneEnds.push(e); } else { laneEnds[lane] = e; }
+    cluster.push({ ...item, lane });
+    clusterEnd = Math.max(clusterEnd, e);
+  });
+  flush();
+  return out;
+};
+
 export { toISODate };

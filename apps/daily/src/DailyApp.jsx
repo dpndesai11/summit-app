@@ -1,4 +1,4 @@
-import { LayoutDashboard, CheckSquare, Folder, AlertTriangle, Check } from 'lucide-react';
+import { CalendarDays, CheckSquare, Folder, AlertTriangle, Check } from 'lucide-react';
 import { AppFrame, TabBar } from '@summit/core';
 import Home from './pages/Home';
 import TaskBoard from './pages/TaskBoard';
@@ -15,7 +15,7 @@ import Projects from './pages/Projects';
 // top pills from `md` up) — one interface across the whole suite instead of
 // Planner being the odd one out.
 const TABS = [
-  { id: 'Home', label: 'Home', icon: LayoutDashboard },
+  { id: 'Home', label: 'Calendar', icon: CalendarDays }, // id stays 'Home' (deep links use it)
   { id: 'Task Dashboard', label: 'Tasks', icon: CheckSquare },
   { id: 'Projects', label: 'Projects', icon: Folder },
 ];

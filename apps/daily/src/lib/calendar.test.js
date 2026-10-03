@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
-  buildBlocksForDay, dayItems, dayMarkers, eventOccursOn, eventsOnDate, monthGrid, monthTitle,
+  addMonths, buildBlocksForDay, groupBlockDays, layoutLanes, dayItems, dayMarkers, eventOccursOn, eventsOnDate, monthGrid, monthTitle,
   normalizeEvent, parseISO, weekDays, weekdayName, weekTitle,
 } from './calendar';
 import { toISODate } from './taskUtils';
@@ -135,5 +135,44 @@ describe('buildBlocksForDay / dayItems / dayMarkers', () => {
 
   it('parseISO is local midnight', () => {
     expect(parseISO('2026-10-03').getHours()).toBe(0);
+  });
+});
+
+describe('addMonths', () => {
+  it('keeps the day of month and clamps to the end of shorter months', () => {
+    expect(toISODate(addMonths(new Date(2026, 9, 15), 1))).toBe('2026-11-15');
+    expect(toISODate(addMonths(new Date(2026, 0, 31), 1))).toBe('2026-02-28');
+    expect(toISODate(addMonths(new Date(2028, 0, 31), 1))).toBe('2028-02-29');
+    expect(toISODate(addMonths(new Date(2026, 0, 15), -1))).toBe('2025-12-15');
+  });
+});
+
+describe('groupBlockDays', () => {
+  it('collapses days with identical hours into one line, in week order', () => {
+    const groups = groupBlockDays({ Friday: { time: '08:00', duration: 420 }, Monday: { time: '08:00', duration: 480 }, Tuesday: { time: '08:00', duration: 480 } });
+    expect(groups).toHaveLength(2);
+    expect(groups[0].dayNames).toEqual(['Monday', 'Tuesday']);
+    expect(groups[1].dayNames).toEqual(['Friday']);
+  });
+});
+
+describe('layoutLanes', () => {
+  const it_ = (key, time, duration) => ({ key, time, duration, title: key });
+  it('items that do not overlap each take the full width', () => {
+    const out = layoutLanes([it_('a', '09:00', 60), it_('b', '10:00', 30)]);
+    expect(out.map(o => [o.key, o.lane, o.lanes])).toEqual([['a', 0, 1], ['b', 0, 1]]);
+  });
+  it('overlapping items share the width, each in its own lane', () => {
+    const out = layoutLanes([it_('a', '09:00', 90), it_('b', '09:30', 60), it_('c', '09:45', 15)]);
+    const by = Object.fromEntries(out.map(o => [o.key, o]));
+    expect(by.a.lanes).toBe(3);
+    expect(new Set(out.map(o => o.lane)).size).toBe(3);
+  });
+  it('a lane is reused once its item has finished, and clusters are independent', () => {
+    const out = layoutLanes([it_('a', '09:00', 60), it_('b', '09:30', 60), it_('c', '10:00', 30), it_('d', '14:00', 60)]);
+    const by = Object.fromEntries(out.map(o => [o.key, o]));
+    expect(by.c.lane).toBe(0); // takes a's lane back at 10:00
+    expect(by.a.lanes).toBe(2);
+    expect(by.d).toMatchObject({ lane: 0, lanes: 1 });
   });
 });
