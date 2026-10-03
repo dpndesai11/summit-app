@@ -18,7 +18,7 @@ export default function StreakCalendar({ habitId, habitLogs, colorClass }) {
     <div className="flex gap-1.5 items-start">
       <div className="flex flex-col gap-[3px]">
         {dayLabels.map((l, i) => (
-          <div key={i} className="w-3 h-3 text-[8px] leading-3 text-black dark:text-white">{l}</div>
+          <div key={i} className="w-3 h-3 text-[11px] leading-3 text-black dark:text-white">{l}</div>
         ))}
       </div>
       <div className="flex gap-[3px] overflow-x-auto">

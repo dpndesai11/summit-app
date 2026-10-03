@@ -45,8 +45,8 @@ export default function App() {
     <AppFrame appId="habits" title={title} action={refreshButton}>
       <div className="relative">
         {toast && (
-          <div className={`fixed top-4 left-1/2 -translate-x-1/2 z-[60] text-xs px-4 py-2.5 rounded-full shadow-lg flex items-center gap-1.5 whitespace-nowrap animate-toast-in animate-success-pulse ${
-            toast.isError ? 'bg-red-600 text-white' : 'bg-gray-900 text-white'
+          <div className={`fixed top-4 left-1/2 -translate-x-1/2 z-[60] text-xs px-4 py-2.5 rounded-xl shadow-lg flex items-center gap-1.5 whitespace-nowrap animate-toast-in animate-success-pulse ${
+            toast.isError ? 'bg-danger text-on-danger' : 'bg-gray-900 text-white'
           }`}>
             {toast.isError ? <AlertTriangle className="w-3.5 h-3.5" /> : <Check className="w-3.5 h-3.5" />}
             {toast.message}
@@ -58,8 +58,8 @@ export default function App() {
         </div>
 
         {loadError && (
-          <div className="mb-3 bg-red-50 dark:bg-red-500/10 border border-red-300 rounded-xl p-3 flex items-start gap-2 text-sm text-black dark:text-white">
-            <AlertTriangle className="w-5 h-5 mt-0.5 flex-shrink-0 text-red-500" />
+          <div className="mb-3 bg-danger/10 border border-danger rounded-xl p-3 flex items-start gap-2 text-sm text-black dark:text-white">
+            <AlertTriangle className="w-5 h-5 mt-0.5 flex-shrink-0 text-danger" />
             <span>{loadError}</span>
           </div>
         )}

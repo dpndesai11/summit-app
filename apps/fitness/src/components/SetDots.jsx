@@ -9,7 +9,7 @@ export default function SetDots({ done, total }) {
           {Array.from({ length: dots }).map((_, i) => (
             <span
               key={i}
-              className={`w-2.5 h-2.5 rounded-full ${i < done ? 'bg-violet-600' : 'border-2 border-gray-200 dark:border-violet-400/40'}`}
+              className={`w-2.5 h-2.5 rounded-full ${i < done ? 'bg-primary' : 'border-2 border-border-strong'}`}
             />
           ))}
         </span>

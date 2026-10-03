@@ -28,7 +28,7 @@ export default function ProgressTab({ w }) {
               <button
                 onClick={() => archiveHabit(h.id)}
                 aria-label={`Archive ${h.name}`}
-                className="w-9 h-9 flex items-center justify-center text-black dark:text-white active:text-violet-600"
+                className="w-9 h-9 flex items-center justify-center text-black dark:text-white active:text-primary"
               >
                 <Archive className="w-4 h-4" />
               </button>
@@ -36,7 +36,7 @@ export default function ProgressTab({ w }) {
             <button
               onClick={() => deleteHabit(h.id)}
               aria-label={`Delete ${h.name}`}
-              className="w-9 h-9 flex items-center justify-center text-black dark:text-white active:text-red-500"
+              className="w-9 h-9 flex items-center justify-center text-black dark:text-white active:text-danger"
             >
               <Trash2 className="w-4 h-4" />
             </button>

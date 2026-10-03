@@ -115,7 +115,7 @@ export default function RoutePlanner({ activities, onSave, onClose }) {
           <button
             onClick={() => setWaypoints([])}
             disabled={waypoints.length === 0}
-            className="w-10 h-10 bg-white rounded-xl shadow-lg border border-gray-200 flex items-center justify-center text-red-500 disabled:opacity-40 active:bg-gray-100"
+            className="w-10 h-10 bg-white rounded-xl shadow-lg border border-gray-200 flex items-center justify-center text-danger disabled:opacity-40 active:bg-gray-100"
             aria-label="Clear all points"
           >
             <Trash2 className="w-4 h-4" />

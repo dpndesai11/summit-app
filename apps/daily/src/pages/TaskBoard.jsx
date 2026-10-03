@@ -53,21 +53,21 @@ export default function TaskBoard({
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div className="bg-white dark:bg-[#211b34] border border-gray-200 dark:border-violet-400/15 rounded-xl p-4 text-center">
           <span className="text-xs text-black dark:text-white block">Completion velocity</span>
-          <span className="text-2xl font-semibold text-black dark:text-white block my-1">
+          <span className="text-2xl font-display font-extrabold text-black dark:text-white block my-1">
             {velocity === null ? '—' : `${Math.round(velocity * 100)}%`}
           </span>
           <span className="text-xs text-black dark:text-white">{velocity === null ? 'No checklist data yet' : 'Across all checklists'}</span>
         </div>
         <div className="bg-white dark:bg-[#211b34] border border-gray-200 dark:border-violet-400/15 rounded-xl p-4 text-center">
           <span className="text-xs text-black dark:text-white block">Load today</span>
-          <span className="text-2xl font-semibold text-black dark:text-white block my-1">
+          <span className="text-2xl font-display font-extrabold text-black dark:text-white block my-1">
             {getDistributedMilestonesCount(new Date().toISOString().split('T')[0])}
           </span>
           <span className="text-xs text-black dark:text-white">Distributed milestone points</span>
         </div>
         <div className="bg-white dark:bg-[#211b34] border border-gray-200 dark:border-violet-400/15 rounded-xl p-4 text-center">
           <span className="text-xs text-black dark:text-white block">Open tasks</span>
-          <span className="text-2xl font-semibold text-black dark:text-white block my-1">
+          <span className="text-2xl font-display font-extrabold text-black dark:text-white block my-1">
             {tasks.filter(t => !t.isCompleted).length}
           </span>
           <span className="text-xs text-black dark:text-white">
@@ -89,7 +89,7 @@ export default function TaskBoard({
                   onClick={() => setView(v)}
                   className={`text-xs font-medium capitalize px-2.5 py-1 rounded-md transition-colors ${
                     view === v
-                      ? 'bg-violet-600 text-white'
+                      ? 'bg-primary text-on-primary'
                       : 'bg-gray-100 dark:bg-violet-400/10 text-black dark:text-white hover:bg-gray-200 dark:hover:bg-white/20'
                   }`}
                 >
@@ -100,7 +100,7 @@ export default function TaskBoard({
           </div>
           <button
             onClick={() => setShowNewTask(true)}
-            className="flex items-center gap-1.5 text-sm font-medium bg-violet-600 hover:bg-violet-700 text-white px-3 py-1.5 rounded-lg transition-colors"
+            className="flex items-center gap-1.5 text-sm font-medium bg-primary hover:bg-primary-hover text-on-primary px-3 py-1.5 rounded-lg transition-colors"
           >
             <Plus className="w-4 h-4" />
             New task
@@ -146,17 +146,17 @@ export default function TaskBoard({
 
             return (
               <div key={idx} className="bg-gray-50 dark:bg-violet-400/5 border border-gray-200 dark:border-violet-400/15 rounded-lg p-2 flex flex-col justify-between items-center text-center">
-                <span className="text-[10px] text-black dark:text-white">
+                <span className="text-[11px] text-black dark:text-white">
                   {targetDateObj.toLocaleDateString('en-US', { weekday: 'short' })}
                 </span>
                 <div className="w-3 bg-gray-200 dark:bg-violet-400/10 h-16 rounded-full my-1.5 relative overflow-hidden flex items-end">
                   <div
-                    className="w-full bg-violet-600 rounded-full transition-all duration-500"
+                    className="w-full bg-primary rounded-full transition-all duration-500"
                     style={{ height: `${fillHeight || 8}%` }}
                   ></div>
                 </div>
                 <span className="text-xs font-medium text-black dark:text-white">{milestonesValue}</span>
-                <span className="text-[9px] text-black dark:text-white">
+                <span className="text-[11px] text-black dark:text-white">
                   {targetDateObj.toLocaleDateString('de-CH', { day: '2-digit', month: '2-digit' })}
                 </span>
               </div>

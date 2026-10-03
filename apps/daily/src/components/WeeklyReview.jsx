@@ -20,7 +20,7 @@ export default function WeeklyReview({ tasks, weeklyReviewLog, formatToSwissDate
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div className="bg-white dark:bg-[#211b34] border border-gray-200 dark:border-violet-400/15 rounded-xl p-4">
           <div className="flex items-center gap-1.5 mb-2">
-            <CheckCircle2 className="w-3.5 h-3.5 text-green-500" />
+            <CheckCircle2 className="w-3.5 h-3.5 text-success" />
             <span className="text-xs font-medium text-black dark:text-white">Completed this week</span>
           </div>
           {completedThisWeek.length === 0 ? (
@@ -36,7 +36,7 @@ export default function WeeklyReview({ tasks, weeklyReviewLog, formatToSwissDate
 
         <div className="bg-white dark:bg-[#211b34] border border-gray-200 dark:border-violet-400/15 rounded-xl p-4">
           <div className="flex items-center gap-1.5 mb-2">
-            <Clock className="w-3.5 h-3.5 text-red-500" />
+            <Clock className="w-3.5 h-3.5 text-danger" />
             <span className="text-xs font-medium text-black dark:text-white">Still overdue</span>
           </div>
           {overdue.length === 0 ? (
@@ -44,7 +44,7 @@ export default function WeeklyReview({ tasks, weeklyReviewLog, formatToSwissDate
           ) : (
             <ul className="space-y-1">
               {overdue.map(t => (
-                <li key={t.id} className="text-xs text-red-600 dark:text-red-400 truncate">{t.name}</li>
+                <li key={t.id} className="text-xs text-danger truncate">{t.name}</li>
               ))}
             </ul>
           )}
@@ -52,7 +52,7 @@ export default function WeeklyReview({ tasks, weeklyReviewLog, formatToSwissDate
 
         <div className="bg-white dark:bg-[#211b34] border border-gray-200 dark:border-violet-400/15 rounded-xl p-4">
           <div className="flex items-center gap-1.5 mb-2">
-            <ArrowRight className="w-3.5 h-3.5 text-violet-500" />
+            <ArrowRight className="w-3.5 h-3.5 text-primary" />
             <span className="text-xs font-medium text-black dark:text-white">Coming up next week</span>
           </div>
           {comingUpNextWeek.length === 0 ? (
@@ -73,11 +73,11 @@ export default function WeeklyReview({ tasks, weeklyReviewLog, formatToSwissDate
           value={notes}
           onChange={(e) => setNotes(e.target.value)}
           placeholder="How did this week go? What's the focus for next week?"
-          className="w-full bg-gray-50 dark:bg-violet-400/5 border border-gray-200 dark:border-violet-400/15 text-black dark:text-white rounded-lg p-3 text-sm focus:outline-none focus:border-violet-500 h-24 mb-3"
+          className="w-full bg-gray-50 dark:bg-violet-400/5 border border-gray-200 dark:border-violet-400/15 text-black dark:text-white rounded-lg p-3 text-sm focus:outline-none focus:border-focus-ring h-24 mb-3"
         />
         <button
           onClick={handleComplete}
-          className="bg-violet-600 hover:bg-violet-700 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors"
+          className="bg-primary hover:bg-primary-hover text-on-primary text-sm font-medium px-4 py-2 rounded-lg transition-colors"
         >
           Mark review done
         </button>
@@ -93,7 +93,7 @@ export default function WeeklyReview({ tasks, weeklyReviewLog, formatToSwissDate
                   <span className="text-xs font-medium text-black dark:text-white">
                     Week of {formatToSwissDate(entry.weekStartDate)}
                   </span>
-                  <span className="text-[10px] text-black dark:text-white">{formatToSwissDate(entry.completedAt.split('T')[0])}</span>
+                  <span className="text-[11px] text-black dark:text-white">{formatToSwissDate(entry.completedAt.split('T')[0])}</span>
                 </div>
                 {entry.notes && (
                   <p className="text-xs text-black dark:text-white whitespace-pre-wrap">{entry.notes}</p>

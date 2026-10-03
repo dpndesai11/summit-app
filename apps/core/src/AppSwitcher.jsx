@@ -20,7 +20,7 @@ export default function AppSwitcher({ current, className = '' }) {
           aria-current={app.id === current ? 'page' : undefined}
           className={`text-[11px] font-medium px-2.5 py-1 rounded-full transition-colors ${
             app.id === current
-              ? 'bg-violet-600 text-white'
+              ? 'bg-primary text-on-primary'
               : 'text-black dark:text-white hover:bg-black/5 dark:hover:bg-violet-400/10'
           }`}
         >

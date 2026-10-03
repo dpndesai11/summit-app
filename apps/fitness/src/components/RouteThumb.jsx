@@ -19,7 +19,7 @@ export default function RouteThumb({ waypoints }) {
   const [sx, sy] = pts[0];
   const [ex, ey] = pts[pts.length - 1];
   return (
-    <svg width={w} height={h} viewBox={`0 0 ${w} ${h}`} className="bg-violet-50 dark:bg-violet-500/10 rounded-lg flex-shrink-0">
+    <svg width={w} height={h} viewBox={`0 0 ${w} ${h}`} className="bg-primary-soft rounded-lg flex-shrink-0">
       <polyline
         points={pts.map(([x, y]) => `${x},${y}`).join(' ')}
         fill="none" stroke="#2563eb" strokeWidth="2" strokeLinejoin="round" strokeLinecap="round"

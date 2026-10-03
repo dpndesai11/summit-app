@@ -27,9 +27,9 @@ export default function TodayTab({ w }) {
   return (
     <div className="space-y-6">
       <div className={`${card} p-4 flex items-center gap-3`}>
-        <Flame className="w-6 h-6 text-orange-500 flex-shrink-0" />
+        <Flame className="w-6 h-6 text-accent-ink flex-shrink-0" />
         <div>
-          <div className="text-2xl font-bold text-black dark:text-white tabular-nums">{anyStreak}</div>
+          <div className="text-2xl font-display font-extrabold text-accent-ink tabular-nums">{anyStreak}</div>
           <div className="text-sm text-black dark:text-white">{anyStreak === 1 ? 'day streak' : 'days streak'} — any habit</div>
         </div>
       </div>
@@ -55,10 +55,10 @@ export default function TodayTab({ w }) {
                 >
                   <span
                     className={`w-7 h-7 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${
-                      done ? `${meta.dot} border-transparent` : 'border-gray-300 dark:border-white/20'
+                      done ? `${meta.dot} border-transparent` : 'border-border-strong'
                     }`}
                   >
-                    {done && <span className="w-2.5 h-2.5 rounded-full bg-white" />}
+                    {done && <span className={`w-2.5 h-2.5 rounded-full ${meta.on}`} />}
                   </span>
                   <span className="flex-1 min-w-0">
                     <span className="block text-base font-semibold text-black dark:text-white truncate">{h.name}</span>
@@ -81,7 +81,7 @@ export default function TodayTab({ w }) {
             onChange={e => setDraftName(e.target.value)}
             onKeyDown={e => e.key === 'Enter' && submit()}
             placeholder="e.g. Drink water"
-            className="w-full min-h-[48px] px-4 rounded-xl bg-gray-100 dark:bg-violet-400/10 text-base text-black dark:text-white outline-none focus:ring-2 focus:ring-violet-500"
+            className="w-full min-h-[48px] px-4 rounded-xl bg-gray-100 dark:bg-violet-400/10 text-base text-black dark:text-white outline-none focus:ring-2 focus:ring-focus-ring"
           />
           <div className="flex items-center gap-2">
             {COLORS.map(c => (
@@ -96,7 +96,7 @@ export default function TodayTab({ w }) {
             <button
               onClick={submit}
               disabled={!draftName.trim()}
-              className="flex-1 min-h-[44px] rounded-xl bg-violet-600 text-white text-base font-semibold disabled:opacity-40 flex items-center justify-center gap-2"
+              className="flex-1 min-h-[44px] rounded-xl bg-primary text-on-primary text-base font-semibold disabled:opacity-40 flex items-center justify-center gap-2"
             >
               <Plus className="w-5 h-5" /> Add
             </button>

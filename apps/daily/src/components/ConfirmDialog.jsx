@@ -21,7 +21,7 @@ export default function ConfirmDialog({ open, title, message, confirmLabel = 'Co
           </button>
           <button
             onClick={onConfirm}
-            className={`text-sm font-medium px-3 py-1.5 rounded-lg text-white transition-colors ${danger ? 'bg-red-600 hover:bg-red-700' : 'bg-violet-600 hover:bg-violet-700'}`}
+            className={`text-sm font-medium px-3 py-1.5 rounded-lg text-on-primary transition-colors ${danger ? 'bg-danger hover:bg-danger/90' : 'bg-primary hover:bg-primary-hover'}`}
           >
             {confirmLabel}
           </button>

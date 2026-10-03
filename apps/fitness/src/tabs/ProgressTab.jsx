@@ -40,7 +40,7 @@ export default function ProgressTab({ w }) {
       <div className="flex gap-2">
         <StatCard icon={Dumbbell} label="Lifted" value={`${(totalVolume / 1000).toFixed(1)}t`} sub="lifetime" />
         <StatCard icon={Timer} label="Cardio" value={`${totalCardioMin}m`} sub="lifetime" />
-        <StatCard icon={Flame} label="Streak" value={currentStreak} sub={currentStreak === 1 ? 'day' : 'days'} />
+        <StatCard icon={Flame} tone="achievement" label="Streak" value={currentStreak} sub={currentStreak === 1 ? 'day' : 'days'} />
       </div>
 
       <button
@@ -72,7 +72,7 @@ export default function ProgressTab({ w }) {
                 onChange={e => setQuery(e.target.value)}
                 placeholder="Search exercises"
                 aria-label="Search exercises"
-                className="w-full min-h-[48px] pl-11 pr-4 rounded-xl bg-white dark:bg-[#211b34] border border-gray-200 dark:border-violet-400/15 text-base text-black dark:text-white outline-none focus:ring-2 focus:ring-violet-500"
+                className="w-full min-h-[48px] pl-11 pr-4 rounded-xl bg-white dark:bg-[#211b34] border border-gray-200 dark:border-violet-400/15 text-base text-black dark:text-white outline-none focus:ring-2 focus:ring-focus-ring"
               />
             </label>
             <div className={`${card} divide-y divide-gray-100 dark:divide-violet-400/15 overflow-hidden`}>
@@ -117,13 +117,13 @@ export default function ProgressTab({ w }) {
         <StreakCalendar strengthLogs={strengthLogs} cardioLogs={cardioLogs} />
         <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-3 text-sm text-black dark:text-white">
           <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-sm bg-gray-200 dark:bg-violet-400/20 inline-block" /> None</span>
-          <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-sm bg-violet-200 inline-block" /> Cardio</span>
-          <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-sm bg-violet-400 inline-block" /> Strength</span>
-          <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-sm bg-violet-600 inline-block" /> Both</span>
+          <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-sm bg-primary-low inline-block" /> Cardio</span>
+          <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-sm bg-primary-mid inline-block" /> Strength</span>
+          <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-sm bg-primary inline-block" /> Both</span>
         </div>
       </CollapsibleCard>
 
-      <CollapsibleCard title="Strength log" icon={Dumbbell} iconColor="text-violet-600" badge={strengthLogs.length > 0 ? `${strengthLogs.length}` : null}>
+      <CollapsibleCard title="Strength log" icon={Dumbbell} iconColor="text-primary" badge={strengthLogs.length > 0 ? `${strengthLogs.length}` : null}>
         {strengthLogs.length === 0 ? (
           <p className="text-base text-black dark:text-white text-center py-2">No lifts logged yet.</p>
         ) : (
@@ -147,8 +147,8 @@ export default function ProgressTab({ w }) {
                           <span className="flex items-center gap-2 min-w-0">
                             <span className="text-base font-semibold text-black dark:text-white truncate">{parseExercise(l.exercise).label}</span>
                             {isPR && (
-                              <span className="text-sm font-bold px-2 py-0.5 rounded-full bg-amber-100 dark:bg-amber-400/20 text-black dark:text-white flex items-center gap-1 flex-shrink-0">
-                                <Trophy className="w-3.5 h-3.5 text-amber-500" /> PR
+                              <span className="text-sm font-bold px-2 py-0.5 rounded-full bg-accent-ink/15 text-black dark:text-white flex items-center gap-1 flex-shrink-0">
+                                <Trophy className="w-3.5 h-3.5 text-accent-ink" /> PR
                               </span>
                             )}
                           </span>
@@ -173,7 +173,7 @@ export default function ProgressTab({ w }) {
                                 onClick={() => updateStrengthLogs(strengthLogs.filter(x => x.id !== l.id))}
                                 className="w-full min-h-[44px] text-base font-semibold text-black dark:text-white flex items-center justify-center gap-2"
                               >
-                                <Trash2 className="w-4 h-4 text-red-500" /> Delete this entry
+                                <Trash2 className="w-4 h-4 text-danger" /> Delete this entry
                               </button>
                             </div>
                           </div>
@@ -188,7 +188,7 @@ export default function ProgressTab({ w }) {
         )}
       </CollapsibleCard>
 
-      <CollapsibleCard title="Cardio log" icon={Activity} iconColor="text-violet-600" badge={cardioLogs.length > 0 ? `${cardioLogs.length}` : null}>
+      <CollapsibleCard title="Cardio log" icon={Activity} iconColor="text-primary" badge={cardioLogs.length > 0 ? `${cardioLogs.length}` : null}>
         {cardioLogs.length === 0 ? (
           <p className="text-base text-black dark:text-white text-center py-2">No cardio logged yet.</p>
         ) : (
@@ -206,7 +206,7 @@ export default function ProgressTab({ w }) {
                         </span>
                         <button onClick={() => updateCardioLogs(cardioLogs.filter(x => x.id !== l.id))}
                           aria-label={`Delete ${l.activity} on ${formatSwiss(date)}`}
-                          className="w-10 h-10 flex items-center justify-center text-black dark:text-white active:text-red-500">
+                          className="w-10 h-10 flex items-center justify-center text-black dark:text-white active:text-danger">
                           <Trash2 className="w-5 h-5" />
                         </button>
                       </span>

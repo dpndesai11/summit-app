@@ -43,15 +43,15 @@ export default function AuthGate({ title = 'Summit', subtitle, children }) {
             onChange={e => setPasswordInput(e.target.value)}
             onKeyDown={e => e.key === 'Enter' && handleUnlock()}
             autoFocus
-            className={`w-full bg-white border ${passwordError ? 'border-red-400' : 'border-gray-200'} rounded-lg px-4 py-3 text-black text-base outline-none focus:border-violet-500 transition-colors`}
+            className={`w-full bg-white border ${passwordError ? 'border-danger' : 'border-gray-200'} rounded-lg px-4 py-3 text-black text-base outline-none focus:border-focus-ring transition-colors`}
           />
           <button
             onClick={handleUnlock}
-            className="w-full bg-violet-600 text-white font-medium text-sm py-3 rounded-lg hover:bg-violet-700 transition-colors"
+            className="w-full bg-primary text-on-primary font-medium text-sm py-3 rounded-lg hover:bg-primary-hover transition-colors"
           >
             Unlock
           </button>
-          {passwordError && <p className="text-red-500 text-xs text-center">Incorrect password</p>}
+          {passwordError && <p className="text-danger text-xs text-center">Incorrect password</p>}
         </div>
       </div>
     </div>

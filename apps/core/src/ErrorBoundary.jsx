@@ -26,8 +26,8 @@ export default class ErrorBoundary extends Component {
       return (
         <div className="min-h-screen bg-[#f7f7f5] flex items-center justify-center p-6">
           <div className="max-w-sm w-full bg-white border border-gray-200 rounded-2xl p-6 text-center space-y-3">
-            <div className="w-10 h-10 rounded-full bg-red-50 flex items-center justify-center mx-auto">
-              <AlertTriangle className="w-5 h-5 text-red-500" />
+            <div className="w-10 h-10 rounded-full bg-danger/10 flex items-center justify-center mx-auto">
+              <AlertTriangle className="w-5 h-5 text-danger" />
             </div>
             <h1 className="text-sm font-semibold text-black">Something went wrong</h1>
             <p className="text-xs text-black">
@@ -36,13 +36,13 @@ export default class ErrorBoundary extends Component {
             </p>
             <button
               onClick={() => window.location.reload()}
-              className="w-full h-10 bg-violet-600 text-white rounded-lg text-sm font-semibold active:bg-violet-700"
+              className="w-full h-10 bg-primary text-on-primary rounded-lg text-sm font-semibold active:bg-primary-hover"
             >
               Reload
             </button>
             <details className="text-left">
               <summary className="text-[11px] text-black cursor-pointer">Technical details</summary>
-              <pre className="text-[10px] text-black mt-1 whitespace-pre-wrap break-words">{String(this.state.error?.stack || this.state.error)}</pre>
+              <pre className="text-[11px] text-black mt-1 whitespace-pre-wrap break-words">{String(this.state.error?.stack || this.state.error)}</pre>
             </details>
           </div>
         </div>

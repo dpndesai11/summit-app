@@ -28,9 +28,9 @@ export default function StreakCalendar({ strengthLogs, cardioLogs }) {
   const cellClass = (cell) => {
     if (cell.isFuture) return 'bg-transparent';
     if (!cell.day) return 'bg-gray-100 dark:bg-violet-400/10';
-    if (cell.day.strength && cell.day.cardio) return 'bg-violet-600';
-    if (cell.day.strength) return 'bg-violet-400';
-    return 'bg-violet-200';
+    if (cell.day.strength && cell.day.cardio) return 'bg-primary';
+    if (cell.day.strength) return 'bg-primary-mid';
+    return 'bg-primary-low';
   };
 
   const dayLabels = ['', 'M', '', 'W', '', 'F', ''];
@@ -39,7 +39,7 @@ export default function StreakCalendar({ strengthLogs, cardioLogs }) {
     <div className="flex gap-1.5 items-start">
       <div className="flex flex-col gap-[3px]">
         {dayLabels.map((l, i) => (
-          <div key={i} className="w-3 h-3 text-[8px] leading-3 text-black dark:text-white">{l}</div>
+          <div key={i} className="w-3 h-3 text-[11px] leading-3 text-black dark:text-white">{l}</div>
         ))}
       </div>
       <div className="flex gap-[3px] overflow-x-auto">

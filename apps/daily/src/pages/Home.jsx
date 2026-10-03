@@ -553,8 +553,8 @@ export default function Home({
   return (
     <div className="relative space-y-4">
       {toast && (
-        <div className={`fixed top-4 left-1/2 -translate-x-1/2 z-[60] text-xs px-4 py-2.5 rounded-full shadow-lg flex items-center gap-1.5 whitespace-nowrap animate-toast-in ${
-          toast.isError ? 'bg-red-600 text-white' : 'bg-gray-900 text-white'
+        <div className={`fixed top-4 left-1/2 -translate-x-1/2 z-[60] text-xs px-4 py-2.5 rounded-xl shadow-lg flex items-center gap-1.5 whitespace-nowrap animate-toast-in ${
+          toast.isError ? 'bg-danger text-on-danger' : 'bg-gray-900 text-white'
         }`}>
           {toast.isError ? <AlertTriangle className="w-3.5 h-3.5" /> : <Check className="w-3.5 h-3.5" />}
           {toast.message}
@@ -562,18 +562,18 @@ export default function Home({
       )}
 
       {notifPermission === 'default' && !bannerDismissed && (
-        <div className="bg-violet-50 dark:bg-violet-500/10 border border-violet-100 rounded-2xl p-3 flex items-start gap-2.5">
-          <Bell className="w-4 h-4 text-violet-500 mt-0.5 flex-shrink-0" />
+        <div className="bg-primary-soft border border-primary-low rounded-2xl p-3 flex items-start gap-2.5">
+          <Bell className="w-4 h-4 text-primary mt-0.5 flex-shrink-0" />
           <div className="flex-1 min-w-0">
-            <p className="text-xs font-medium text-violet-900">Get reminded when a workout or meal starts</p>
-            <p className="text-[11px] text-violet-600/80 mt-0.5">
+            <p className="text-xs font-medium text-primary">Get reminded when a workout or meal starts</p>
+            <p className="text-[11px] text-primary mt-0.5">
               Only fires while this tab is open (foreground or background) — not a real push notification when the app is fully closed.
             </p>
-            <button onClick={requestReminders} className="mt-2 text-[11px] font-semibold text-white bg-violet-600 px-2.5 py-1 rounded-lg active:bg-violet-700">
+            <button onClick={requestReminders} className="mt-2 text-[11px] font-semibold text-on-primary bg-primary px-2.5 py-1 rounded-lg active:bg-primary-hover">
               Enable reminders
             </button>
           </div>
-          <button onClick={() => setBannerDismissed(true)} aria-label="Dismiss" className="text-violet-300 active:text-violet-500 flex-shrink-0">
+          <button onClick={() => setBannerDismissed(true)} aria-label="Dismiss" className="text-primary active:text-primary-hover flex-shrink-0">
             <X className="w-3.5 h-3.5" />
           </button>
         </div>
@@ -583,7 +583,7 @@ export default function Home({
         <div className="flex bg-gray-200/60 dark:bg-violet-400/10 rounded-lg p-0.5">
           {[['day', 'Day'], ['week', 'Week']].map(([id, label]) => (
             <button key={id} onClick={() => setView(id)}
-              className={`px-3 py-1.5 rounded-md text-xs font-medium ${view === id ? 'bg-white dark:bg-[#211b34] text-violet-600 shadow-sm' : 'text-black dark:text-white'}`}
+              className={`px-3 py-1.5 rounded-md text-xs font-medium ${view === id ? 'bg-white dark:bg-[#211b34] text-primary shadow-sm' : 'text-black dark:text-white'}`}
             >
               {label}
             </button>
@@ -609,7 +609,7 @@ export default function Home({
               </button>
             </div>
             {!isViewingToday && (
-              <button onClick={() => setSelectedDate(new Date())} className="text-[11px] font-medium text-violet-600 bg-violet-50 dark:bg-violet-500/10 px-2.5 py-1 rounded-lg active:bg-violet-100">
+              <button onClick={() => setSelectedDate(new Date())} className="text-[11px] font-medium text-primary bg-primary-soft px-2.5 py-1 rounded-lg active:bg-primary-soft">
                 Jump to today
               </button>
             )}
@@ -624,7 +624,7 @@ export default function Home({
             <div className="relative" style={{ height: TIMELINE_HOURS.length * HOUR_HEIGHT }}>
               {TIMELINE_HOURS.map((h, i) => (
                 <div key={h} className="absolute left-0 right-0 flex items-start gap-2" style={{ top: i * HOUR_HEIGHT }}>
-                  <span className="text-[10px] text-black dark:text-white w-10 flex-shrink-0 -mt-1.5 tabular-nums">{formatHour(h)}</span>
+                  <span className="text-[11px] text-black dark:text-white w-10 flex-shrink-0 -mt-1.5 tabular-nums">{formatHour(h)}</span>
                   <div className="flex-1 border-t border-gray-100 dark:border-violet-400/15 mt-1" />
                 </div>
               ))}
@@ -654,7 +654,7 @@ export default function Home({
                     {Array.from({ length: repeatCount }).map((_, i) => (
                       <span
                         key={i}
-                        className={`absolute left-2 px-1.5 py-0.5 rounded text-[10px] font-medium whitespace-nowrap ${preset.chip}`}
+                        className={`absolute left-2 px-1.5 py-0.5 rounded text-[11px] font-medium whitespace-nowrap ${preset.chip}`}
                         style={{ top: i * REPEAT_PX + 4 }}
                       >
                         {block.name}
@@ -670,7 +670,7 @@ export default function Home({
                   style={{ top: ((nowMinutes - TIMELINE_START_MIN) / 60) * HOUR_HEIGHT }}
                 >
                   <div className="w-1.5 h-1.5 rounded-full bg-red-500 flex-shrink-0" />
-                  <div className="flex-1 border-t border-red-400" />
+                  <div className="flex-1 border-t border-danger" />
                 </div>
               )}
 
@@ -685,7 +685,9 @@ export default function Home({
                 const height = Math.max(MIN_BLOCK_HEIGHT, (displayDuration / 60) * HOUR_HEIGHT);
                 const isWorkout = block.kind === 'workout';
                 const isTask = block.kind === 'task';
-                const blockColor = isWorkout ? 'bg-orange-500' : isTask ? 'bg-violet-600' : 'bg-green-600';
+                const blockColor = isWorkout ? 'bg-orange-500' : isTask ? 'bg-primary' : 'bg-green-600';
+                // a task block is the primary fill, whose text flips to dark in dark mode
+                const blockText = isTask ? 'text-on-primary' : 'text-white';
                 const expanded = expandedBlock === block.key;
                 const showDurationLabel = height >= 44;
                 return (
@@ -696,7 +698,7 @@ export default function Home({
                       onPointerUp={e => handleBlockPointerUp(block, e)}
                       onPointerCancel={() => setDrag(null)}
                       style={{ height: height - 4 }}
-                      className={`w-full text-left rounded-xl px-3 py-2 flex items-start gap-2 select-none transition-shadow overflow-hidden text-white ${blockColor} ${isDragging ? 'shadow-xl scale-[1.02]' : ''}`}
+                      className={`w-full text-left rounded-xl px-3 py-2 flex items-start gap-2 select-none transition-shadow overflow-hidden ${blockText} ${blockColor} ${isDragging ? 'shadow-xl scale-[1.02]' : ''}`}
                     >
                       {isWorkout ? <Dumbbell className="w-3.5 h-3.5 flex-shrink-0 mt-0.5" /> : isTask ? (
                         <CheckSquare className="w-3.5 h-3.5 flex-shrink-0 mt-0.5" />
@@ -707,11 +709,11 @@ export default function Home({
                       <span className="min-w-0 flex-1">
                         <span className="text-xs font-semibold truncate block">{block.title}</span>
                         {showDurationLabel && (
-                          <span className="text-[10px] opacity-80 block">{formatTime(block.time)} · {formatDuration(displayDuration)}</span>
+                          <span className="text-[11px] opacity-80 block">{formatTime(block.time)} · {formatDuration(displayDuration)}</span>
                         )}
                       </span>
                       {!showDurationLabel && (
-                        <span className="text-[10px] opacity-80 tabular-nums flex-shrink-0">
+                        <span className="text-[11px] opacity-80 tabular-nums flex-shrink-0">
                           {isMoving ? formatTime(minutesToTime(drag.liveMinutes)) : formatTime(block.time)}
                         </span>
                       )}
@@ -730,10 +732,10 @@ export default function Home({
                       <span className={`w-8 h-1 rounded-full transition-colors ${isResizing ? 'bg-gray-500' : 'bg-black/10 group-hover:bg-black/20'}`} />
                     </div>
 
-                    {isResizing && <div className="text-[10px] text-black dark:text-white mt-0.5">{formatDuration(drag.liveDuration)}</div>}
+                    {isResizing && <div className="text-[11px] text-black dark:text-white mt-0.5">{formatDuration(drag.liveDuration)}</div>}
 
                     {expanded && !isDragging && (
-                      <div className={`mt-1 rounded-xl px-3 py-2 text-xs ${isWorkout ? 'bg-orange-50 dark:bg-orange-500/10 text-orange-800' : isTask ? 'bg-violet-50 dark:bg-violet-500/10 text-violet-800' : 'bg-green-50 dark:bg-green-500/10 text-green-800'}`}>
+                      <div className={`mt-1 rounded-xl px-3 py-2 text-xs ${isWorkout ? 'bg-orange-50 dark:bg-orange-500/10 text-orange-800' : isTask ? 'bg-primary-soft text-primary' : 'bg-green-50 dark:bg-green-500/10 text-green-800'}`}>
                         {isWorkout ? (
                           block.exercises.length > 0 ? (
                             <div className="flex flex-wrap gap-1">
@@ -792,9 +794,9 @@ export default function Home({
           <div className="space-y-4">
             <div>
               <div className="flex items-center gap-2 mb-2">
-                <CheckSquare className="w-4 h-4 text-violet-600" />
+                <CheckSquare className="w-4 h-4 text-primary" />
                 <span className="font-semibold text-black dark:text-white text-sm">{isViewingToday ? 'Today' : selectedDateLabel}</span>
-                <span className="text-[10px] text-black dark:text-white ml-auto">{dayListTasks.length}</span>
+                <span className="text-[11px] text-black dark:text-white ml-auto">{dayListTasks.length}</span>
               </div>
               {dayListTasks.length === 0 ? (
                 <div className="bg-white dark:bg-[#211b34] rounded-2xl border border-dashed border-gray-200 dark:border-violet-400/15 p-4 text-center">
@@ -813,31 +815,31 @@ export default function Home({
                           <button
                             onClick={() => handleUpdateTaskStatus(task.id, done ? 'todo' : 'done')}
                             aria-label={done ? `Reopen ${task.name}` : `Mark ${task.name} done`}
-                            className="text-black dark:text-white active:text-violet-600 flex-shrink-0"
+                            className="text-black dark:text-white active:text-primary flex-shrink-0"
                           >
-                            {done ? <CircleCheck className="w-5 h-5 text-violet-600" /> : <Circle className="w-5 h-5" />}
+                            {done ? <CircleCheck className="w-5 h-5 text-primary" /> : <Circle className="w-5 h-5" />}
                           </button>
                           <button onClick={() => setOpenTaskId(task.id)} className="flex-1 min-w-0 text-left">
                             <span className={`text-sm truncate block ${done ? 'line-through text-black dark:text-white' : 'text-black dark:text-white font-medium'}`}>{task.name}</span>
                           </button>
                           <div className="flex items-center gap-1 flex-shrink-0">
-                            {overdueIds.has(task.id) && <span className="text-[9px] font-medium text-red-600 bg-red-50 dark:bg-red-500/10 px-1.5 py-0.5 rounded">Overdue</span>}
-                            {task.dueDate === selectedISO && !overdueIds.has(task.id) && <span className="text-[9px] font-medium text-amber-600 bg-amber-50 dark:bg-amber-500/10 px-1.5 py-0.5 rounded">Due</span>}
-                            {(isViewingToday ? selectedToday : otherDaySelections).includes(task.id) && <span className="text-[9px] font-medium text-violet-600 bg-violet-50 dark:bg-violet-500/10 px-1.5 py-0.5 rounded">Picked</span>}
+                            {overdueIds.has(task.id) && <span className="text-[11px] font-medium text-danger bg-danger/10 px-1.5 py-0.5 rounded">Overdue</span>}
+                            {task.dueDate === selectedISO && !overdueIds.has(task.id) && <span className="text-[11px] font-medium text-warning bg-warning/10 px-1.5 py-0.5 rounded">Due</span>}
+                            {(isViewingToday ? selectedToday : otherDaySelections).includes(task.id) && <span className="text-[11px] font-medium text-primary bg-primary-soft px-1.5 py-0.5 rounded">Picked</span>}
                           </div>
                         </div>
                         <div className="pl-7 mt-1.5">
                           {scheduled ? (
                             <button
                               onClick={() => removeTaskFromTimeline(task.id)}
-                              className="flex items-center gap-1 text-[10px] font-medium text-violet-600 bg-violet-50 dark:bg-violet-500/10 px-2 py-0.5 rounded-full active:bg-violet-100"
+                              className="flex items-center gap-1 text-[11px] font-medium text-primary bg-primary-soft px-2 py-0.5 rounded-full active:bg-primary-soft"
                             >
                               <CalendarRange className="w-2.5 h-2.5" /> On timeline · remove
                             </button>
                           ) : (
                             <button
                               onClick={() => commitTaskEntry(task.id, {})}
-                              className="flex items-center gap-1 text-[10px] font-medium text-black dark:text-white bg-gray-100 dark:bg-violet-400/10 px-2 py-0.5 rounded-full active:bg-gray-200 dark:bg-violet-400/10"
+                              className="flex items-center gap-1 text-[11px] font-medium text-black dark:text-white bg-gray-100 dark:bg-violet-400/10 px-2 py-0.5 rounded-full active:bg-gray-200 dark:bg-violet-400/10"
                             >
                               <CalendarRange className="w-2.5 h-2.5" /> Add to timeline
                             </button>
@@ -853,12 +855,12 @@ export default function Home({
             <CollapsibleCard
               title="Recurring blocks"
               icon={Repeat}
-              iconColor="text-violet-600"
+              iconColor="text-primary"
               badge={recurringBlocks.length > 0 ? `${recurringBlocks.length}` : null}
               actions={
                 <button
                   onClick={() => (blockBuilderOpen ? closeBlockBuilder() : setBlockBuilderOpen(true))}
-                  className="flex items-center gap-1 text-[11px] font-medium text-violet-600 bg-violet-50 dark:bg-violet-500/10 px-2.5 py-1 rounded-lg active:bg-violet-100"
+                  className="flex items-center gap-1 text-[11px] font-medium text-primary bg-primary-soft px-2.5 py-1 rounded-lg active:bg-primary-soft"
                 >
                   {blockBuilderOpen ? <X className="w-3 h-3" /> : <Plus className="w-3 h-3" />}
                   {blockBuilderOpen ? 'Cancel' : 'New'}
@@ -875,7 +877,7 @@ export default function Home({
                     value={blockBuilder.name}
                     onChange={(e) => setBlockBuilder(p => ({ ...p, name: e.target.value }))}
                     placeholder="Name (e.g. Work hours, Commute)"
-                    className="w-full bg-white dark:bg-[#211b34] border border-gray-200 dark:border-violet-400/15 rounded-lg px-3 py-2 text-sm text-black dark:text-white outline-none focus:border-violet-500"
+                    className="w-full bg-white dark:bg-[#211b34] border border-gray-200 dark:border-violet-400/15 rounded-lg px-3 py-2 text-sm text-black dark:text-white outline-none focus:border-focus-ring"
                   />
 
                   <div className="flex flex-wrap gap-1.5">
@@ -883,7 +885,7 @@ export default function Home({
                       <button
                         key={c}
                         onClick={() => setBlockBuilder(p => ({ ...p, color: c }))}
-                        className={`text-[10px] font-medium px-2.5 py-1 rounded-full border ${BLOCK_COLOR_PRESETS[c].chip} ${blockBuilder.color === c ? 'border-current' : 'border-transparent opacity-50'}`}
+                        className={`text-[11px] font-medium px-2.5 py-1 rounded-full border ${BLOCK_COLOR_PRESETS[c].chip} ${blockBuilder.color === c ? 'border-current' : 'border-transparent opacity-50'}`}
                       >
                         {BLOCK_COLOR_PRESETS[c].label}
                       </button>
@@ -895,7 +897,7 @@ export default function Home({
                       <button
                         key={day}
                         onClick={() => toggleBuilderDay(day)}
-                        className={`text-[11px] font-medium w-11 h-7 rounded-full ${blockBuilder.days[day] ? 'bg-violet-600 text-white' : 'bg-white dark:bg-[#211b34] text-black dark:text-white border border-gray-200 dark:border-violet-400/15'}`}
+                        className={`text-[11px] font-medium w-11 h-7 rounded-full ${blockBuilder.days[day] ? 'bg-primary text-on-primary' : 'bg-white dark:bg-[#211b34] text-black dark:text-on-primary border border-gray-200 dark:border-violet-400/15'}`}
                       >
                         {day.slice(0, 3)}
                       </button>
@@ -914,7 +916,7 @@ export default function Home({
                             type="time"
                             value={blockBuilder.days[day].time}
                             onChange={(e) => setBuilderDayField(day, 'time', e.target.value)}
-                            className="flex-1 min-w-0 bg-white dark:bg-[#211b34] border border-gray-200 dark:border-violet-400/15 rounded-lg px-2 py-1.5 text-xs text-black dark:text-white outline-none focus:border-violet-500"
+                            className="flex-1 min-w-0 bg-white dark:bg-[#211b34] border border-gray-200 dark:border-violet-400/15 rounded-lg px-2 py-1.5 text-xs text-black dark:text-white outline-none focus:border-focus-ring"
                           />
                           <input
                             type="number"
@@ -922,9 +924,9 @@ export default function Home({
                             step={5}
                             value={blockBuilder.days[day].duration}
                             onChange={(e) => setBuilderDayField(day, 'duration', Math.max(5, Number(e.target.value) || 5))}
-                            className="w-16 flex-shrink-0 bg-white dark:bg-[#211b34] border border-gray-200 dark:border-violet-400/15 rounded-lg px-2 py-1.5 text-xs text-black dark:text-white outline-none focus:border-violet-500"
+                            className="w-16 flex-shrink-0 bg-white dark:bg-[#211b34] border border-gray-200 dark:border-violet-400/15 rounded-lg px-2 py-1.5 text-xs text-black dark:text-white outline-none focus:border-focus-ring"
                           />
-                          <span className="text-[10px] text-black dark:text-white flex-shrink-0">min</span>
+                          <span className="text-[11px] text-black dark:text-white flex-shrink-0">min</span>
                         </div>
                       ))}
                     </div>
@@ -933,7 +935,7 @@ export default function Home({
                   <button
                     onClick={saveBlock}
                     disabled={!blockBuilder.name.trim() || Object.keys(blockBuilder.days).length === 0}
-                    className="w-full h-10 bg-violet-600 text-white rounded-lg text-sm font-semibold disabled:opacity-40 active:bg-violet-700"
+                    className="w-full h-10 bg-primary text-on-primary rounded-lg text-sm font-semibold disabled:opacity-40 active:bg-primary-hover"
                   >
                     {editingBlockId ? 'Save changes' : 'Add block'}
                   </button>
@@ -950,17 +952,17 @@ export default function Home({
                     return (
                       <div key={b.id} className="border border-gray-200 dark:border-violet-400/15 rounded-xl p-3">
                         <div className="flex items-center gap-2 mb-1.5">
-                          <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full ${preset.chip}`}>{b.name}</span>
-                          <button onClick={() => startEditBlock(b)} className="ml-auto text-black dark:text-white active:text-violet-600 p-1" aria-label={`Edit ${b.name}`}>
+                          <span className={`text-[11px] font-medium px-2 py-0.5 rounded-full ${preset.chip}`}>{b.name}</span>
+                          <button onClick={() => startEditBlock(b)} className="ml-auto text-black dark:text-white active:text-primary p-1" aria-label={`Edit ${b.name}`}>
                             <Pencil className="w-3.5 h-3.5" />
                           </button>
-                          <button onClick={() => deleteBlock(b.id)} className="text-black dark:text-white active:text-red-500 p-1" aria-label={`Delete ${b.name}`}>
+                          <button onClick={() => deleteBlock(b.id)} className="text-black dark:text-white active:text-danger p-1" aria-label={`Delete ${b.name}`}>
                             <Trash2 className="w-3.5 h-3.5" />
                           </button>
                         </div>
                         <div className="space-y-0.5">
                           {groups.map(g => (
-                            <div key={g.key} className="text-[10px] text-black dark:text-white">
+                            <div key={g.key} className="text-[11px] text-black dark:text-white">
                               <span className="font-medium">{g.dayNames.map(d => d.slice(0, 3)).join(' ')}</span>
                               {' · '}{formatTime(g.time)} · {formatDuration(g.duration)}
                             </div>
@@ -999,7 +1001,7 @@ export default function Home({
         <div className="space-y-4">
           <div className="bg-white dark:bg-[#211b34] rounded-2xl border border-gray-200 dark:border-violet-400/15 p-4">
             <div className="flex items-center gap-2 mb-3">
-              <CalendarRange className="w-4 h-4 text-violet-600" />
+              <CalendarRange className="w-4 h-4 text-primary" />
               <span className="font-semibold text-black dark:text-white text-sm">This week's plan</span>
             </div>
             <p className="text-[11px] text-black dark:text-white mb-2">Tap a day to see (and drag-schedule) its timeline</p>
@@ -1013,9 +1015,9 @@ export default function Home({
                   <button
                     key={day}
                     onClick={() => goToDay(iso)}
-                    className={`w-full flex items-center gap-3 rounded-xl px-3 py-2 text-left transition-colors hover:bg-gray-50 dark:bg-violet-400/5 ${isToday ? 'bg-violet-50 dark:bg-violet-500/10 hover:bg-violet-50 dark:bg-violet-500/10' : ''}`}
+                    className={`w-full flex items-center gap-3 rounded-xl px-3 py-2 text-left transition-colors hover:bg-gray-50 dark:bg-violet-400/5 ${isToday ? 'bg-primary-soft hover:bg-primary-soft' : ''}`}
                   >
-                    <span className={`text-xs w-24 flex-shrink-0 ${isToday ? 'font-bold text-violet-600' : 'text-black dark:text-white'}`}>
+                    <span className={`text-xs w-24 flex-shrink-0 ${isToday ? 'font-bold text-primary' : 'text-black dark:text-white'}`}>
                       {day.slice(0, 3)}{isToday ? ' •' : ''} <span className="text-black dark:text-white">{iso.slice(5)}</span>
                     </span>
                     <div className="flex-1 min-w-0 flex flex-wrap items-center gap-1.5">
@@ -1023,13 +1025,13 @@ export default function Home({
                         <span className="text-[11px] text-black dark:text-white">Nothing planned</span>
                       )}
                       {workoutNames.map(name => (
-                        <span key={name} className="text-[10px] bg-orange-100 text-orange-700 rounded-full px-2 py-0.5">{name}</span>
+                        <span key={name} className="text-[11px] bg-orange-100 text-orange-700 rounded-full px-2 py-0.5">{name}</span>
                       ))}
                       {mealCount > 0 && (
-                        <span className="text-[10px] bg-green-100 text-green-700 rounded-full px-2 py-0.5">{mealCount} meal{mealCount === 1 ? '' : 's'}</span>
+                        <span className="text-[11px] bg-green-100 text-green-700 rounded-full px-2 py-0.5">{mealCount} meal{mealCount === 1 ? '' : 's'}</span>
                       )}
                       {taskCount > 0 && (
-                        <span className="text-[10px] bg-violet-100 text-violet-700 rounded-full px-2 py-0.5">{taskCount} task{taskCount === 1 ? '' : 's'}</span>
+                        <span className="text-[11px] bg-primary-soft text-primary rounded-full px-2 py-0.5">{taskCount} task{taskCount === 1 ? '' : 's'}</span>
                       )}
                     </div>
                   </button>

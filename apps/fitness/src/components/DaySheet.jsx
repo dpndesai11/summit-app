@@ -23,7 +23,7 @@ function LengthField({ value, onCommit, label }) {
         onChange={e => setDraft(e.target.value)}
         onBlur={() => draft !== null && commit(draft)}
         aria-label={`Length of ${label} in minutes`}
-        className="w-16 h-11 text-center text-base font-semibold bg-gray-100 dark:bg-violet-400/10 rounded-xl text-black dark:text-white outline-none focus:ring-2 focus:ring-violet-500"
+        className="w-16 h-11 text-center text-base font-semibold bg-gray-100 dark:bg-violet-400/10 rounded-xl text-black dark:text-white outline-none focus:ring-2 focus:ring-focus-ring"
       />
       <button onClick={() => commit(Number(value) + 5)} aria-label={`Lengthen ${label}`}
         className="w-11 h-11 rounded-xl bg-gray-100 dark:bg-violet-400/10 flex items-center justify-center text-black dark:text-white">
@@ -57,7 +57,7 @@ export default function DaySheet({ w, day, onClose }) {
             <div className="flex items-start justify-between gap-3 mb-3">
               <span className="text-base font-bold text-black dark:text-white">{name}</span>
               <button onClick={() => removeWorkoutFromDay(day, name)} aria-label={`Remove ${name} from ${day}`}
-                className="w-10 h-10 -mt-1 -mr-1 flex items-center justify-center text-black dark:text-white active:text-red-500">
+                className="w-10 h-10 -mt-1 -mr-1 flex items-center justify-center text-black dark:text-white active:text-danger">
                 <Trash2 className="w-5 h-5" />
               </button>
             </div>
@@ -69,7 +69,7 @@ export default function DaySheet({ w, day, onClose }) {
                   value={getWorkoutTime(day, name)}
                   onChange={e => setWorkoutTime(day, name, e.target.value)}
                   aria-label={`Start time for ${name} on ${day}`}
-                  className="h-11 px-3 text-base font-semibold bg-gray-100 dark:bg-violet-400/10 rounded-xl text-black dark:text-white outline-none focus:ring-2 focus:ring-violet-500"
+                  className="h-11 px-3 text-base font-semibold bg-gray-100 dark:bg-violet-400/10 rounded-xl text-black dark:text-white outline-none focus:ring-2 focus:ring-focus-ring"
                 />
               </label>
               <LengthField
@@ -91,9 +91,9 @@ export default function DaySheet({ w, day, onClose }) {
             <button
               key={t.id}
               onClick={() => addWorkoutToDay(day, t.name)}
-              className="w-full min-h-[48px] flex items-center gap-3 px-4 rounded-xl border border-dashed border-gray-200 dark:border-violet-400/25 text-left text-base font-medium text-black dark:text-white active:bg-violet-50 dark:active:bg-violet-500/10"
+              className="w-full min-h-[48px] flex items-center gap-3 px-4 rounded-xl border border-dashed border-gray-200 dark:border-violet-400/25 text-left text-base font-medium text-black dark:text-white active:bg-primary-soft dark:active:bg-violet-500/10"
             >
-              <Plus className="w-5 h-5 text-violet-600 flex-shrink-0" />
+              <Plus className="w-5 h-5 text-primary flex-shrink-0" />
               <span className="flex-1 min-w-0 truncate">{t.name}</span>
             </button>
           ))}

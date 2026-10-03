@@ -23,7 +23,7 @@ export default function AppFrame({ appId, title, action, children }) {
           </button>
         </div>
         <div className="flex items-center justify-between gap-2">
-          <h1 className="text-xl font-bold text-black dark:text-white">{title}</h1>
+          <h1 className="text-3xl font-extrabold text-black dark:text-white">{title}</h1>
           {/* Optional page-level action (e.g. a refresh button) beside the title */}
           {action}
         </div>

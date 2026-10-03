@@ -18,7 +18,7 @@ export default function TabBar({ tabs, tab, setTab, variant = 'bottom' }) {
               onClick={() => setTab(id)}
               aria-current={tab === id ? 'page' : undefined}
               className={`flex-1 flex flex-col items-center gap-0.5 py-2.5 min-h-[56px] ${
-                tab === id ? 'text-violet-600' : 'text-black dark:text-white'
+                tab === id ? 'text-primary' : 'text-black dark:text-white'
               }`}
             >
               <Icon className="w-6 h-6" />
@@ -38,7 +38,7 @@ export default function TabBar({ tabs, tab, setTab, variant = 'bottom' }) {
           onClick={() => setTab(id)}
           aria-current={tab === id ? 'page' : undefined}
           className={`flex items-center gap-1.5 px-4 py-1.5 rounded-md text-sm font-medium ${
-            tab === id ? 'bg-white dark:bg-[#211b34] text-violet-600 shadow-sm' : 'text-black dark:text-white'
+            tab === id ? 'bg-white dark:bg-[#211b34] text-primary shadow-sm' : 'text-black dark:text-white'
           }`}
         >
           <Icon className="w-4 h-4" /> {label}

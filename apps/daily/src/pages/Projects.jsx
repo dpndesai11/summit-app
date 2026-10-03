@@ -80,12 +80,12 @@ export default function Projects({
             onChange={(e) => setNewProjectName(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && handleAddProject()}
             placeholder="New project"
-            className="flex-1 bg-gray-50 dark:bg-violet-400/5 border border-gray-200 dark:border-violet-400/15 text-black dark:text-white rounded-lg px-2.5 py-1.5 text-sm focus:outline-none focus:border-violet-500"
+            className="flex-1 bg-gray-50 dark:bg-violet-400/5 border border-gray-200 dark:border-violet-400/15 text-black dark:text-white rounded-lg px-2.5 py-1.5 text-sm focus:outline-none focus:border-focus-ring"
           />
           <button
             onClick={handleAddProject}
             disabled={!newProjectName.trim()}
-            className="bg-violet-600 hover:bg-violet-700 text-white rounded-lg px-3 disabled:opacity-40 transition-colors flex items-center gap-1 text-sm font-medium"
+            className="bg-primary hover:bg-primary-hover text-on-primary rounded-lg px-3 disabled:opacity-40 transition-colors flex items-center gap-1 text-sm font-medium"
           >
             <Plus className="w-3.5 h-3.5" /> Add
           </button>
@@ -103,7 +103,7 @@ export default function Projects({
               <CollapsibleCard
                 key={project.id}
                 icon={Folder}
-                iconColor="text-violet-600"
+                iconColor="text-primary"
                 title={isRenaming ? '' : project.name}
                 badge={!isRenaming && linkedCount > 0 ? `${linkedCount} task${linkedCount === 1 ? '' : 's'}` : null}
                 open={expandedIds.has(project.id)}
@@ -121,18 +121,18 @@ export default function Projects({
                         onChange={(e) => setRenameValue(e.target.value)}
                         onKeyDown={(e) => e.key === 'Enter' && commitRename()}
                         onBlur={commitRename}
-                        className="bg-white dark:bg-[#2a2340] border border-violet-500 rounded-md px-1.5 py-0.5 text-sm text-black dark:text-white focus:outline-none w-40"
+                        className="bg-white dark:bg-[#2a2340] border border-primary rounded-md px-1.5 py-0.5 text-sm text-black dark:text-white focus:outline-none w-40"
                       />
-                      <button onClick={commitRename} className="text-violet-600" aria-label="Save name">
+                      <button onClick={commitRename} className="text-primary" aria-label="Save name">
                         <Check className="w-3.5 h-3.5" />
                       </button>
                     </>
                   ) : (
                     <>
-                      <button onClick={() => startRename(project)} className="text-black dark:text-white hover:text-violet-600" aria-label="Rename project">
+                      <button onClick={() => startRename(project)} className="text-black dark:text-white hover:text-primary" aria-label="Rename project">
                         <Pencil className="w-3.5 h-3.5" />
                       </button>
-                      <button onClick={() => setConfirmDeleteId(project.id)} className="text-black dark:text-white hover:text-red-500" aria-label="Delete project">
+                      <button onClick={() => setConfirmDeleteId(project.id)} className="text-black dark:text-white hover:text-danger" aria-label="Delete project">
                         <Trash2 className="w-3.5 h-3.5" />
                       </button>
                     </>

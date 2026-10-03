@@ -24,7 +24,7 @@ export default function TagInput({ tags, onChange }) {
             className="flex items-center gap-1 text-[11px] font-medium bg-gray-100 dark:bg-violet-400/10 text-black dark:text-white px-2 py-0.5 rounded-full"
           >
             {tag}
-            <button type="button" onClick={() => removeTag(tag)} className="hover:text-red-500">
+            <button type="button" onClick={() => removeTag(tag)} className="hover:text-danger">
               <X className="w-2.5 h-2.5" />
             </button>
           </span>
@@ -39,7 +39,7 @@ export default function TagInput({ tags, onChange }) {
         }}
         onBlur={addTag}
         placeholder="Add a tag, press Enter"
-        className="w-full bg-gray-50 dark:bg-violet-400/5 border border-gray-200 dark:border-violet-400/15 text-black dark:text-white rounded-lg p-2 text-xs focus:outline-none focus:border-violet-500"
+        className="w-full bg-gray-50 dark:bg-violet-400/5 border border-gray-200 dark:border-violet-400/15 text-black dark:text-white rounded-lg p-2 text-xs focus:outline-none focus:border-focus-ring"
       />
     </div>
   );

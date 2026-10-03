@@ -11,11 +11,12 @@ export const STORAGE_KEYS = {
 // Fitness's exercise-type colors — a fixed set so the exact Tailwind classes
 // exist in source for the build to pick up, rather than free-form color input.
 export const COLOR_PRESETS = {
-  violet: { label: 'Violet', dot: 'bg-violet-600', text: 'text-violet-600', ring: 'ring-violet-600' },
-  blue: { label: 'Blue', dot: 'bg-blue-600', text: 'text-blue-600', ring: 'ring-blue-600' },
-  amber: { label: 'Amber', dot: 'bg-amber-500', text: 'text-amber-600', ring: 'ring-amber-500' },
-  rose: { label: 'Rose', dot: 'bg-rose-500', text: 'text-rose-600', ring: 'ring-rose-500' },
-  teal: { label: 'Teal', dot: 'bg-teal-500', text: 'text-teal-600', ring: 'ring-teal-500' },
+  // `on` is the mark drawn on top of a filled dot: the primary fill flips light in dark mode, so its mark flips dark
+  violet: { label: 'Violet', dot: 'bg-primary', on: 'bg-on-primary', text: 'text-primary', ring: 'ring-primary' },
+  blue: { label: 'Blue', dot: 'bg-blue-600', on: 'bg-white', text: 'text-blue-600', ring: 'ring-blue-600' },
+  amber: { label: 'Amber', dot: 'bg-amber-500', on: 'bg-white', text: 'text-amber-600', ring: 'ring-amber-500' },
+  rose: { label: 'Rose', dot: 'bg-rose-500', on: 'bg-white', text: 'text-rose-600', ring: 'ring-rose-500' },
+  teal: { label: 'Teal', dot: 'bg-teal-500', on: 'bg-white', text: 'text-teal-600', ring: 'ring-teal-500' },
 };
 export const COLORS = Object.keys(COLOR_PRESETS);
 

@@ -20,10 +20,10 @@ export default function DayTasksPanel({ dateStr, tasks, formatToSwissDate, onOpe
             <button
               key={task.id}
               onClick={() => onOpenTask(task)}
-              className="w-full text-left bg-gray-50 dark:bg-violet-400/5 border border-gray-200 dark:border-violet-400/15 rounded-lg p-2.5 hover:border-gray-300 dark:hover:border-white/20 transition-colors"
+              className="w-full text-left bg-gray-50 dark:bg-violet-400/5 border border-gray-200 dark:border-violet-400/15 rounded-lg p-2.5 hover:border-border-strong transition-colors"
             >
               <span className="text-sm font-medium text-black dark:text-white block">{task.name}</span>
-              <span className="text-[10px] text-black dark:text-white">
+              <span className="text-[11px] text-black dark:text-white">
                 {task.targetDate === dateStr ? 'Target' : 'Deadline'} · {task.status.replace('_', ' ')}
               </span>
             </button>

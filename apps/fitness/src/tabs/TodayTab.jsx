@@ -45,7 +45,7 @@ export default function TodayTab({ w, onOpenPlan }) {
             <button
               onClick={() => logCardioFromPlan(sKey, ex.name)}
               className={`h-12 px-6 rounded-xl text-base font-bold transition-colors flex items-center gap-1.5 ${
-                logged ? 'bg-green-600 text-white animate-success-pulse' : 'bg-violet-600 text-white'
+                logged ? 'bg-success text-on-primary animate-success-pulse' : 'bg-primary text-on-primary'
               }`}
             >
               {logged ? <Check className="w-5 h-5" /> : null}
@@ -67,11 +67,11 @@ export default function TodayTab({ w, onOpenPlan }) {
       return (
         <div key={k} className={`${card} p-4`}>
           <div className="flex items-center gap-2.5">
-            <Check className="w-5 h-5 text-green-500 flex-shrink-0" />
+            <Check className="w-5 h-5 text-success flex-shrink-0" />
             <span className="flex-1 min-w-0 text-base font-bold text-black dark:text-white truncate">{p.label}</span>
             <button
               onClick={() => unlockExercise(session, ex.name)}
-              className="min-h-[40px] px-3 rounded-full bg-violet-100 dark:bg-violet-400/20 text-sm font-semibold text-black dark:text-white flex items-center gap-1.5 flex-shrink-0"
+              className="min-h-[40px] px-3 rounded-full bg-primary-soft text-sm font-semibold text-black dark:text-white flex items-center gap-1.5 flex-shrink-0"
             >
               <Unlock className="w-4 h-4" /> Unlock
             </button>
@@ -132,7 +132,7 @@ export default function TodayTab({ w, onOpenPlan }) {
               <span key={s.setNumber} className="text-sm font-medium bg-gray-100 dark:bg-violet-400/10 rounded-full pl-3 pr-1 py-1 text-black dark:text-white flex items-center gap-1">
                 {formatSetText(s, isBodyweight)}
                 <button onClick={() => removeSetFromSession(session, ex.name, i)} aria-label={`Remove set ${s.setNumber}`}
-                  className="w-7 h-7 flex items-center justify-center text-black dark:text-white active:text-red-500">
+                  className="w-7 h-7 flex items-center justify-center text-black dark:text-white active:text-danger">
                   <X className="w-4 h-4" />
                 </button>
               </span>
@@ -150,9 +150,9 @@ export default function TodayTab({ w, onOpenPlan }) {
         ) : (
           <button
             onClick={() => timer.openTimer({ key: k, label: p.label, seconds: hold?.seconds ?? 30, perSide: hold?.perSide })}
-            className="w-full min-h-[48px] mb-3 rounded-xl border border-violet-300 dark:border-violet-400/40 text-base font-semibold text-black dark:text-white flex items-center justify-center gap-2"
+            className="w-full min-h-[48px] mb-3 rounded-xl border border-border-strong text-base font-semibold text-black dark:text-white flex items-center justify-center gap-2"
           >
-            <TimerIcon className="w-5 h-5 text-violet-600" />
+            <TimerIcon className="w-5 h-5 text-primary" />
             {hold ? `Timer · ${hold.seconds}s${hold.perSide ? ' per side' : ''}` : 'Timer'}
           </button>
         ))}
@@ -177,7 +177,7 @@ export default function TodayTab({ w, onOpenPlan }) {
           <button
             onClick={() => lockExercise(session, template, ex.name)}
             disabled={setCount === 0}
-            className="flex-1 min-h-[52px] rounded-xl text-base font-bold bg-gray-900 dark:bg-white text-white dark:text-black disabled:opacity-30 flex items-center justify-center gap-2"
+            className="flex-1 min-h-[52px] rounded-xl text-base font-bold bg-gray-900 dark:bg-white text-white dark:text-black disabled:opacity-40 flex items-center justify-center gap-2"
           >
             <Lock className="w-5 h-5" /> Lock set
           </button>
@@ -198,11 +198,11 @@ export default function TodayTab({ w, onOpenPlan }) {
     const setCount = sessionSetCount(session);
 
     return (
-      <div key={sKey} className={`rounded-2xl overflow-hidden ${stray ? 'ring-2 ring-amber-400' : ''}`}>
+      <div key={sKey} className={`rounded-2xl overflow-hidden ${stray ? 'ring-2 ring-warning' : ''}`}>
         <button
           onClick={() => setExpandedWorkouts(prev => ({ ...prev, [sKey]: !expanded }))}
           aria-expanded={expanded}
-          className="w-full bg-violet-600 p-4 text-white text-left"
+          className="w-full bg-primary p-4 text-on-primary text-left"
         >
           <div className="flex items-center justify-between gap-3">
             <div className="min-w-0">
@@ -225,7 +225,7 @@ export default function TodayTab({ w, onOpenPlan }) {
               {template.exercises.map(ex => renderExerciseCard(session, template, ex))}
               <button
                 onClick={() => completeWorkout(session)}
-                className="w-full min-h-[56px] rounded-xl text-base font-bold bg-green-600 text-white active:bg-green-700 flex items-center justify-center gap-2"
+                className="w-full min-h-[56px] rounded-xl text-base font-bold bg-success text-on-primary active:bg-success/90 flex items-center justify-center gap-2"
               >
                 <Check className="w-5 h-5" /> Complete workout
               </button>
@@ -254,17 +254,17 @@ export default function TodayTab({ w, onOpenPlan }) {
           setCardioForm(prev => ({ ...prev, routeId: '' }));
           setCardioSheetOpen(true);
         }}
-        className="w-full min-h-[52px] rounded-2xl border border-dashed border-violet-400 dark:border-violet-400/50 text-base font-bold text-black dark:text-white flex items-center justify-center gap-2"
+        className="w-full min-h-[52px] rounded-2xl border border-dashed border-primary-mid text-base font-bold text-black dark:text-white flex items-center justify-center gap-2"
       >
-        <Activity className="w-5 h-5 text-violet-600" /> Log cardio
+        <Activity className="w-5 h-5 text-primary" /> Log cardio
       </button>
 
       {visibleStrays.filter(s => !resumedStray[sessionKey(s)]).map(s => {
         const sKey = sessionKey(s);
         return (
-          <div key={sKey} className="bg-amber-50 dark:bg-amber-500/10 border border-amber-300 dark:border-amber-400/40 rounded-2xl p-4">
+          <div key={sKey} className="bg-warning/10 border border-warning rounded-2xl p-4">
             <div className="flex items-start gap-2.5">
-              <AlertTriangle className="w-5 h-5 text-amber-500 mt-0.5 flex-shrink-0" />
+              <AlertTriangle className="w-5 h-5 text-warning mt-0.5 flex-shrink-0" />
               <div className="min-w-0 flex-1">
                 <div className="text-base font-bold text-black dark:text-white">{s.templateName} · {formatSwiss(s.date)}</div>
                 <div className="text-sm text-black dark:text-white">{sessionSetCount(s)} sets logged, never completed.</div>
@@ -283,13 +283,13 @@ export default function TodayTab({ w, onOpenPlan }) {
                   setResumedStray(prev => ({ ...prev, [sKey]: true }));
                   setExpandedWorkouts(prev => ({ ...prev, [sKey]: true }));
                 }}
-                className="flex-1 min-h-[44px] rounded-xl bg-violet-600 text-white text-base font-bold"
+                className="flex-1 min-h-[44px] rounded-xl bg-primary text-on-primary text-base font-bold"
               >
                 Resume
               </button>
               <button
                 onClick={() => discardSession(s)}
-                className="flex-1 min-h-[44px] rounded-xl bg-white dark:bg-[#211b34] border border-amber-400 text-black dark:text-white text-base font-bold"
+                className="flex-1 min-h-[44px] rounded-xl bg-white dark:bg-[#211b34] border border-warning text-black dark:text-white text-base font-bold"
               >
                 Discard
               </button>
@@ -306,7 +306,7 @@ export default function TodayTab({ w, onOpenPlan }) {
         const pseudo = { date: todayISO, templateName: tpl.name, exercises: {}, activeExercise: null };
         return (
           <div key={tpl.name} className="space-y-3">
-            <div className="bg-violet-600 rounded-2xl p-4 text-white">
+            <div className="bg-primary rounded-2xl p-4 text-on-primary">
               <div className="text-sm font-bold uppercase tracking-wide">{todayName}</div>
               <div className="text-xl font-bold">{tpl.name}</div>
               <div className="text-base">{tpl.exercises.length} cardio exercises</div>
@@ -318,7 +318,7 @@ export default function TodayTab({ w, onOpenPlan }) {
 
       {plannedTemplates.length === 0 && resumedSessions.length === 0 && (
         <div className={`${card} p-6 text-center`}>
-          <Moon className="w-7 h-7 text-violet-600 mx-auto mb-2" />
+          <Moon className="w-7 h-7 text-primary mx-auto mb-2" />
           <div className="text-lg font-bold text-black dark:text-white">Rest day</div>
           <div className="text-base text-black dark:text-white mt-1">Nothing scheduled for {todayName}. Recovery counts too.</div>
         </div>

@@ -9,7 +9,7 @@ export default function FilterBar({ tasks, filteredCount, filters, onChange, pro
   const allTags = [...new Set(tasks.flatMap(t => t.tags || []))].sort();
   const hasActiveFilters = Boolean(filters.tag || filters.priority || filters.projectId);
 
-  const selectClass = "bg-white dark:bg-[#2a2340] border border-gray-200 dark:border-violet-400/15 text-black dark:text-white rounded-lg px-2.5 py-1.5 text-xs focus:outline-none focus:border-violet-500";
+  const selectClass = "bg-white dark:bg-[#2a2340] border border-gray-200 dark:border-violet-400/15 text-black dark:text-white rounded-lg px-2.5 py-1.5 text-xs focus:outline-none focus:border-focus-ring";
 
   return (
     <div className="flex flex-wrap items-center gap-2 bg-gray-50 dark:bg-violet-400/[0.05] border border-gray-200 dark:border-violet-400/15 rounded-xl p-3">
@@ -49,7 +49,7 @@ export default function FilterBar({ tasks, filteredCount, filters, onChange, pro
       {hasActiveFilters && (
         <button
           onClick={() => onChange({})}
-          className="flex items-center gap-1 text-xs font-medium text-black dark:text-white hover:text-red-500 transition-colors"
+          className="flex items-center gap-1 text-xs font-medium text-black dark:text-white hover:text-danger transition-colors"
         >
           <X className="w-3 h-3" />
           Clear

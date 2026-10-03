@@ -22,7 +22,7 @@ export default function NewTaskModal({ taskForm, setTaskForm, onCreate, onClose 
             <label className="block text-xs font-medium text-black dark:text-white mb-1">Name</label>
             <input
               type="text"
-              className="w-full bg-gray-50 dark:bg-violet-400/5 border border-gray-200 dark:border-violet-400/15 text-black dark:text-white rounded-lg p-2.5 focus:outline-none focus:border-violet-500"
+              className="w-full bg-gray-50 dark:bg-violet-400/5 border border-gray-200 dark:border-violet-400/15 text-black dark:text-white rounded-lg p-2.5 focus:outline-none focus:border-focus-ring"
               value={taskForm.name}
               onChange={(e) => setTaskForm({ ...taskForm, name: e.target.value })}
               placeholder="e.g. Master's thesis sprint"
@@ -35,7 +35,7 @@ export default function NewTaskModal({ taskForm, setTaskForm, onCreate, onClose 
               <label className="block text-xs font-medium text-black dark:text-white mb-1">Deadline (optional)</label>
               <input
                 type="date"
-                className="w-full bg-gray-50 dark:bg-violet-400/5 border border-gray-200 dark:border-violet-400/15 text-black dark:text-white rounded-lg p-2.5 focus:outline-none focus:border-violet-500"
+                className="w-full bg-gray-50 dark:bg-violet-400/5 border border-gray-200 dark:border-violet-400/15 text-black dark:text-white rounded-lg p-2.5 focus:outline-none focus:border-focus-ring"
                 value={taskForm.dueDate}
                 onChange={(e) => setTaskForm({ ...taskForm, dueDate: e.target.value })}
               />
@@ -44,7 +44,7 @@ export default function NewTaskModal({ taskForm, setTaskForm, onCreate, onClose 
               <label className="block text-xs font-medium text-black dark:text-white mb-1">Target date</label>
               <input
                 type="date"
-                className="w-full bg-gray-50 dark:bg-violet-400/5 border border-gray-200 dark:border-violet-400/15 text-black dark:text-white rounded-lg p-2.5 focus:outline-none focus:border-violet-500"
+                className="w-full bg-gray-50 dark:bg-violet-400/5 border border-gray-200 dark:border-violet-400/15 text-black dark:text-white rounded-lg p-2.5 focus:outline-none focus:border-focus-ring"
                 value={taskForm.targetDate}
                 onChange={(e) => setTaskForm({ ...taskForm, targetDate: e.target.value })}
               />
@@ -54,7 +54,7 @@ export default function NewTaskModal({ taskForm, setTaskForm, onCreate, onClose 
           <div>
             <label className="block text-xs font-medium text-black dark:text-white mb-1">Notes</label>
             <textarea
-              className="w-full bg-gray-50 dark:bg-violet-400/5 border border-gray-200 dark:border-violet-400/15 text-black dark:text-white rounded-lg p-2.5 focus:outline-none focus:border-violet-500 h-20"
+              className="w-full bg-gray-50 dark:bg-violet-400/5 border border-gray-200 dark:border-violet-400/15 text-black dark:text-white rounded-lg p-2.5 focus:outline-none focus:border-focus-ring h-20"
               value={taskForm.notes}
               onChange={(e) => setTaskForm({ ...taskForm, notes: e.target.value })}
               placeholder="Details, specifications, etc."
@@ -70,7 +70,7 @@ export default function NewTaskModal({ taskForm, setTaskForm, onCreate, onClose 
             type="button"
             disabled={!canSubmit}
             onClick={() => { onCreate(); onClose(); }}
-            className="w-full bg-violet-600 hover:bg-violet-700 text-white font-medium py-2.5 rounded-lg transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+            className="w-full bg-primary hover:bg-primary-hover text-on-primary font-medium py-2.5 rounded-lg transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
           >
             Add task
           </button>

@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { CalendarCheck, ChevronRight, Dumbbell, Flame, Moon, Sun, UtensilsCrossed } from 'lucide-react';
 import { useDarkMode } from '@summit/core';
 import { dbGet } from '@summit/core/db';
+import logoUrl from './assets/summit-command-center.png';
 
 const DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
@@ -89,17 +90,20 @@ export default function App() {
   return (
     <div className="min-h-screen bg-[#f7f7f5] dark:bg-[#14101f] text-black dark:text-white font-sans antialiased">
       <div className="max-w-md md:max-w-4xl mx-auto px-4 md:px-6 pt-6 md:pt-12 pb-10">
-        <div className="flex items-start justify-between gap-2 mb-6">
-          <div>
-            <h1 className="text-3xl font-bold text-black dark:text-white">{greeting(now.getHours())}</h1>
-            <p className="text-lg text-black dark:text-white">
+        {/* The official Command Center lockup only ever sits on brand-night, its own ground, so the
+            band is that exact colour in both themes (see the design system's logo rules). */}
+        <div className="relative flex items-center gap-4 mb-6 p-4 rounded-3xl bg-brand-night">
+          <img src={logoUrl} alt="Summit Command Center" width="96" height="96" className="w-24 h-24 flex-shrink-0 rounded-2xl" />
+          <div className="flex-1 min-w-0">
+            <h1 className="text-2xl font-extrabold text-white">{greeting(now.getHours())}</h1>
+            <p className="text-base text-white">
               {now.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' })}
             </p>
           </div>
           <button
             onClick={() => setDarkMode(m => !m)}
             aria-label={darkMode ? 'Switch to light mode' : 'Switch to dark mode'}
-            className="w-11 h-11 flex items-center justify-center rounded-xl text-black dark:text-white hover:bg-black/5 dark:hover:bg-violet-400/10 transition-colors"
+            className="absolute top-2 right-2 w-11 h-11 flex items-center justify-center rounded-xl text-white hover:bg-white/10 transition-colors"
           >
             {darkMode ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
           </button>
@@ -112,13 +116,13 @@ export default function App() {
               <a
                 key={id}
                 href={href}
-                className="group flex md:flex-col md:justify-between items-center md:items-start gap-4 min-h-[104px] md:min-h-[200px] p-5 rounded-3xl bg-white dark:bg-[#211b34] border border-gray-200 dark:border-violet-400/15 active:scale-[0.98] transition-transform focus:outline-none focus-visible:ring-2 focus-visible:ring-violet-500"
+                className="group flex md:flex-col md:justify-between items-center md:items-start gap-4 min-h-[104px] md:min-h-[200px] p-5 rounded-3xl bg-white dark:bg-[#211b34] border border-gray-200 dark:border-violet-400/15 active:scale-[0.98] transition-transform focus:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
               >
-                <span className="w-14 h-14 rounded-2xl bg-violet-600 flex items-center justify-center flex-shrink-0">
+                <span className="w-14 h-14 rounded-2xl bg-brand-night flex items-center justify-center flex-shrink-0">
                   <Icon className="w-7 h-7 text-white" />
                 </span>
                 <span className="flex-1 min-w-0">
-                  <span className="block text-2xl font-bold text-black dark:text-white">{title}</span>
+                  <span className="block text-2xl font-display font-bold text-black dark:text-white">{title}</span>
                   <span className="block text-base text-black dark:text-white">{blurb}</span>
                   {summaries === null ? (
                     <span className="skeleton block h-5 w-40 rounded mt-2" aria-hidden="true" />

@@ -3,7 +3,7 @@ import { Plus, X, ClipboardList, Timer, Trash2 } from 'lucide-react';
 import BottomSheet from './BottomSheet';
 import { TYPE_META, cycleExerciseType, parseExercise } from '../lib/exercises';
 
-const inputClass = 'w-full bg-gray-100 dark:bg-violet-400/10 rounded-xl px-4 py-3 text-base text-black dark:text-white outline-none focus:ring-2 focus:ring-violet-500';
+const inputClass = 'w-full bg-gray-100 dark:bg-violet-400/10 rounded-xl px-4 py-3 text-base text-black dark:text-white outline-none focus:ring-2 focus:ring-focus-ring';
 
 // Create or edit a workout (template): its name and exercises. Same builder
 // behaviour as before — paste a list or add one at a time, tap an exercise's
@@ -58,13 +58,13 @@ export default function TemplateSheet({ w }) {
                       </span>
                     </button>
                     <span className="text-sm font-semibold text-black dark:text-white flex-shrink-0 flex items-center gap-1">
-                      {ex.type === 'bodyweight' && <Timer className="w-4 h-4 text-violet-600" aria-hidden="true" />}
+                      {ex.type === 'bodyweight' && <Timer className="w-4 h-4 text-primary" aria-hidden="true" />}
                       {meta.label}
                     </span>
                     <button
                       onClick={() => setBuilder(prev => ({ ...prev, exercises: prev.exercises.filter((_, j) => j !== i) }))}
                       aria-label={`Remove ${p.label}`}
-                      className="w-10 h-10 flex items-center justify-center text-black dark:text-white active:text-red-500 flex-shrink-0"
+                      className="w-10 h-10 flex items-center justify-center text-black dark:text-white active:text-danger flex-shrink-0"
                     >
                       <X className="w-5 h-5" />
                     </button>
@@ -105,12 +105,12 @@ export default function TemplateSheet({ w }) {
                 >
                   {(() => { const Icon = TYPE_META[builder.bulkType].icon; return <Icon className={`w-5 h-5 ${TYPE_META[builder.bulkType].iconText}`} />; })()}
                   {TYPE_META[builder.bulkType].label}
-                  {builder.bulkType === 'bodyweight' && <Timer className="w-4 h-4 text-violet-600" aria-hidden="true" />}
+                  {builder.bulkType === 'bodyweight' && <Timer className="w-4 h-4 text-primary" aria-hidden="true" />}
                 </button>
                 <button
                   onClick={addBulkExercises}
                   disabled={!builder.bulkText.trim()}
-                  className="flex-1 min-h-[48px] rounded-xl bg-violet-600 text-white text-base font-semibold disabled:opacity-40 flex items-center justify-center gap-2"
+                  className="flex-1 min-h-[48px] rounded-xl bg-primary text-on-primary text-base font-semibold disabled:opacity-40 flex items-center justify-center gap-2"
                 >
                   <ClipboardList className="w-5 h-5" /> Add list
                 </button>
@@ -131,10 +131,10 @@ export default function TemplateSheet({ w }) {
               >
                 {(() => { const Icon = TYPE_META[builder.draftType].icon; return <Icon className={`w-5 h-5 ${TYPE_META[builder.draftType].iconText}`} />; })()}
                 {TYPE_META[builder.draftType].label}
-                {builder.draftType === 'bodyweight' && <Timer className="w-4 h-4 text-violet-600" aria-hidden="true" />}
+                {builder.draftType === 'bodyweight' && <Timer className="w-4 h-4 text-primary" aria-hidden="true" />}
               </button>
               <button onClick={addDraftExercise} aria-label="Add exercise"
-                className="w-12 min-h-[48px] rounded-xl bg-violet-600 text-white flex items-center justify-center flex-shrink-0">
+                className="w-12 min-h-[48px] rounded-xl bg-primary text-on-primary flex items-center justify-center flex-shrink-0">
                 <Plus className="w-5 h-5" />
               </button>
             </div>
@@ -144,7 +144,7 @@ export default function TemplateSheet({ w }) {
         <button
           onClick={() => { saveTemplate(); setConfirmDelete(false); }}
           disabled={!builder.name.trim() || builder.exercises.length === 0}
-          className="w-full min-h-[52px] rounded-xl bg-violet-600 text-white text-base font-bold disabled:opacity-40"
+          className="w-full min-h-[52px] rounded-xl bg-primary text-on-primary text-base font-bold disabled:opacity-40"
         >
           {editingTemplateId ? 'Save changes' : 'Create workout'}
         </button>
@@ -158,7 +158,7 @@ export default function TemplateSheet({ w }) {
             }}
             className="w-full min-h-[48px] rounded-xl border border-red-500 text-black dark:text-white text-base font-semibold flex items-center justify-center gap-2"
           >
-            <Trash2 className="w-5 h-5 text-red-500" />
+            <Trash2 className="w-5 h-5 text-danger" />
             {confirmDelete ? 'Tap again to delete this workout' : 'Delete workout'}
           </button>
         )}

@@ -4,7 +4,7 @@ import Stepper from './Stepper';
 import { CARDIO_ACTIVITIES } from '../lib/model';
 import { routeDistanceKm } from '../lib/geo';
 
-const selectClass = 'w-full appearance-none bg-gray-100 dark:bg-violet-400/10 rounded-xl pl-4 pr-10 py-3 min-h-[48px] text-base text-black dark:text-white outline-none focus:ring-2 focus:ring-violet-500';
+const selectClass = 'w-full appearance-none bg-gray-100 dark:bg-violet-400/10 rounded-xl pl-4 pr-10 py-3 min-h-[48px] text-base text-black dark:text-white outline-none focus:ring-2 focus:ring-focus-ring';
 
 // Sheet for logging a quick cardio session, optionally from a saved route
 // (a route fills in the activity and distance, so only the time is left).
@@ -72,7 +72,7 @@ export default function CardioSheet({ w }) {
         </div>
 
         <button onClick={logQuickCardio}
-          className="w-full min-h-[52px] bg-violet-600 text-white rounded-xl text-base font-bold active:bg-violet-700">
+          className="w-full min-h-[52px] bg-primary text-on-primary rounded-xl text-base font-bold active:bg-primary-hover">
           Log {selectedRoute ? selectedRoute.name : 'cardio'}
         </button>
       </div>

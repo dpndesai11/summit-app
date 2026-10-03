@@ -37,7 +37,7 @@ function ResetWeekSheet({ open, onClose, onApply }) {
             This replaces every workout you have planned this week with “{chosen.label}”. Workout times are kept.
           </p>
           <button onClick={() => { onApply(chosen.plan); close(); }}
-            className="w-full min-h-[52px] rounded-xl bg-violet-600 text-white text-base font-bold">
+            className="w-full min-h-[52px] rounded-xl bg-primary text-on-primary text-base font-bold">
             Replace plan
           </button>
           <button onClick={() => setPending(null)}
@@ -78,17 +78,17 @@ export default function PlanTab({ w, openDay, setOpenDay }) {
                 key={day}
                 onClick={() => setOpenDay(day)}
                 aria-label={`Edit ${day}`}
-                className={`w-full flex items-center gap-3 px-4 py-3 min-h-[56px] text-left ${isToday ? 'bg-violet-50 dark:bg-violet-500/10' : ''}`}
+                className={`w-full flex items-center gap-3 px-4 py-3 min-h-[56px] text-left ${isToday ? 'bg-primary-soft' : ''}`}
               >
                 <span className="w-12 flex-shrink-0">
                   <span className={`block text-base text-black dark:text-white ${isToday ? 'font-bold' : 'font-semibold'}`}>{day.slice(0, 3)}</span>
-                  {isToday && <span className="block text-xs font-bold text-violet-600">Today</span>}
+                  {isToday && <span className="block text-xs font-bold text-primary">Today</span>}
                 </span>
                 <span className="flex-1 min-w-0 flex flex-wrap gap-1.5">
                   {assigned.length === 0 ? (
                     <span className="text-base text-black dark:text-white">Rest</span>
                   ) : assigned.map(name => (
-                    <span key={name} className="text-sm font-medium text-black dark:text-white bg-violet-100 dark:bg-violet-400/20 rounded-full px-3 py-1">
+                    <span key={name} className="text-sm font-medium text-black dark:text-white bg-primary-soft rounded-full px-3 py-1">
                       {name}
                     </span>
                   ))}
@@ -104,7 +104,7 @@ export default function PlanTab({ w, openDay, setOpenDay }) {
         <div className="flex items-center justify-between mb-2">
           <h2 className="text-lg font-bold text-black dark:text-white">Workouts</h2>
           <button onClick={() => setBuilderOpen(true)}
-            className="min-h-[40px] px-4 rounded-full bg-violet-600 text-white text-sm font-bold flex items-center gap-1.5">
+            className="min-h-[40px] px-4 rounded-full bg-primary text-on-primary text-sm font-bold flex items-center gap-1.5">
             <Plus className="w-4 h-4" /> New
           </button>
         </div>
@@ -146,7 +146,7 @@ export default function PlanTab({ w, openDay, setOpenDay }) {
         badge={routes.length > 0 ? `${routes.length}` : null}
         actions={
           <button onClick={() => setPlannerOpen(true)}
-            className="min-h-[36px] px-3 rounded-full bg-violet-600 text-white text-sm font-bold flex items-center gap-1.5">
+            className="min-h-[36px] px-3 rounded-full bg-primary text-on-primary text-sm font-bold flex items-center gap-1.5">
             <MapPin className="w-4 h-4" /> Plan route
           </button>
         }
@@ -167,7 +167,7 @@ export default function PlanTab({ w, openDay, setOpenDay }) {
                   </div>
                 </div>
                 <button onClick={() => deleteRoute(r.id)} aria-label={`Delete ${r.name}`}
-                  className="w-11 h-11 flex items-center justify-center text-black dark:text-white active:text-red-500 flex-shrink-0">
+                  className="w-11 h-11 flex items-center justify-center text-black dark:text-white active:text-danger flex-shrink-0">
                   <Trash2 className="w-5 h-5" />
                 </button>
               </div>

@@ -43,7 +43,7 @@ export default function ChecklistEditor({ items, onChange }) {
           onClick={() => setShowWeights(s => !s)}
           className={`flex items-center gap-1 text-[11px] font-medium px-2 py-0.5 rounded-md transition-colors ${
             showWeights
-              ? 'bg-violet-600 text-white'
+              ? 'bg-primary text-on-primary'
               : 'text-black dark:text-white hover:bg-gray-100 dark:hover:bg-violet-400/10'
           }`}
         >
@@ -56,10 +56,10 @@ export default function ChecklistEditor({ items, onChange }) {
         {items.map((item, idx) => (
           <div key={item.id} className="flex items-center gap-1.5">
             <div className="flex flex-col -space-y-1">
-              <button type="button" onClick={() => moveItem(idx, -1)} disabled={idx === 0} className="text-black dark:text-white disabled:opacity-30 hover:text-black dark:hover:text-black">
+              <button type="button" onClick={() => moveItem(idx, -1)} disabled={idx === 0} className="text-black dark:text-white disabled:opacity-40 hover:text-black dark:hover:text-black">
                 <ChevronUp className="w-3 h-3" />
               </button>
-              <button type="button" onClick={() => moveItem(idx, 1)} disabled={idx === items.length - 1} className="text-black dark:text-white disabled:opacity-30 hover:text-black dark:hover:text-black">
+              <button type="button" onClick={() => moveItem(idx, 1)} disabled={idx === items.length - 1} className="text-black dark:text-white disabled:opacity-40 hover:text-black dark:hover:text-black">
                 <ChevronDown className="w-3 h-3" />
               </button>
             </div>
@@ -67,7 +67,7 @@ export default function ChecklistEditor({ items, onChange }) {
               type="text"
               value={item.name}
               onChange={(e) => renameItem(item.id, e.target.value)}
-              className="flex-1 bg-gray-50 dark:bg-violet-400/5 border border-gray-200 dark:border-violet-400/15 text-black dark:text-white rounded-md px-2 py-1.5 text-xs focus:outline-none focus:border-violet-500"
+              className="flex-1 bg-gray-50 dark:bg-violet-400/5 border border-gray-200 dark:border-violet-400/15 text-black dark:text-white rounded-md px-2 py-1.5 text-xs focus:outline-none focus:border-focus-ring"
             />
             {showWeights && (
               <input
@@ -76,10 +76,10 @@ export default function ChecklistEditor({ items, onChange }) {
                 value={item.weight ?? 1}
                 onChange={(e) => reweightItem(item.id, e.target.value)}
                 title="Weight"
-                className="w-14 bg-gray-50 dark:bg-violet-400/5 border border-gray-200 dark:border-violet-400/15 text-black dark:text-white rounded-md px-1.5 py-1.5 text-xs text-center focus:outline-none focus:border-violet-500"
+                className="w-14 bg-gray-50 dark:bg-violet-400/5 border border-gray-200 dark:border-violet-400/15 text-black dark:text-white rounded-md px-1.5 py-1.5 text-xs text-center focus:outline-none focus:border-focus-ring"
               />
             )}
-            <button type="button" onClick={() => removeItem(item.id)} className="text-black dark:text-white hover:text-red-500">
+            <button type="button" onClick={() => removeItem(item.id)} className="text-black dark:text-white hover:text-danger">
               <X className="w-3.5 h-3.5" />
             </button>
           </div>
@@ -93,7 +93,7 @@ export default function ChecklistEditor({ items, onChange }) {
           onChange={(e) => setDraftName(e.target.value)}
           onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addItem(); } }}
           placeholder="Add checklist item"
-          className="flex-1 bg-gray-50 dark:bg-violet-400/5 border border-gray-200 dark:border-violet-400/15 text-black dark:text-white rounded-md px-2 py-1.5 text-xs focus:outline-none focus:border-violet-500"
+          className="flex-1 bg-gray-50 dark:bg-violet-400/5 border border-gray-200 dark:border-violet-400/15 text-black dark:text-white rounded-md px-2 py-1.5 text-xs focus:outline-none focus:border-focus-ring"
         />
         <button
           type="button"

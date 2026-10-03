@@ -26,15 +26,15 @@ export default function WeekStrip({ plan, strengthLogs, cardioLogs, onSelectDay 
               <span className={`text-xs ${isToday ? 'font-bold' : 'font-medium'} text-black dark:text-white`}>{day[0]}</span>
               <span
                 className={`w-8 h-8 rounded-full flex items-center justify-center ${
-                  done ? 'bg-violet-600 text-white' : 'border-2 border-gray-200 dark:border-violet-400/25'
-                } ${isToday ? 'ring-2 ring-violet-600 ring-offset-2 ring-offset-white dark:ring-offset-[#211b34]' : ''}`}
+                  done ? 'bg-primary text-on-primary' : 'border-2 border-gray-200 dark:border-violet-400/25'
+                } ${isToday ? 'ring-2 ring-primary ring-offset-2 ring-offset-white dark:ring-offset-[#211b34]' : ''}`}
               >
                 {done && <Check className="w-4 h-4" />}
               </span>
               <span className="flex gap-0.5 h-1.5">
                 {!done && !isFuture && planned === 0 ? null : (
                   Array.from({ length: Math.min(planned, 3) }).map((_, i) => (
-                    <span key={i} className={`w-1.5 h-1.5 rounded-full ${done ? 'bg-violet-600' : 'bg-violet-400'}`} />
+                    <span key={i} className={`w-1.5 h-1.5 rounded-full ${done ? 'bg-primary' : 'bg-primary-mid'}`} />
                   ))
                 )}
               </span>

@@ -36,13 +36,13 @@ export default function TrendChart({ series, unit }) {
         {series.length > 1 && (
           <polyline
             points={series.map((p, i) => `${x(i)},${y(p.value)}`).join(' ')}
-            fill="none" strokeWidth="2.5" strokeLinejoin="round" strokeLinecap="round" className="stroke-violet-600"
+            fill="none" strokeWidth="2.5" strokeLinejoin="round" strokeLinecap="round" className="stroke-primary"
           />
         )}
         {series.map((p, i) => (
           <g key={p.date}>
-            {p.isPR && <circle cx={x(i)} cy={y(p.value)} r="8" className="fill-amber-400/30 stroke-amber-500" strokeWidth="2" />}
-            <circle cx={x(i)} cy={y(p.value)} r="3.5" className="fill-violet-600" />
+            {p.isPR && <circle cx={x(i)} cy={y(p.value)} r="8" className="fill-brand-magenta/30 stroke-brand-magenta" strokeWidth="2" />}
+            <circle cx={x(i)} cy={y(p.value)} r="3.5" className="fill-primary" />
           </g>
         ))}
         <text x={left} y={H - 8} fontSize="10" textAnchor="start" className="fill-black dark:fill-white">{formatShortDate(series[0].date)}</text>
@@ -52,8 +52,8 @@ export default function TrendChart({ series, unit }) {
         <text x={4} y={H - 8} fontSize="10" fontWeight="600" className="fill-black dark:fill-white">{unit}</text>
       </svg>
       <div className="flex items-center gap-4 mt-1 text-sm text-black dark:text-white">
-        <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-violet-600 inline-block" /> Session</span>
-        <span className="flex items-center gap-1.5"><span className="w-3.5 h-3.5 rounded-full border-2 border-amber-500 bg-amber-400/30 inline-block" /> Personal record</span>
+        <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-primary inline-block" /> Session</span>
+        <span className="flex items-center gap-1.5"><span className="w-3.5 h-3.5 rounded-full border-2 border-brand-magenta bg-brand-magenta/30 inline-block" /> Personal record</span>
       </div>
     </div>
   );

@@ -68,7 +68,7 @@ export default function WeeklyBars({ weeks }) {
             <g key={w.weekStart}>
               <rect
                 x={x} y={y} width={barW} height={h} rx="3"
-                className={v === 0 ? 'fill-gray-200 dark:fill-violet-400/25' : isCurrent ? 'fill-violet-600' : 'fill-violet-400'}
+                className={v === 0 ? 'fill-gray-200 dark:fill-violet-400/25' : isCurrent ? 'fill-primary' : 'fill-primary-mid'}
               />
               {showLabel && (
                 <text x={x + barW / 2} y={y - 4} textAnchor="middle" fontSize="10" fontWeight="600" className="fill-black dark:fill-white">

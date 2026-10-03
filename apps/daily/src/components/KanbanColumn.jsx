@@ -13,7 +13,7 @@ export default function KanbanColumn({ id, title, tasks, formatToSwissDate, onOp
       <div
         ref={setNodeRef}
         className={`flex-1 space-y-2 rounded-lg p-2 min-h-[120px] transition-colors ${
-          isOver ? 'bg-violet-50 dark:bg-violet-500/10' : 'bg-gray-100/60 dark:bg-violet-400/[0.05]'
+          isOver ? 'bg-primary-soft' : 'bg-gray-100/60 dark:bg-violet-400/[0.05]'
         }`}
       >
         {tasks.length === 0 && (

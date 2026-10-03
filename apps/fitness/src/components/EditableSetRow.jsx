@@ -1,6 +1,6 @@
 import { X } from 'lucide-react';
 
-const field = 'h-10 bg-gray-100 dark:bg-violet-400/10 rounded-lg text-center text-base font-semibold text-black dark:text-white outline-none focus:ring-2 focus:ring-violet-500';
+const field = 'h-10 bg-gray-100 dark:bg-violet-400/10 rounded-lg text-center text-base font-semibold text-black dark:text-white outline-none focus:ring-2 focus:ring-focus-ring';
 
 // One set in a logged exercise, editable in History. Lifts show weight × reps;
 // bodyweight shows reps; a set logged from the drill timer shows seconds.
@@ -50,7 +50,7 @@ export default function EditableSetRow({ set, type = 'weight', onChange, onDelet
         </>
       )}
       <button onClick={onDelete} aria-label={`Delete set ${set.setNumber}`}
-        className="ml-auto w-10 h-10 flex items-center justify-center text-black dark:text-white active:text-red-500 flex-shrink-0">
+        className="ml-auto w-10 h-10 flex items-center justify-center text-black dark:text-white active:text-danger flex-shrink-0">
         <X className="w-5 h-5" />
       </button>
     </div>

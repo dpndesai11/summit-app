@@ -14,9 +14,9 @@ export default function Sparkline({ values, width = 72, height = 28 }) {
   return (
     <svg width={width} height={height} viewBox={`0 0 ${width} ${height}`} className="flex-shrink-0" aria-hidden="true">
       {pts.length > 1 && (
-        <polyline points={pts.map(([x, y]) => `${x},${y}`).join(' ')} fill="none" strokeWidth="2" strokeLinejoin="round" strokeLinecap="round" className="stroke-violet-500" />
+        <polyline points={pts.map(([x, y]) => `${x},${y}`).join(' ')} fill="none" strokeWidth="2" strokeLinejoin="round" strokeLinecap="round" className="stroke-primary" />
       )}
-      <circle cx={lx} cy={ly} r="3" className="fill-violet-600" />
+      <circle cx={lx} cy={ly} r="3" className="fill-primary" />
     </svg>
   );
 }

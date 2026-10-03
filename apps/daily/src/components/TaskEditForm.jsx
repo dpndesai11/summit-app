@@ -24,7 +24,7 @@ export default function TaskEditForm({ task, projects, onSave, onCancel }) {
           value={draft.name}
           onChange={(e) => setField('name', e.target.value)}
           autoFocus
-          className="w-full bg-gray-50 dark:bg-violet-400/5 border border-gray-200 dark:border-violet-400/15 text-black dark:text-white rounded-lg p-2.5 focus:outline-none focus:border-violet-500"
+          className="w-full bg-gray-50 dark:bg-violet-400/5 border border-gray-200 dark:border-violet-400/15 text-black dark:text-white rounded-lg p-2.5 focus:outline-none focus:border-focus-ring"
         />
       </div>
 
@@ -35,7 +35,7 @@ export default function TaskEditForm({ task, projects, onSave, onCancel }) {
             type="date"
             value={draft.dueDate || ''}
             onChange={(e) => setField('dueDate', e.target.value)}
-            className="w-full bg-gray-50 dark:bg-violet-400/5 border border-gray-200 dark:border-violet-400/15 text-black dark:text-white rounded-lg p-2.5 focus:outline-none focus:border-violet-500"
+            className="w-full bg-gray-50 dark:bg-violet-400/5 border border-gray-200 dark:border-violet-400/15 text-black dark:text-white rounded-lg p-2.5 focus:outline-none focus:border-focus-ring"
           />
         </div>
         <div>
@@ -44,7 +44,7 @@ export default function TaskEditForm({ task, projects, onSave, onCancel }) {
             type="date"
             value={draft.targetDate || ''}
             onChange={(e) => setField('targetDate', e.target.value)}
-            className="w-full bg-gray-50 dark:bg-violet-400/5 border border-gray-200 dark:border-violet-400/15 text-black dark:text-white rounded-lg p-2.5 focus:outline-none focus:border-violet-500"
+            className="w-full bg-gray-50 dark:bg-violet-400/5 border border-gray-200 dark:border-violet-400/15 text-black dark:text-white rounded-lg p-2.5 focus:outline-none focus:border-focus-ring"
           />
         </div>
       </div>
@@ -54,7 +54,7 @@ export default function TaskEditForm({ task, projects, onSave, onCancel }) {
         <textarea
           value={draft.notes}
           onChange={(e) => setField('notes', e.target.value)}
-          className="w-full bg-gray-50 dark:bg-violet-400/5 border border-gray-200 dark:border-violet-400/15 text-black dark:text-white rounded-lg p-2.5 focus:outline-none focus:border-violet-500 h-20"
+          className="w-full bg-gray-50 dark:bg-violet-400/5 border border-gray-200 dark:border-violet-400/15 text-black dark:text-white rounded-lg p-2.5 focus:outline-none focus:border-focus-ring h-20"
         />
       </div>
 
@@ -76,7 +76,7 @@ export default function TaskEditForm({ task, projects, onSave, onCancel }) {
                 onClick={() => setProperty('priority', draft.properties?.priority === p ? null : p)}
                 className={`text-xs font-medium px-2.5 py-1 rounded-md transition-colors ${
                   draft.properties?.priority === p
-                    ? 'bg-violet-600 text-white'
+                    ? 'bg-primary text-on-primary'
                     : 'bg-gray-100 dark:bg-violet-400/10 text-black dark:text-white hover:bg-gray-200 dark:hover:bg-white/20'
                 }`}
               >
@@ -90,7 +90,7 @@ export default function TaskEditForm({ task, projects, onSave, onCancel }) {
           <select
             value={draft.properties?.projectId ?? ''}
             onChange={(e) => setProperty('projectId', e.target.value ? Number(e.target.value) : null)}
-            className="w-full bg-gray-50 dark:bg-violet-400/5 border border-gray-200 dark:border-violet-400/15 text-black dark:text-white rounded-lg p-2 text-xs focus:outline-none focus:border-violet-500"
+            className="w-full bg-gray-50 dark:bg-violet-400/5 border border-gray-200 dark:border-violet-400/15 text-black dark:text-white rounded-lg p-2 text-xs focus:outline-none focus:border-focus-ring"
           >
             <option value="">No project</option>
             {projects.map(p => (
@@ -112,7 +112,7 @@ export default function TaskEditForm({ task, projects, onSave, onCancel }) {
           type="button"
           onClick={() => onSave(task.id, draft)}
           disabled={!draft.name.trim()}
-          className="flex-1 bg-violet-600 hover:bg-violet-700 text-white font-medium py-2 rounded-lg transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+          className="flex-1 bg-primary hover:bg-primary-hover text-on-primary font-medium py-2 rounded-lg transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
         >
           Save
         </button>

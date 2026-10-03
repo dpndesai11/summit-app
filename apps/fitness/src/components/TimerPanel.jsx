@@ -21,7 +21,7 @@ export default function TimerPanel({ t, remaining, api, onLog }) {
   }[t.status];
 
   return (
-    <div className="rounded-2xl bg-violet-50 dark:bg-violet-500/10 border border-violet-200 dark:border-violet-400/25 p-4 mb-3" role="timer" aria-label={`Timer for ${t.label}`}>
+    <div className="rounded-2xl bg-primary-soft border border-primary-low p-4 mb-3" role="timer" aria-label={`Timer for ${t.label}`}>
       <div className="flex items-center justify-between mb-2">
         <span className="text-base font-bold text-black dark:text-white">Timer</span>
         <button onClick={api.closeTimer} aria-label="Close timer" className="w-10 h-10 -mr-2 flex items-center justify-center text-black dark:text-white">
@@ -35,7 +35,7 @@ export default function TimerPanel({ t, remaining, api, onLog }) {
             <circle cx="50" cy="50" r={r} fill="none" strokeWidth="8" className="stroke-gray-200 dark:stroke-violet-400/25" />
             <circle
               cx="50" cy="50" r={r} fill="none" strokeWidth="8" strokeLinecap="round"
-              className={t.status === 'done' ? 'stroke-green-500' : 'stroke-violet-600'}
+              className={t.status === 'done' ? 'stroke-success' : 'stroke-primary'}
               strokeDasharray={circ}
               strokeDashoffset={circ * (1 - progress)}
             />
@@ -66,18 +66,18 @@ export default function TimerPanel({ t, remaining, api, onLog }) {
 
       <div className="flex gap-2 mt-3">
         {t.status === 'ready' && (
-          <button onClick={api.runTimer} className={`${btn} flex-1 bg-violet-600 text-white`}>
+          <button onClick={api.runTimer} className={`${btn} flex-1 bg-primary text-on-primary`}>
             <Play className="w-5 h-5" /> Start
           </button>
         )}
         {t.status === 'running' && (
-          <button onClick={api.pauseTimer} className={`${btn} flex-1 bg-violet-600 text-white`}>
+          <button onClick={api.pauseTimer} className={`${btn} flex-1 bg-primary text-on-primary`}>
             <Pause className="w-5 h-5" /> Pause
           </button>
         )}
         {t.status === 'paused' && (
           <>
-            <button onClick={api.runTimer} className={`${btn} flex-1 bg-violet-600 text-white`}>
+            <button onClick={api.runTimer} className={`${btn} flex-1 bg-primary text-on-primary`}>
               <Play className="w-5 h-5" /> Resume
             </button>
             <button onClick={api.resetTimer} className={`${btn} px-4 bg-white dark:bg-[#211b34] border border-gray-200 dark:border-violet-400/25 text-black dark:text-white`} aria-label="Reset timer">
@@ -86,13 +86,13 @@ export default function TimerPanel({ t, remaining, api, onLog }) {
           </>
         )}
         {t.status === 'switch' && (
-          <button onClick={api.nextSide} className={`${btn} flex-1 bg-violet-600 text-white`}>
+          <button onClick={api.nextSide} className={`${btn} flex-1 bg-primary text-on-primary`}>
             <Play className="w-5 h-5" /> Start side 2
           </button>
         )}
         {t.status === 'done' && (
           <>
-            <button onClick={() => onLog(t.seconds, t.perSide)} className={`${btn} flex-1 bg-green-600 text-white`}>
+            <button onClick={() => onLog(t.seconds, t.perSide)} className={`${btn} flex-1 bg-success text-on-primary`}>
               Log set ({t.seconds}s{t.perSide ? '/side' : ''})
             </button>
             <button onClick={api.resetTimer} className={`${btn} px-4 bg-white dark:bg-[#211b34] border border-gray-200 dark:border-violet-400/25 text-black dark:text-white`} aria-label="Run again">

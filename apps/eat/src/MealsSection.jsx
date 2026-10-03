@@ -52,13 +52,13 @@ const normalizeTimeEntry = (v, defaultTime, defaultDuration) => {
 
 function StatCard({ icon: Icon, label, value, sub }) {
   return (
-    <div className="bg-white dark:bg-[#211b34] rounded-2xl border border-gray-200 dark:border-violet-400/15 p-4 flex-1 min-w-0">
+    <div className="bg-white dark:bg-[#211b34] rounded-2xl border border-gray-200 dark:border-violet-400/15 p-3 flex-1 min-w-0">
       <div className="flex items-center gap-1.5 text-black dark:text-white mb-1">
-        <Icon className="w-3.5 h-3.5" />
-        <span className="text-[10px] uppercase tracking-wide truncate">{label}</span>
+        <Icon className="w-4 h-4 text-primary flex-shrink-0" />
+        <span className="text-sm font-medium">{label}</span>
       </div>
-      <div className="text-lg font-bold text-black dark:text-white truncate">{value}</div>
-      {sub && <div className="text-[11px] text-black dark:text-white truncate">{sub}</div>}
+      <div className="text-2xl font-display font-extrabold text-black dark:text-white tabular-nums">{value}</div>
+      {sub && <div className="text-sm text-black dark:text-white">{sub}</div>}
     </div>
   );
 }
@@ -75,7 +75,7 @@ function MacroBar({ label, actual, range, targetLabel }) {
       {range ? (
         <div className="h-1.5 bg-gray-100 dark:bg-violet-400/10 rounded-full overflow-hidden">
           <div
-            className={`h-full rounded-full transition-[width] duration-300 ${inRange ? 'bg-violet-500' : 'bg-violet-300'}`}
+            className={`h-full rounded-full transition-[width] duration-300 ${inRange ? 'bg-primary' : 'bg-primary-mid'}`}
             style={{ width: `${pct}%` }}
           />
         </div>
@@ -394,11 +394,11 @@ export default function MealsSection({ m, subTab }) {
       <div className="bg-white dark:bg-[#211b34] rounded-2xl border border-gray-200 dark:border-violet-400/15 p-4">
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2">
-            <Target className="w-4 h-4 text-violet-600" />
+            <Target className="w-4 h-4 text-primary" />
             <span className="font-semibold text-black dark:text-white text-sm">Today's targets</span>
           </div>
           {todayNutrition.planned > 0 && (
-            <span className="text-[10px] text-black dark:text-white">{todayNutrition.tracked}/{todayNutrition.planned} meals tracked</span>
+            <span className="text-[11px] text-black dark:text-white">{todayNutrition.tracked}/{todayNutrition.planned} meals tracked</span>
           )}
         </div>
         <div className="space-y-2.5">
@@ -414,7 +414,7 @@ export default function MealsSection({ m, subTab }) {
           <p className="text-[11px] text-black dark:text-white mt-2.5">{CARB_TARGETS.Sunday}</p>
         )}
         {todayNutrition.planned > 0 && todayNutrition.tracked < todayNutrition.planned && (
-          <p className="text-[11px] text-amber-600 mt-2.5">
+          <p className="text-[11px] text-warning mt-2.5">
             {todayNutrition.planned - todayNutrition.tracked} meal{todayNutrition.planned - todayNutrition.tracked === 1 ? '' : 's'} today {todayNutrition.planned - todayNutrition.tracked === 1 ? "isn't" : "aren't"} tracked — totals above are a floor, not the full day.
           </p>
         )}
@@ -439,12 +439,12 @@ export default function MealsSection({ m, subTab }) {
             const plannedCount = SLOTS.reduce((a, s) => a + dayPlan[s].length, 0);
             const expanded = !!expandedDays[day];
             return (
-              <div key={day} className={`rounded-xl overflow-hidden ${day === todayName ? 'ring-1 ring-violet-200' : ''}`}>
+              <div key={day} className={`rounded-xl overflow-hidden ${day === todayName ? 'ring-1 ring-primary-low' : ''}`}>
                 <button
                   onClick={() => setExpandedDays(p => ({ ...p, [day]: !expanded }))}
-                  className={`w-full flex items-center gap-3 px-3 py-2.5 ${day === todayName ? 'bg-violet-50 dark:bg-violet-500/10' : 'bg-gray-50 dark:bg-violet-400/5'}`}
+                  className={`w-full flex items-center gap-3 px-3 py-2.5 ${day === todayName ? 'bg-primary-soft' : 'bg-gray-50 dark:bg-violet-400/5'}`}
                 >
-                  <span className={`text-xs w-20 text-left flex-shrink-0 ${day === todayName ? 'font-bold text-violet-700' : 'text-black dark:text-white'}`}>
+                  <span className={`text-xs w-20 text-left flex-shrink-0 ${day === todayName ? 'font-bold text-primary' : 'text-black dark:text-white'}`}>
                     {day}{day === todayName ? ' •' : ''}
                   </span>
                   <span className="text-[11px] text-black dark:text-white">{plannedCount} planned</span>
@@ -469,7 +469,7 @@ export default function MealsSection({ m, subTab }) {
                                 type="time"
                                 value={getMealTime(day, slot)}
                                 onChange={e => setMealTime(day, slot, e.target.value)}
-                                className="bg-transparent text-[9px] text-black dark:text-white outline-none w-[42px]"
+                                className="bg-transparent text-[11px] text-black dark:text-white outline-none w-[42px]"
                                 aria-label={`Time for ${meta.label} on ${day}`}
                               />
                             </div>
@@ -478,10 +478,10 @@ export default function MealsSection({ m, subTab }) {
                                 type="number" inputMode="numeric" min="5" step="5"
                                 value={getMealDuration(day, slot)}
                                 onChange={e => setMealDuration(day, slot, e.target.value)}
-                                className="bg-transparent text-[9px] text-black dark:text-white outline-none w-[22px]"
+                                className="bg-transparent text-[11px] text-black dark:text-white outline-none w-[22px]"
                                 aria-label={`Duration for ${meta.label} on ${day}, in minutes`}
                               />
-                              <span className="text-[8px] text-black dark:text-white">min</span>
+                              <span className="text-[11px] text-black dark:text-white">min</span>
                             </div>
                           </div>
                           <div className="flex-1 min-w-0 flex flex-wrap items-center gap-1.5">
@@ -517,7 +517,7 @@ export default function MealsSection({ m, subTab }) {
                       );
                     })}
                     {plannedCount > 0 && (
-                      <button onClick={() => clearDay(day)} className="text-[11px] text-red-500 flex items-center gap-1 pt-1">
+                      <button onClick={() => clearDay(day)} className="text-[11px] text-danger flex items-center gap-1 pt-1">
                         <Trash2 className="w-3 h-3" /> Clear {day}
                       </button>
                     )}
@@ -535,7 +535,7 @@ export default function MealsSection({ m, subTab }) {
         badge={`${recipes.length}`}
         actions={
           <button onClick={() => (builderOpen ? resetBuilder() : setBuilderOpen(true))}
-            className="flex items-center gap-1 text-[11px] font-medium text-violet-600 bg-violet-50 dark:bg-violet-500/10 px-2.5 py-1 rounded-lg active:bg-violet-100">
+            className="flex items-center gap-1 text-[11px] font-medium text-primary bg-primary-soft px-2.5 py-1 rounded-lg active:bg-primary-soft">
             {builderOpen ? <X className="w-3 h-3" /> : <Plus className="w-3 h-3" />}
             {builderOpen ? 'Cancel' : 'New'}
           </button>
@@ -544,7 +544,7 @@ export default function MealsSection({ m, subTab }) {
         {builderOpen && (
           <div className="bg-gray-50 dark:bg-violet-400/5 rounded-xl p-3 mb-3 space-y-2">
             {editingRecipeId && (
-              <div className="text-[11px] font-medium text-violet-700 bg-violet-50 dark:bg-violet-500/10 rounded-lg px-2.5 py-1.5 flex items-center gap-1">
+              <div className="text-[11px] font-medium text-primary bg-primary-soft rounded-lg px-2.5 py-1.5 flex items-center gap-1">
                 <Pencil className="w-3 h-3" /> Editing recipe
               </div>
             )}
@@ -552,7 +552,7 @@ export default function MealsSection({ m, subTab }) {
               value={builder.name}
               onChange={e => setBuilder(p => ({ ...p, name: e.target.value }))}
               placeholder="Recipe name"
-              className="w-full bg-white dark:bg-[#211b34] border border-gray-200 dark:border-violet-400/15 rounded-lg px-3 py-2.5 text-sm outline-none focus:border-violet-500"
+              className="w-full bg-white dark:bg-[#211b34] border border-gray-200 dark:border-violet-400/15 rounded-lg px-3 py-2.5 text-sm outline-none focus:border-focus-ring"
             />
 
             <div className="flex bg-gray-200/60 dark:bg-violet-400/10 rounded-lg p-0.5">
@@ -575,7 +575,7 @@ export default function MealsSection({ m, subTab }) {
                   onChange={e => setBuilder(p => ({ ...p, bulkText: e.target.value }))}
                   placeholder={'One ingredient per line, or comma-separated:\nOnion\nChicken breast, Garlic'}
                   rows={4}
-                  className="w-full bg-white dark:bg-[#211b34] border border-gray-200 dark:border-violet-400/15 rounded-lg px-3 py-2.5 text-sm outline-none focus:border-violet-500 resize-none"
+                  className="w-full bg-white dark:bg-[#211b34] border border-gray-200 dark:border-violet-400/15 rounded-lg px-3 py-2.5 text-sm outline-none focus:border-focus-ring resize-none"
                 />
                 <button onClick={addBulkIngredients}
                   disabled={!builder.bulkText.trim()}
@@ -590,7 +590,7 @@ export default function MealsSection({ m, subTab }) {
                   onChange={e => setBuilder(p => ({ ...p, draftName: e.target.value }))}
                   onKeyDown={e => e.key === 'Enter' && addDraftIngredient()}
                   placeholder="Ingredient"
-                  className="flex-1 min-w-0 bg-white dark:bg-[#211b34] border border-gray-200 dark:border-violet-400/15 rounded-lg px-3 py-2.5 text-sm outline-none focus:border-violet-500"
+                  className="flex-1 min-w-0 bg-white dark:bg-[#211b34] border border-gray-200 dark:border-violet-400/15 rounded-lg px-3 py-2.5 text-sm outline-none focus:border-focus-ring"
                 />
                 <button onClick={addDraftIngredient}
                   className="bg-gray-900 text-white rounded-lg px-3 flex-shrink-0 active:bg-gray-700">
@@ -610,25 +610,25 @@ export default function MealsSection({ m, subTab }) {
                       fibre: Math.round(db.fibre * ing.quantity / 100),
                     } : null;
                     return (
-                      <div key={i} className="flex items-center gap-1.5 bg-violet-50 dark:bg-violet-500/10 rounded-lg px-2 py-1.5">
-                        <span className="text-[11px] text-violet-800 font-medium flex-1 min-w-0 truncate">{ing.name}</span>
+                      <div key={i} className="flex items-center gap-1.5 bg-primary-soft rounded-lg px-2 py-1.5">
+                        <span className="text-[11px] text-primary font-medium flex-1 min-w-0 truncate">{ing.name}</span>
                         <input
                           type="number" inputMode="numeric" min="0" placeholder="qty"
                           value={ing.quantity ?? ''}
                           onChange={e => setBuilderIngredientQuantity(i, e.target.value)}
-                          className="w-14 bg-white dark:bg-[#211b34] border border-violet-200 rounded-md text-center text-[11px] py-1 outline-none focus:border-violet-500"
+                          className="w-14 bg-white dark:bg-[#211b34] border border-primary-low rounded-md text-center text-[11px] py-1 outline-none focus:border-focus-ring"
                         />
-                        <span className="text-[10px] text-violet-700 flex-shrink-0">g</span>
+                        <span className="text-[11px] text-primary flex-shrink-0">g</span>
                         {contribution ? (
-                          <span className="text-[9px] text-violet-600 flex-shrink-0 tabular-nums">P{contribution.protein}·C{contribution.carbs}·F{contribution.fibre}</span>
+                          <span className="text-[11px] text-primary flex-shrink-0 tabular-nums">P{contribution.protein}·C{contribution.carbs}·F{contribution.fibre}</span>
                         ) : db ? (
-                          <span className="text-[9px] text-black dark:text-white flex-shrink-0">in DB</span>
+                          <span className="text-[11px] text-black dark:text-white flex-shrink-0">in DB</span>
                         ) : (
-                          <button onClick={() => quickAddDbIngredient(ing.name)} className="text-[9px] text-black dark:text-white underline flex-shrink-0">
+                          <button onClick={() => quickAddDbIngredient(ing.name)} className="text-[11px] text-black dark:text-white underline flex-shrink-0">
                             not in DB
                           </button>
                         )}
-                        <button onClick={() => removeBuilderIngredient(i)} aria-label={`Remove ${ing.name}`} className="text-violet-400 active:text-red-500 flex-shrink-0">
+                        <button onClick={() => removeBuilderIngredient(i)} aria-label={`Remove ${ing.name}`} className="text-primary active:text-danger flex-shrink-0">
                           <X className="w-3.5 h-3.5" />
                         </button>
                       </div>
@@ -638,7 +638,7 @@ export default function MealsSection({ m, subTab }) {
               ) : (
                 <div className="flex flex-wrap gap-1.5">
                   {builder.ingredients.map((ing, i) => (
-                    <span key={i} className="text-[11px] bg-violet-100 text-violet-700 px-2.5 py-1 rounded-full flex items-center gap-1">
+                    <span key={i} className="text-[11px] bg-primary-soft text-primary px-2.5 py-1 rounded-full flex items-center gap-1">
                       {ing.name}{ing.quantity ? ` · ${ing.quantity}g` : ''}
                       <button onClick={() => removeBuilderIngredient(i)} aria-label={`Remove ${ing.name}`}>
                         <X className="w-3 h-3" />
@@ -658,9 +658,9 @@ export default function MealsSection({ m, subTab }) {
               className="flex items-center gap-2 py-1 select-none"
             >
               <span className={`w-5 h-5 rounded-md border flex items-center justify-center flex-shrink-0 ${
-                builder.advanced ? 'bg-violet-600 border-violet-600' : 'border-gray-300 dark:border-violet-400/25 bg-white dark:bg-[#211b34]'
+                builder.advanced ? 'bg-primary border-primary' : 'border-border-strong bg-white dark:bg-[#211b34]'
               }`}>
-                {builder.advanced && <Check className="w-3.5 h-3.5 text-white" />}
+                {builder.advanced && <Check className="w-3.5 h-3.5 text-on-primary" />}
               </span>
               <span className="text-xs text-black dark:text-white">Advanced nutrition (quantities &amp; macros)</span>
             </button>
@@ -668,7 +668,7 @@ export default function MealsSection({ m, subTab }) {
             {builder.advanced && !builder.nutritionEnabled && (() => {
               const computed = computeIngredientsNutrition(builder.ingredients);
               return computed ? (
-                <div className="text-[11px] text-violet-700 bg-violet-50 dark:bg-violet-500/10 rounded-lg px-2.5 py-1.5">
+                <div className="text-[11px] text-primary bg-primary-soft rounded-lg px-2.5 py-1.5">
                   Auto-calculated from ingredient quantities: <span className="font-semibold">P{computed.protein} · C{computed.carbs} · F{computed.fibre}</span>
                 </div>
               ) : (
@@ -685,9 +685,9 @@ export default function MealsSection({ m, subTab }) {
                 className="flex items-center gap-2 py-1 select-none"
               >
                 <span className={`w-5 h-5 rounded-md border flex items-center justify-center flex-shrink-0 ${
-                  builder.nutritionEnabled ? 'bg-violet-600 border-violet-600' : 'border-gray-300 dark:border-violet-400/25 bg-white dark:bg-[#211b34]'
+                  builder.nutritionEnabled ? 'bg-primary border-primary' : 'border-border-strong bg-white dark:bg-[#211b34]'
                 }`}>
-                  {builder.nutritionEnabled && <Check className="w-3.5 h-3.5 text-white" />}
+                  {builder.nutritionEnabled && <Check className="w-3.5 h-3.5 text-on-primary" />}
                 </span>
                 <span className="text-xs text-black dark:text-white">Set a whole-recipe nutrition override</span>
               </button>
@@ -696,30 +696,30 @@ export default function MealsSection({ m, subTab }) {
             {builder.advanced && builder.nutritionEnabled && (
               <div className="flex gap-2">
                 <div className="flex-1">
-                  <div className="text-[10px] uppercase tracking-wide text-black dark:text-white mb-1 text-center">Protein (g)</div>
+                  <div className="text-[11px] text-black dark:text-white mb-1 text-center">Protein (g)</div>
                   <input
                     type="number" inputMode="numeric" min="0" placeholder="0"
                     value={builder.protein}
                     onChange={e => setBuilder(p => ({ ...p, protein: e.target.value }))}
-                    className="w-full bg-white dark:bg-[#211b34] border border-gray-200 dark:border-violet-400/15 rounded-lg px-2 py-2 text-sm text-center outline-none focus:border-violet-500"
+                    className="w-full bg-white dark:bg-[#211b34] border border-gray-200 dark:border-violet-400/15 rounded-lg px-2 py-2 text-sm text-center outline-none focus:border-focus-ring"
                   />
                 </div>
                 <div className="flex-1">
-                  <div className="text-[10px] uppercase tracking-wide text-black dark:text-white mb-1 text-center">Carbs (g)</div>
+                  <div className="text-[11px] text-black dark:text-white mb-1 text-center">Carbs (g)</div>
                   <input
                     type="number" inputMode="numeric" min="0" placeholder="0"
                     value={builder.carbs}
                     onChange={e => setBuilder(p => ({ ...p, carbs: e.target.value }))}
-                    className="w-full bg-white dark:bg-[#211b34] border border-gray-200 dark:border-violet-400/15 rounded-lg px-2 py-2 text-sm text-center outline-none focus:border-violet-500"
+                    className="w-full bg-white dark:bg-[#211b34] border border-gray-200 dark:border-violet-400/15 rounded-lg px-2 py-2 text-sm text-center outline-none focus:border-focus-ring"
                   />
                 </div>
                 <div className="flex-1">
-                  <div className="text-[10px] uppercase tracking-wide text-black dark:text-white mb-1 text-center">Fibre (g)</div>
+                  <div className="text-[11px] text-black dark:text-white mb-1 text-center">Fibre (g)</div>
                   <input
                     type="number" inputMode="numeric" min="0" placeholder="0"
                     value={builder.fibre}
                     onChange={e => setBuilder(p => ({ ...p, fibre: e.target.value }))}
-                    className="w-full bg-white dark:bg-[#211b34] border border-gray-200 dark:border-violet-400/15 rounded-lg px-2 py-2 text-sm text-center outline-none focus:border-violet-500"
+                    className="w-full bg-white dark:bg-[#211b34] border border-gray-200 dark:border-violet-400/15 rounded-lg px-2 py-2 text-sm text-center outline-none focus:border-focus-ring"
                   />
                 </div>
               </div>
@@ -730,12 +730,12 @@ export default function MealsSection({ m, subTab }) {
               onChange={e => setBuilder(p => ({ ...p, notes: e.target.value }))}
               placeholder="Notes / instructions (optional)"
               rows={2}
-              className="w-full bg-white dark:bg-[#211b34] border border-gray-200 dark:border-violet-400/15 rounded-lg px-3 py-2.5 text-sm outline-none focus:border-violet-500 resize-none"
+              className="w-full bg-white dark:bg-[#211b34] border border-gray-200 dark:border-violet-400/15 rounded-lg px-3 py-2.5 text-sm outline-none focus:border-focus-ring resize-none"
             />
 
             <button onClick={saveRecipe}
               disabled={!builder.name.trim() || builder.ingredients.length === 0}
-              className="w-full h-10 bg-violet-600 text-white rounded-lg text-sm font-semibold disabled:opacity-40 active:bg-violet-700">
+              className="w-full h-10 bg-primary text-on-primary rounded-lg text-sm font-semibold disabled:opacity-40 active:bg-primary-hover">
               {editingRecipeId ? 'Save changes' : 'Save recipe'}
             </button>
           </div>
@@ -750,22 +750,22 @@ export default function MealsSection({ m, subTab }) {
                   <span className="text-sm font-medium text-black dark:text-white truncate">{r.name}</span>
                   <div className="flex items-center gap-2 flex-shrink-0">
                     {r.nutrition && (
-                      <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-violet-50 dark:bg-violet-500/10 text-violet-700">
+                      <span className="text-[11px] px-1.5 py-0.5 rounded-full bg-primary-soft text-primary">
                         P{r.nutrition.protein}·C{r.nutrition.carbs}·F{r.nutrition.fibre}
                       </span>
                     )}
-                    <span className="text-[10px] text-black dark:text-white">{r.ingredients.length} ingredients</span>
+                    <span className="text-[11px] text-black dark:text-white">{r.ingredients.length} ingredients</span>
                     <ChevronDown className={`w-3.5 h-3.5 text-black dark:text-white transition-transform ${expanded ? 'rotate-180' : ''}`} />
                   </div>
                 </button>
                 <div className="flex flex-wrap gap-1">
                   {(expanded ? r.ingredients : r.ingredients.slice(0, 6)).map((ing, i) => (
-                    <span key={i} className="text-[10px] px-2 py-0.5 rounded-full bg-gray-100 dark:bg-violet-400/10 text-black dark:text-white">
+                    <span key={i} className="text-[11px] px-2 py-0.5 rounded-full bg-gray-100 dark:bg-violet-400/10 text-black dark:text-white">
                       {ing.name}{ing.quantity ? ` · ${ing.quantity}g` : ''}
                     </span>
                   ))}
                   {!expanded && r.ingredients.length > 6 && (
-                    <span className="text-[10px] px-2 py-0.5 text-black dark:text-white">+{r.ingredients.length - 6} more</span>
+                    <span className="text-[11px] px-2 py-0.5 text-black dark:text-white">+{r.ingredients.length - 6} more</span>
                   )}
                 </div>
                 <div className={`grid transition-[grid-template-rows] duration-250 ease-out ${expanded ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]'}`}>
@@ -773,10 +773,10 @@ export default function MealsSection({ m, subTab }) {
                     <div className="mt-2 pt-2 border-t border-gray-100 dark:border-violet-400/15">
                       {r.notes && <p className="text-xs text-black dark:text-white mb-2 whitespace-pre-line">{r.notes}</p>}
                       <div className="flex gap-3">
-                        <button onClick={() => startEditRecipe(r)} className="text-[11px] text-violet-700 flex items-center gap-1">
+                        <button onClick={() => startEditRecipe(r)} className="text-[11px] text-primary flex items-center gap-1">
                           <Pencil className="w-3 h-3" /> Edit recipe
                         </button>
-                        <button onClick={() => deleteRecipe(r.id)} className="text-[11px] text-red-500 flex items-center gap-1">
+                        <button onClick={() => deleteRecipe(r.id)} className="text-[11px] text-danger flex items-center gap-1">
                           <Trash2 className="w-3 h-3" /> Delete recipe
                         </button>
                       </div>
@@ -795,12 +795,12 @@ export default function MealsSection({ m, subTab }) {
       <CollapsibleCard
         title="Ingredient database"
         icon={Database}
-        iconColor="text-violet-600"
+        iconColor="text-primary"
         badge={`${ingredientDb.length}`}
         defaultOpen={false}
         actions={
           <button onClick={() => (dbBuilderOpen ? resetDbBuilder() : setDbBuilderOpen(true))}
-            className="flex items-center gap-1 text-[11px] font-medium text-violet-600 bg-violet-50 dark:bg-violet-500/10 px-2.5 py-1 rounded-lg active:bg-violet-100">
+            className="flex items-center gap-1 text-[11px] font-medium text-primary bg-primary-soft px-2.5 py-1 rounded-lg active:bg-primary-soft">
             {dbBuilderOpen ? <X className="w-3 h-3" /> : <Plus className="w-3 h-3" />}
             {dbBuilderOpen ? 'Cancel' : 'New'}
           </button>
@@ -816,40 +816,40 @@ export default function MealsSection({ m, subTab }) {
               value={dbBuilder.name}
               onChange={e => setDbBuilder(p => ({ ...p, name: e.target.value }))}
               placeholder="Ingredient name"
-              className="w-full bg-white dark:bg-[#211b34] border border-gray-200 dark:border-violet-400/15 rounded-lg px-3 py-2.5 text-sm outline-none focus:border-violet-500"
+              className="w-full bg-white dark:bg-[#211b34] border border-gray-200 dark:border-violet-400/15 rounded-lg px-3 py-2.5 text-sm outline-none focus:border-focus-ring"
             />
             <div className="flex gap-2">
               <div className="flex-1">
-                <div className="text-[10px] uppercase tracking-wide text-black dark:text-white mb-1 text-center">Protein /100g</div>
+                <div className="text-[11px] text-black dark:text-white mb-1 text-center">Protein /100g</div>
                 <input
                   type="number" inputMode="numeric" min="0" placeholder="0"
                   value={dbBuilder.protein}
                   onChange={e => setDbBuilder(p => ({ ...p, protein: e.target.value }))}
-                  className="w-full bg-white dark:bg-[#211b34] border border-gray-200 dark:border-violet-400/15 rounded-lg px-2 py-2 text-sm text-center outline-none focus:border-violet-500"
+                  className="w-full bg-white dark:bg-[#211b34] border border-gray-200 dark:border-violet-400/15 rounded-lg px-2 py-2 text-sm text-center outline-none focus:border-focus-ring"
                 />
               </div>
               <div className="flex-1">
-                <div className="text-[10px] uppercase tracking-wide text-black dark:text-white mb-1 text-center">Carbs /100g</div>
+                <div className="text-[11px] text-black dark:text-white mb-1 text-center">Carbs /100g</div>
                 <input
                   type="number" inputMode="numeric" min="0" placeholder="0"
                   value={dbBuilder.carbs}
                   onChange={e => setDbBuilder(p => ({ ...p, carbs: e.target.value }))}
-                  className="w-full bg-white dark:bg-[#211b34] border border-gray-200 dark:border-violet-400/15 rounded-lg px-2 py-2 text-sm text-center outline-none focus:border-violet-500"
+                  className="w-full bg-white dark:bg-[#211b34] border border-gray-200 dark:border-violet-400/15 rounded-lg px-2 py-2 text-sm text-center outline-none focus:border-focus-ring"
                 />
               </div>
               <div className="flex-1">
-                <div className="text-[10px] uppercase tracking-wide text-black dark:text-white mb-1 text-center">Fibre /100g</div>
+                <div className="text-[11px] text-black dark:text-white mb-1 text-center">Fibre /100g</div>
                 <input
                   type="number" inputMode="numeric" min="0" placeholder="0"
                   value={dbBuilder.fibre}
                   onChange={e => setDbBuilder(p => ({ ...p, fibre: e.target.value }))}
-                  className="w-full bg-white dark:bg-[#211b34] border border-gray-200 dark:border-violet-400/15 rounded-lg px-2 py-2 text-sm text-center outline-none focus:border-violet-500"
+                  className="w-full bg-white dark:bg-[#211b34] border border-gray-200 dark:border-violet-400/15 rounded-lg px-2 py-2 text-sm text-center outline-none focus:border-focus-ring"
                 />
               </div>
             </div>
             <button onClick={saveDbIngredient}
               disabled={!dbBuilder.name.trim()}
-              className="w-full h-10 bg-violet-600 text-white rounded-lg text-sm font-semibold disabled:opacity-40 active:bg-violet-700">
+              className="w-full h-10 bg-primary text-on-primary rounded-lg text-sm font-semibold disabled:opacity-40 active:bg-primary-hover">
               {editingDbId ? 'Save changes' : 'Add ingredient'}
             </button>
           </div>
@@ -859,11 +859,11 @@ export default function MealsSection({ m, subTab }) {
           {[...ingredientDb].sort((a, b) => a.name.localeCompare(b.name)).map(item => (
             <div key={item.id} className="flex items-center gap-2 bg-gray-50 dark:bg-violet-400/5 rounded-lg px-3 py-2">
               <span className="text-xs text-black dark:text-white flex-1 min-w-0 truncate">{item.name}</span>
-              <span className="text-[10px] text-black dark:text-white tabular-nums flex-shrink-0">P{item.protein}·C{item.carbs}·F{item.fibre}</span>
-              <button onClick={() => startEditDbIngredient(item)} className="text-black dark:text-white active:text-violet-600 flex-shrink-0">
+              <span className="text-[11px] text-black dark:text-white tabular-nums flex-shrink-0">P{item.protein}·C{item.carbs}·F{item.fibre}</span>
+              <button onClick={() => startEditDbIngredient(item)} className="text-black dark:text-white active:text-primary flex-shrink-0">
                 <Pencil className="w-3.5 h-3.5" />
               </button>
-              <button onClick={() => deleteDbIngredient(item.id)} className="text-black dark:text-white active:text-red-500 flex-shrink-0">
+              <button onClick={() => deleteDbIngredient(item.id)} className="text-black dark:text-white active:text-danger flex-shrink-0">
                 <Trash2 className="w-3.5 h-3.5" />
               </button>
             </div>
@@ -908,11 +908,11 @@ export default function MealsSection({ m, subTab }) {
                     <button
                       onClick={() => toggleChecked(item.key)}
                       className={`w-5 h-5 rounded-md border flex items-center justify-center flex-shrink-0 transition-colors ${
-                        checked ? 'bg-violet-600 border-violet-600 animate-success-pulse' : 'border-gray-300 dark:border-violet-400/25 bg-white dark:bg-[#211b34]'
+                        checked ? 'bg-primary border-primary animate-success-pulse' : 'border-border-strong bg-white dark:bg-[#211b34]'
                       }`}
                       aria-label={checked ? `Uncheck ${item.name}` : `Check ${item.name}`}
                     >
-                      {checked && <Check className="w-3.5 h-3.5 text-white" />}
+                      {checked && <Check className="w-3.5 h-3.5 text-on-primary" />}
                     </button>
                     <span className={`text-sm flex-1 min-w-0 truncate ${checked ? 'line-through text-black dark:text-white' : 'text-black dark:text-white'}`}>
                       {item.name}
@@ -921,7 +921,7 @@ export default function MealsSection({ m, subTab }) {
                       onClick={() => setExpandedIngredient(expanded ? null : `shop::${item.key}`)}
                       className="flex items-center gap-1 flex-shrink-0"
                     >
-                      <span className="text-[10px] text-black dark:text-white bg-white dark:bg-[#211b34] border border-gray-200 dark:border-violet-400/15 rounded-full px-2 py-0.5">
+                      <span className="text-[11px] text-black dark:text-white bg-white dark:bg-[#211b34] border border-gray-200 dark:border-violet-400/15 rounded-full px-2 py-0.5">
                         {item.count} meal{item.count === 1 ? '' : 's'}
                       </span>
                       <ChevronDown className={`w-3 h-3 text-black dark:text-white transition-transform ${expanded ? 'rotate-180' : ''}`} />
@@ -931,7 +931,7 @@ export default function MealsSection({ m, subTab }) {
                     <div className="overflow-hidden">
                       <div className="mt-1.5 pl-7 flex flex-wrap gap-1">
                         {item.uses.map((u, i) => (
-                          <span key={i} className="text-[10px] text-black dark:text-white bg-white dark:bg-[#211b34] border border-gray-200 dark:border-violet-400/15 rounded-full px-2 py-0.5">
+                          <span key={i} className="text-[11px] text-black dark:text-white bg-white dark:bg-[#211b34] border border-gray-200 dark:border-violet-400/15 rounded-full px-2 py-0.5">
                             {u.recipe} · {u.day.slice(0, 3)} {SLOT_META[u.slot].label}
                           </span>
                         ))}
@@ -953,7 +953,7 @@ export default function MealsSection({ m, subTab }) {
             onChange={e => setExtraInput(e.target.value)}
             onKeyDown={e => e.key === 'Enter' && addExtra()}
             placeholder="e.g. Paper towels"
-            className="flex-1 min-w-0 bg-gray-100 dark:bg-violet-400/10 rounded-xl px-4 py-2.5 text-sm text-black dark:text-white outline-none focus:bg-white dark:bg-[#211b34] focus:ring-2 focus:ring-violet-500"
+            className="flex-1 min-w-0 bg-gray-100 dark:bg-violet-400/10 rounded-xl px-4 py-2.5 text-sm text-black dark:text-white outline-none focus:bg-white dark:focus:bg-[#211b34] focus:ring-2 focus:ring-focus-ring"
           />
           <button onClick={addExtra} className="bg-gray-900 text-white rounded-xl px-4 flex-shrink-0 active:bg-gray-700">
             <Plus className="w-4 h-4" />
@@ -968,16 +968,16 @@ export default function MealsSection({ m, subTab }) {
                 <button
                   onClick={() => toggleExtra(e.id)}
                   className={`w-5 h-5 rounded-md border flex items-center justify-center flex-shrink-0 transition-colors ${
-                    e.checked ? 'bg-violet-600 border-violet-600 animate-success-pulse' : 'border-gray-300 dark:border-violet-400/25 bg-white dark:bg-[#211b34]'
+                    e.checked ? 'bg-primary border-primary animate-success-pulse' : 'border-border-strong bg-white dark:bg-[#211b34]'
                   }`}
                   aria-label={e.checked ? `Uncheck ${e.name}` : `Check ${e.name}`}
                 >
-                  {e.checked && <Check className="w-3.5 h-3.5 text-white" />}
+                  {e.checked && <Check className="w-3.5 h-3.5 text-on-primary" />}
                 </button>
                 <span className={`text-sm flex-1 min-w-0 truncate ${e.checked ? 'line-through text-black dark:text-white' : 'text-black dark:text-white'}`}>
                   {e.name}
                 </span>
-                <button onClick={() => deleteExtra(e.id)} className="text-black dark:text-white active:text-red-500 flex-shrink-0">
+                <button onClick={() => deleteExtra(e.id)} className="text-black dark:text-white active:text-danger flex-shrink-0">
                   <Trash2 className="w-3.5 h-3.5" />
                 </button>
               </div>
