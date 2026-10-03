@@ -1,4 +1,4 @@
-import BottomSheet from './BottomSheet';
+import { BottomSheet } from '@summit/core';
 import TrendChart from './TrendChart';
 import { parseExercise } from '../lib/exercises';
 import { formatShortDate } from '../lib/model';

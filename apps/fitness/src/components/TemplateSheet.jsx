@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Plus, X, ClipboardList, Timer, Trash2 } from 'lucide-react';
-import BottomSheet from './BottomSheet';
+import { BottomSheet } from '@summit/core';
 import { TYPE_META, cycleExerciseType, parseExercise } from '../lib/exercises';
 
 const inputClass = 'w-full bg-gray-100 dark:bg-violet-400/10 rounded-xl px-4 py-3 text-base text-black dark:text-white outline-none focus:ring-2 focus:ring-focus-ring';

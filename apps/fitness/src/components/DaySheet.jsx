@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Minus, Plus, Trash2 } from 'lucide-react';
-import BottomSheet from './BottomSheet';
+import { BottomSheet } from '@summit/core';
 import { dayList } from '../lib/model';
 
 // Length of a workout in minutes, with -5 / +5 buttons (no fiddly typing on a

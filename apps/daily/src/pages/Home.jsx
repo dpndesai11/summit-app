@@ -4,38 +4,27 @@ import {
   CheckSquare, Check, ChevronDown, ChevronLeft, ChevronRight, RefreshCw, AlertTriangle, Circle, CircleCheck, CalendarRange, Bell, X,
   Repeat, Plus, Pencil, Trash2
 } from 'lucide-react';
-import { dbGet, dbSet, dbRefresh } from '@summit/core/db';
 import { toISODate, startOfWeek, addDays, getTodayFocusTasks } from '../lib/taskUtils';
+import {
+  DAYS, SLOTS, buildBlocksForDay, dayList, formatDuration, formatHour, formatTime, minutesToTime,
+  normalizeBlockDays, slotList, timeToMinutes,
+} from '../lib/calendar';
+import useCalendarData from '../useCalendarData';
 import TaskDetailModal from '../components/TaskDetailModal';
 import WeeklyReview from '../components/WeeklyReview';
 import { CollapsibleCard } from '@summit/core';
 
 // ---------------------------------------------------------------------------
-// Summit Daily — Home: the app's opening page. A "Day" view (hour-by-hour
-// timeline of today's workouts/meals, merged with the old Today Focus page's
-// task-picking) and a "Week" view (the recurring weekly workout/meal plan at
-// a glance, real task load on the next 7 calendar dates, and the weekly
-// review ritual).
+// Summit Planner — Home: the opening page. A "Day" view (hour-by-hour timeline
+// of workouts/meals/scheduled tasks, merged with the old Today Focus page's
+// task-picking) and a "Week" view (the recurring weekly plan at a glance, real
+// task load, and the weekly review ritual).
 //
-// Task data (tasks/projects/dailySelections/weeklyReviewLog) is owned by the
-// top-level App and passed down as props — Home is where Tasks' old Today
-// Focus page and Daily's old Dashboard page merged into one. Workout/meal
-// data is still self-loaded here, read-only, same as before: this file
-// duplicates the small bits of shape/default logic it needs rather than
-// importing from WorkoutsSection/MealsSection, matching this codebase's
-// existing "separate copies of the same pattern" convention.
+// Data loading/saving for everything on the calendar lives in
+// useCalendarData.js and the pure date/event maths in lib/calendar.js. Task
+// data (tasks/projects/dailySelections/weeklyReviewLog) is owned by the
+// top-level App and passed down as props.
 // ---------------------------------------------------------------------------
-
-const STORAGE_KEYS = {
-  workoutTemplates: 'summit_workout_templates',
-  weeklyWorkoutPlan: 'summit_weekly_workout_plan',
-  workoutTimes: 'summit_workout_times',
-  recipes: 'summit_recipes',
-  weeklyMealPlan: 'summit_weekly_meal_plan',
-  mealTimes: 'summit_meal_times',
-  taskTimes: 'summit_task_times',
-  recurringBlocks: 'summit_recurring_blocks',
-};
 
 // Recurring background blocks — user-defined repeating commitments (work
 // hours, uni hours, commute) that aren't tasks/workouts/meals but still
@@ -53,21 +42,7 @@ const BLOCK_COLOR_PRESETS = {
 const BLOCK_COLORS = Object.keys(BLOCK_COLOR_PRESETS);
 const DEFAULT_RECURRING_BLOCK = { name: '', color: 'slate', days: {} };
 
-// Life happens — Mon-Thu work might end at a different time than Friday, so
-// each day a block applies to carries its own time/duration rather than one
-// shared time for every day, same as workouts/meals already do per-day.
-// Normalizes the older single-time/array-of-days shape (this block's first
-// version) into the per-day shape on read, without rewriting stored data
-// until the block is actually edited.
-const normalizeBlockDays = (b) => {
-  if (b.days && !Array.isArray(b.days) && typeof b.days === 'object') return b.days;
-  const days = Array.isArray(b.days) ? b.days : [];
-  const time = b.time || '09:00';
-  const duration = b.duration > 0 ? b.duration : 60;
-  const out = {};
-  days.forEach(d => { out[d] = { time, duration }; });
-  return out;
-};
+
 // Compact summary: days sharing the exact same time/duration collapse into
 // one line (e.g. "Mon Tue Wed Thu · 8:00 AM · 8h") instead of one row each.
 const groupBlockDays = (days) => {
@@ -83,20 +58,6 @@ const groupBlockDays = (days) => {
   return groups;
 };
 
-const DEFAULT_WORKOUT_TIME = '07:00';
-const DEFAULT_WORKOUT_DURATION = 60;
-const SLOT_DEFAULT_TIMES = { breakfast: '08:00', snack1: '11:00', lunch: '13:00', snack2: '16:00', dinner: '19:00' };
-const SLOT_DEFAULT_DURATIONS = { breakfast: 20, snack1: 10, lunch: 30, snack2: 10, dinner: 45 };
-// A newly-scheduled task lands here until dragged elsewhere — no smarter
-// slot-finding, since you can just drag it once it's on the timeline.
-const DEFAULT_TASK_TIME = '09:00';
-const DEFAULT_TASK_DURATION = 30;
-
-const normalizeTimeEntry = (v, defaultTime, defaultDuration) => {
-  if (v && typeof v === 'object') return { time: v.time || defaultTime, duration: Number(v.duration) > 0 ? Number(v.duration) : defaultDuration };
-  if (typeof v === 'string' && v) return { time: v, duration: defaultDuration };
-  return { time: defaultTime, duration: defaultDuration };
-};
 const SLOT_META = {
   breakfast: { label: 'Breakfast', icon: Coffee },
   snack1: { label: 'Snack 1', icon: Apple },
@@ -104,59 +65,17 @@ const SLOT_META = {
   snack2: { label: 'Snack 2', icon: Cookie },
   dinner: { label: 'Dinner', icon: CookingPot },
 };
-const SLOTS = ['breakfast', 'snack1', 'lunch', 'snack2', 'dinner'];
-const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
-
-const dayList = (v) => {
-  if (Array.isArray(v)) return v.filter(n => typeof n === 'string' && n && n !== 'Rest Day');
-  if (typeof v === 'string' && v && v !== 'Rest Day' && v !== 'None') return [v];
-  return [];
-};
-const slotList = (v) => {
-  if (Array.isArray(v)) return v.filter(n => typeof n === 'string' && n.trim());
-  if (typeof v === 'string' && v.trim()) return [v];
-  return [];
-};
-
 const TIMELINE_START_MIN = 6 * 60;
 const TIMELINE_END_MIN = 22 * 60;
 const TIMELINE_HOURS = Array.from({ length: (TIMELINE_END_MIN - TIMELINE_START_MIN) / 60 + 1 }, (_, i) => TIMELINE_START_MIN / 60 + i);
 const HOUR_HEIGHT = 56; // px
-
-const timeToMinutes = (hhmm) => {
-  const [h, m] = (hhmm || '00:00').split(':').map(Number);
-  return (h || 0) * 60 + (m || 0);
-};
-const formatHour = (h) => {
-  const period = h < 12 || h === 24 ? 'AM' : 'PM';
-  const display = h % 12 === 0 ? 12 : h % 12;
-  return `${display} ${period}`;
-};
-const formatTime = (hhmm) => {
-  const mins = timeToMinutes(hhmm);
-  const h = Math.floor(mins / 60);
-  const m = mins % 60;
-  const period = h < 12 ? 'AM' : 'PM';
-  const display = h % 12 === 0 ? 12 : h % 12;
-  return `${display}:${String(m).padStart(2, '0')} ${period}`;
-};
-const minutesToTime = (mins) => {
-  const h = Math.floor(mins / 60);
-  const m = mins % 60;
-  return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
-};
-const formatDuration = (mins) => {
-  if (mins < 60) return `${mins}m`;
-  const h = Math.floor(mins / 60);
-  const m = mins % 60;
-  return m === 0 ? `${h}h` : `${h}h ${m}m`;
-};
 
 const DRAG_THRESHOLD_PX = 6;
 const SNAP_MINUTES = 5;
 const MIN_DURATION = 10;
 const snapMinutes = (mins) => Math.round(mins / SNAP_MINUTES) * SNAP_MINUTES;
 const MIN_BLOCK_HEIGHT = 32;
+
 
 export default function Home({
   tasks,
@@ -173,6 +92,11 @@ export default function Home({
   handleCompleteWeeklyReview,
   navigateTo,
 }) {
+  const cal = useCalendarData();
+  const {
+    templates, workoutPlan, workoutTimes, recipes, mealPlan, mealTimes, taskTimes, recurringBlocks,
+    toast, isLoading, isRefreshing, showToast, refresh, saveRecurringBlocks,
+  } = cal;
   const [view, setView] = useState('day'); // 'day' | 'week'
   // Day view defaults to today but can navigate to any day — prev/next
   // arrows here, or tapping a row in Week view. The recurring workout/meal
@@ -181,29 +105,15 @@ export default function Home({
   // you're actually in; task due/target dates are real dates though, so
   // those are looked up against the actual selected date.
   const [selectedDate, setSelectedDate] = useState(() => new Date());
-  const [templates, setTemplates] = useState([]);
-  const [workoutPlan, setWorkoutPlan] = useState({});
-  const [workoutTimes, setWorkoutTimes] = useState({});
-  const [recipes, setRecipes] = useState([]);
-  const [mealPlan, setMealPlan] = useState({});
-  const [mealTimes, setMealTimes] = useState({});
-  // Which picked tasks have been placed on the timeline, and when —
-  // {[isoDate]: {[taskId]: {time, duration}}}. Keyed by real date (not
-  // weekday) since tasks are one-off, not a recurring weekly plan.
-  const [taskTimes, setTaskTimes] = useState({});
-  const [recurringBlocks, setRecurringBlocks] = useState([]);
   const [blockBuilder, setBlockBuilder] = useState(DEFAULT_RECURRING_BLOCK);
   const [blockBuilderOpen, setBlockBuilderOpen] = useState(false);
   const [editingBlockId, setEditingBlockId] = useState(null);
-  const [toast, setToast] = useState(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [isRefreshing, setIsRefreshing] = useState(false);
   const [expandedBlock, setExpandedBlock] = useState(null);
   const [openTaskId, setOpenTaskId] = useState(null);
   const [drag, setDrag] = useState(null);
   const dragMovedRef = useRef(false);
 
-  // --- Reminders ---------------------------------------------------------------
+    // --- Reminders ---------------------------------------------------------------
   // Local notifications only: this is a static site with no backend to send
   // real push, so these fire from a timer that only runs while this tab is
   // open (foreground or background), not when the browser/phone is fully
@@ -223,11 +133,6 @@ export default function Home({
     }
   };
 
-  const showToast = (msg, isError = false) => {
-    setToast({ message: msg, isError });
-    setTimeout(() => setToast(null), 2200);
-  };
-
   const todayISO = toISODate(new Date());
   const now = new Date();
   const nowMinutes = now.getHours() * 60 + now.getMinutes();
@@ -238,109 +143,11 @@ export default function Home({
   const goToDay = (iso) => { setSelectedDate(new Date(`${iso}T00:00:00`)); setView('day'); };
   const shiftDay = (delta) => setSelectedDate(d => addDays(d, delta));
 
-  const loadAll = async () => {
-    const loadData = async (key, fallback) => {
-      try {
-        const val = await dbGet(key);
-        return val ?? fallback;
-      } catch {
-        return fallback;
-      }
-    };
-    const [wt, wwp, wtm, rc, wmp, mt, tt, rb] = await Promise.all([
-      loadData(STORAGE_KEYS.workoutTemplates, []),
-      loadData(STORAGE_KEYS.weeklyWorkoutPlan, {}),
-      loadData(STORAGE_KEYS.workoutTimes, {}),
-      loadData(STORAGE_KEYS.recipes, []),
-      loadData(STORAGE_KEYS.weeklyMealPlan, {}),
-      loadData(STORAGE_KEYS.mealTimes, {}),
-      loadData(STORAGE_KEYS.taskTimes, {}),
-      loadData(STORAGE_KEYS.recurringBlocks, []),
-    ]);
-    setTemplates(Array.isArray(wt) ? wt : []);
-    setWorkoutPlan(wwp && typeof wwp === 'object' ? wwp : {});
-    setWorkoutTimes(wtm && typeof wtm === 'object' ? wtm : {});
-    setRecipes(Array.isArray(rc) ? rc : []);
-    setMealPlan(wmp && typeof wmp === 'object' ? wmp : {});
-    setMealTimes(mt && typeof mt === 'object' ? mt : {});
-    setTaskTimes(tt && typeof tt === 'object' ? tt : {});
-    setRecurringBlocks(Array.isArray(rb) ? rb : []);
-  };
+  // Everything buildBlocksForDay needs, as one object.
+  const calData = { templates, workoutPlan, workoutTimes, recipes, mealPlan, mealTimes, taskTimes, tasks };
+  const allBlocks = buildBlocksForDay(calData, selectedDayName, selectedISO);
 
-  useEffect(() => {
-    (async () => {
-      try { await loadAll(); } finally { setIsLoading(false); }
-    })();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  const refresh = async () => {
-    setIsRefreshing(true);
-    try {
-      await dbRefresh();
-      await loadAll();
-      showToast('Refreshed');
-    } catch {
-      showToast('Refresh failed', true);
-    } finally {
-      setIsRefreshing(false);
-    }
-  };
-
-  // --- Build a given day's blocks -----------------------------------------------
-  // Factored out so the reminder checker below can build *today's* blocks for
-  // notifications even while you're browsing a different day in the Day view.
-  // `iso` is the real calendar date (for tasks, which aren't a recurring
-  // weekly plan like workouts/meals are); `dayName` is its weekday name.
-  const buildBlocksForDay = (dayName, iso) => {
-    const workoutBlocks = dayList(workoutPlan[dayName])
-      .map(name => templates.find(t => t.name === name))
-      .filter(Boolean)
-      .map(tpl => {
-        const entry = normalizeTimeEntry(workoutTimes[dayName]?.[tpl.name], DEFAULT_WORKOUT_TIME, DEFAULT_WORKOUT_DURATION);
-        return {
-          kind: 'workout', key: `w::${tpl.name}`, title: tpl.name,
-          time: entry.time, duration: entry.duration, exercises: tpl.exercises || [],
-        };
-      });
-
-    // One block per SLOT, not per recipe — a slot only has one time/duration
-    // in the data model (summit_meal_times is keyed by slot), so multiple
-    // recipes in the same slot (a meal plus a side, several snacks) used to
-    // render as separate blocks at the identical time and visually overlap.
-    // Combining them into one block that lists every recipe in that slot
-    // matches the data model and avoids the overlap entirely.
-    const mealBlocks = SLOTS.flatMap(slot => {
-      const names = slotList(mealPlan[dayName]?.[slot]);
-      if (names.length === 0) return [];
-      const entry = normalizeTimeEntry(mealTimes[dayName]?.[slot], SLOT_DEFAULT_TIMES[slot], SLOT_DEFAULT_DURATIONS[slot]);
-      const slotRecipes = names.map(name => recipes.find(r => r.name === name)).filter(Boolean);
-      return [{
-        kind: 'meal', key: `m::${slot}`, title: names.join(' + '), slot,
-        time: entry.time, duration: entry.duration, recipes: slotRecipes,
-      }];
-    });
-
-    // Tasks placed on the timeline — opt-in per task (see "Add to timeline"
-    // in the task list below), not automatic just from being picked, so the
-    // timeline doesn't fill up with every due/overdue task by default.
-    const dayTaskTimes = taskTimes[iso] || {};
-    const taskBlocks = Object.keys(dayTaskTimes).map(taskId => {
-      const task = tasks.find(t => String(t.id) === String(taskId));
-      if (!task) return null;
-      const entry = normalizeTimeEntry(dayTaskTimes[taskId], DEFAULT_TASK_TIME, DEFAULT_TASK_DURATION);
-      return {
-        kind: 'task', key: `t::${taskId}`, title: task.name, taskId,
-        time: entry.time, duration: entry.duration, task,
-      };
-    }).filter(Boolean);
-
-    return [...workoutBlocks, ...mealBlocks, ...taskBlocks].sort((a, b) => timeToMinutes(a.time) - timeToMinutes(b.time));
-  };
-
-  const allBlocks = buildBlocksForDay(selectedDayName, selectedISO);
-
-  // Checks every 30s (while this tab is open) for a workout/meal starting
+    // Checks every 30s (while this tab is open) for a workout/meal starting
   // within the next 5 minutes and fires a browser notification once per
   // block per day. Always checks the *actual* current day's blocks,
   // independent of whatever day is being viewed in the Day view above.
@@ -351,7 +158,7 @@ export default function Home({
       const realTodayName = nowD.toLocaleDateString('en-US', { weekday: 'long' });
       const realTodayISO = toISODate(nowD);
       const nowM = nowD.getHours() * 60 + nowD.getMinutes();
-      const blocks = realTodayISO === selectedISO ? allBlocks : buildBlocksForDay(realTodayName, realTodayISO);
+      const blocks = realTodayISO === selectedISO ? allBlocks : buildBlocksForDay(calData, realTodayName, realTodayISO);
       blocks.forEach(b => {
         const start = timeToMinutes(b.time);
         const delta = start - nowM;
@@ -373,51 +180,17 @@ export default function Home({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [notifPermission, isLoading, workoutPlan, workoutTimes, mealPlan, mealTimes, templates, recipes, taskTimes, tasks]);
 
-  // --- Drag-to-reschedule + resize-to-set-duration -----------------------------
-  const commitWorkoutEntry = (templateName, patch) => {
-    const entry = normalizeTimeEntry(workoutTimes[selectedDayName]?.[templateName], DEFAULT_WORKOUT_TIME, DEFAULT_WORKOUT_DURATION);
-    const next = { ...workoutTimes, [selectedDayName]: { ...workoutTimes[selectedDayName], [templateName]: { ...entry, ...patch } } };
-    setWorkoutTimes(next);
-    dbSetSafe(STORAGE_KEYS.workoutTimes, next);
-  };
-  const commitMealEntry = (slot, patch) => {
-    const entry = normalizeTimeEntry(mealTimes[selectedDayName]?.[slot], SLOT_DEFAULT_TIMES[slot], SLOT_DEFAULT_DURATIONS[slot]);
-    const next = { ...mealTimes, [selectedDayName]: { ...mealTimes[selectedDayName], [slot]: { ...entry, ...patch } } };
-    setMealTimes(next);
-    dbSetSafe(STORAGE_KEYS.mealTimes, next);
-  };
-  const dbSetSafe = (key, value) => {
-    dbSet(key, value).catch(() => showToast('Save failed — change may not persist.', true));
-  };
-
-  // Tasks are opt-in onto the timeline (see the "Add to timeline" button in
-  // the task list) rather than automatic just from being picked/due, keyed
-  // by the real selected date since tasks aren't a recurring weekly plan.
-  const commitTaskEntry = (taskId, patch) => {
-    const entry = normalizeTimeEntry(taskTimes[selectedISO]?.[taskId], DEFAULT_TASK_TIME, DEFAULT_TASK_DURATION);
-    const next = { ...taskTimes, [selectedISO]: { ...taskTimes[selectedISO], [taskId]: { ...entry, ...patch } } };
-    setTaskTimes(next);
-    dbSetSafe(STORAGE_KEYS.taskTimes, next);
-  };
-  const removeTaskFromTimeline = (taskId) => {
-    const dayEntries = { ...(taskTimes[selectedISO] || {}) };
-    delete dayEntries[String(taskId)];
-    delete dayEntries[taskId];
-    const next = { ...taskTimes, [selectedISO]: dayEntries };
-    setTaskTimes(next);
-    dbSetSafe(STORAGE_KEYS.taskTimes, next);
-  };
-  const isTaskScheduled = (taskId) => Object.prototype.hasOwnProperty.call(taskTimes[selectedISO] || {}, String(taskId))
-    || Object.prototype.hasOwnProperty.call(taskTimes[selectedISO] || {}, taskId);
+  // Drag/resize and the task buttons act on the day being viewed.
+  const commitWorkoutEntry = (templateName, patch) => cal.commitWorkoutEntry(selectedDayName, templateName, patch);
+  const commitMealEntry = (slot, patch) => cal.commitMealEntry(selectedDayName, slot, patch);
+  const commitTaskEntry = (taskId, patch) => cal.commitTaskEntry(selectedISO, taskId, patch);
+  const removeTaskFromTimeline = (taskId) => cal.removeTaskFromTimeline(selectedISO, taskId);
+  const isTaskScheduled = (taskId) => cal.isTaskScheduled(selectedISO, taskId);
 
   // --- Recurring background blocks (work/uni hours, commute, ...) --------------
   // Not tasks or a weekly workout/meal plan — just a repeating time range that
-  // should show as a lighter-colour band on whichever days it applies to.
-  const saveRecurringBlocks = (next) => {
-    setRecurringBlocks(next);
-    dbSetSafe(STORAGE_KEYS.recurringBlocks, next);
-  };
-  // Toggling a day on copies another already-picked day's time/duration
+  // shows as a lighter-colour band on whichever days it applies to.
+    // Toggling a day on copies another already-picked day's time/duration
   // (most days share the same hours — only the exception, like an earlier
   // Friday finish, needs its own edit) rather than resetting to a default
   // every time.
@@ -464,7 +237,8 @@ export default function Home({
     .map(b => ({ block: b, entry: normalizeBlockDays(b)[selectedDayName] }))
     .filter(x => x.entry);
 
-  const handleBlockPointerDown = (block, mode, e) => {
+  // --- Drag-to-reschedule + resize-to-set-duration -----------------------------
+    const handleBlockPointerDown = (block, mode, e) => {
     if (e.button != null && e.button !== 0) return;
     e.stopPropagation();
     try { e.currentTarget.setPointerCapture(e.pointerId); } catch { /* best-effort */ }
@@ -517,7 +291,7 @@ export default function Home({
     setDrag(null);
   };
 
-  // --- Today Focus (merged in from the old standalone page) ------------------
+    // --- Today Focus (merged in from the old standalone page) ------------------
   // "Pick today's focus" and the due/overdue/picked union only make sense
   // for the actual current day — viewing another day instead shows a
   // simpler read-only list of whatever's due/targeted/picked on that date.

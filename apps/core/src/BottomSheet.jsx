@@ -2,9 +2,10 @@ import { useEffect } from 'react';
 import { X } from 'lucide-react';
 
 // A panel that slides up from the bottom of the screen (full width on a phone,
-// centred and narrower on desktop). Used for editing a day, editing a workout,
-// and the plan reset menu — so setup screens open on top of the page instead of
-// stretching it. Tap the dim backdrop, the X, or press Escape to close.
+// centred and narrower on desktop). Shared by Fitness (editing a day, a workout,
+// the plan reset menu) and the Planner (the event editor), so setup screens open
+// on top of the page instead of stretching it. Tap the dim backdrop, the X, or
+// press Escape to close.
 export default function BottomSheet({ open, onClose, title, children }) {
   useEffect(() => {
     if (!open) return undefined;

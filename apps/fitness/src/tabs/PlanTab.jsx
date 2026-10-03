@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { ChevronRight, Ellipsis, MapPin, Plus, Trash2 } from 'lucide-react';
 import { CollapsibleCard } from '@summit/core';
-import BottomSheet from '../components/BottomSheet';
+import { BottomSheet } from '@summit/core';
 import DaySheet from '../components/DaySheet';
 import RouteThumb from '../components/RouteThumb';
 import TemplateSheet from '../components/TemplateSheet';

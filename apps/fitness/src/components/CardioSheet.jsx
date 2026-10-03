@@ -1,5 +1,5 @@
 import { ChevronDown } from 'lucide-react';
-import BottomSheet from './BottomSheet';
+import { BottomSheet } from '@summit/core';
 import Stepper from './Stepper';
 import { CARDIO_ACTIVITIES } from '../lib/model';
 import { routeDistanceKm } from '../lib/geo';
