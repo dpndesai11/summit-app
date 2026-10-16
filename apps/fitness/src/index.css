@@ -1,1 +1,26 @@
 @import "../../core/src/theme.css";
+
+/* EXPERIMENT (2026-10-16): Fitness in orange instead of the design system's
+   purple. Deliberately off-spec, scoped to this app only. Everything that is
+   "primary" in Fitness (tab bar, active chips, filled buttons, the session
+   card, charts, the app-switcher chip) reads these variables, so this block is
+   the whole change. To revert, delete everything below the @import.
+   Contrast: white on #c2410c is 5.2:1; in dark the fill is #fb923c with dark
+   text (7.9:1). Note cardio exercises are also orange (TYPE_META), so a cardio
+   card now looks the same colour as the app's accent. */
+:root {
+  --primary: #c2410c;
+  --primary-hover: #9a3412;
+  --on-primary: #ffffff;
+  --primary-soft: #ffedd5;
+  --primary-mid: #e06a1b;
+  --primary-low: #fed7aa;
+}
+.dark {
+  --primary: #fb923c;
+  --primary-hover: #fdba74;
+  --on-primary: #2a0f03;
+  --primary-soft: #3b2312;
+  --primary-mid: #c2611a;
+  --primary-low: #5a2f12;
+}
