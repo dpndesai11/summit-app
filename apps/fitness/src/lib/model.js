@@ -10,7 +10,9 @@ export const STORAGE_KEYS = {
   weeklyWorkoutPlan: 'summit_weekly_workout_plan',
   workoutTimes: 'summit_workout_times',
   activeSession: 'summit_active_session',
-  cardioRoutes: 'summit_cardio_routes'
+  cardioRoutes: 'summit_cardio_routes',
+  trainingWeeks: 'summit_training_weeks',
+  trainingBlocks: 'summit_training_blocks'
 };
 
 export const DEFAULT_TEMPLATES = [

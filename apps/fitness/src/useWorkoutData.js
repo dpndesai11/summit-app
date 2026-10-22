@@ -1,3 +1,4 @@
+import { normalizeWeeks } from './lib/training';
 import { useState, useEffect } from 'react';
 import { STORAGE_KEYS, DEFAULT_TEMPLATES, DEFAULT_PLAN, DAYS, DEFAULT_WORKOUT_TIME, DEFAULT_WORKOUT_DURATION, normalizeTimeEntry, toISO, dayList, normalizePlan } from './lib/model';
 import { cycleExerciseType, normalizeTemplateExercises, parseExercise } from './lib/exercises';
@@ -18,6 +19,8 @@ export default function useWorkoutData() {
   const [workoutTimes, setWorkoutTimes] = useState({});
   const [strengthLogs, setStrengthLogs] = useState([]);
   const [cardioLogs, setCardioLogs] = useState([]);
+  const [trainingWeeks, setTrainingWeeks] = useState([]);
+  const [trainingBlocks, setTrainingBlocks] = useState([]);
   const [sessions, setSessions] = useState([]);
   const [routes, setRoutes] = useState([]);
   const [toast, setToast] = useState(null);
@@ -82,7 +85,7 @@ export default function useWorkoutData() {
         return fallback;
       }
     };
-    const [sl, cl, wt, wwp, wtm, as, rt] = await Promise.all([
+    const [sl, cl, wt, wwp, wtm, as, rt, tw, tb] = await Promise.all([
       loadData(STORAGE_KEYS.strengthLogs, []),
       loadData(STORAGE_KEYS.cardioLogs, []),
       loadData(STORAGE_KEYS.workoutTemplates, DEFAULT_TEMPLATES),
@@ -90,6 +93,8 @@ export default function useWorkoutData() {
       loadData(STORAGE_KEYS.workoutTimes, {}),
       loadData(STORAGE_KEYS.activeSession, []),
       loadData(STORAGE_KEYS.cardioRoutes, []),
+      loadData(STORAGE_KEYS.trainingWeeks, []),
+      loadData(STORAGE_KEYS.trainingBlocks, []),
     ]);
     setStrengthLogs(sl);
     setCardioLogs(cl);
@@ -98,6 +103,8 @@ export default function useWorkoutData() {
     setWorkoutTimes(wtm && typeof wtm === 'object' ? wtm : {});
     setSessions(Array.isArray(as) ? as : as ? [as] : []);
     setRoutes(rt);
+    setTrainingWeeks(normalizeWeeks(tw));
+    setTrainingBlocks(Array.isArray(tb) ? tb : []);
   };
 
   useEffect(() => {
@@ -132,6 +139,8 @@ export default function useWorkoutData() {
   const updatePlan = (next) => { setPlan(next); saveToStorage(STORAGE_KEYS.weeklyWorkoutPlan, next); };
   const updateWorkoutTimes = (next) => { setWorkoutTimes(next); saveToStorage(STORAGE_KEYS.workoutTimes, next); };
   const updateSessions = (next) => { setSessions(next); saveToStorage(STORAGE_KEYS.activeSession, next); };
+  const updateTrainingWeeks = (next) => { const n = normalizeWeeks(next); setTrainingWeeks(n); saveToStorage(STORAGE_KEYS.trainingWeeks, n); };
+  const updateTrainingBlocks = (next) => { setTrainingBlocks(next); saveToStorage(STORAGE_KEYS.trainingBlocks, next); };
   const updateRoutes = (next) => { setRoutes(next); saveToStorage(STORAGE_KEYS.cardioRoutes, next); };
 
   // Time-of-day the Dashboard should place this day/workout at. Falls back
@@ -513,6 +522,10 @@ export default function useWorkoutData() {
     updateWorkoutTimes,
     updateSessions,
     updateRoutes,
+    trainingWeeks,
+    trainingBlocks,
+    updateTrainingWeeks,
+    updateTrainingBlocks,
     getWorkoutEntry,
     getWorkoutTime,
     getWorkoutDuration,

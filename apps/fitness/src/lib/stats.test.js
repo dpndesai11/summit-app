@@ -6,6 +6,7 @@ import {
   mondayOf, weeklyAggregates, runSeries, runSummary, formatPace, exerciseSeries, prBadgeFor, exerciseSummaries,
 } from './stats';
 import { toISO } from './model';
+import { normalizeWeeks, weekFor, generateWeeks, upsertWeeks, removeWeek, actualKm, PATTERNS } from './training';
 
 const daysAgo = (n) => { const d = new Date(); d.setHours(0, 0, 0, 0); d.setDate(d.getDate() - n); return toISO(d); };
 
@@ -302,5 +303,45 @@ describe('running', () => {
   it('adds distance to weekly aggregates', () => {
     const wk = weeklyAggregates([], [{ date: toISO(new Date()), duration: 30, distance: 5 }], 2);
     expect(wk[1].distanceKm).toBe(5);
+  });
+});
+
+describe('training weeks', () => {
+  it('normalizes to Mondays, dedupes and sorts', () => {
+    const w = normalizeWeeks([
+      { weekStart: '2026-11-04', type: 'deload', targetKm: '15' },
+      { weekStart: '2026-10-27', type: 'nope' },
+      { weekStart: '2026-11-02', type: 'load', note: 'later wins' },
+      { bad: true },
+    ]);
+    expect(w.map(x => x.weekStart)).toEqual(['2026-10-26', '2026-11-02']);
+    expect(w[0].type).toBe('load');
+    expect(w[1].note).toBe('later wins');
+    expect(normalizeWeeks(null)).toEqual([]);
+  });
+  it('finds the week containing a date', () => {
+    const w = normalizeWeeks([{ weekStart: '2026-10-26', type: 'load' }]);
+    expect(weekFor(w, '2026-11-01').weekStart).toBe('2026-10-26');
+    expect(weekFor(w, '2026-11-02')).toBeNull();
+  });
+  it('generates a load/deload pattern', () => {
+    const w = generateWeeks('2026-10-28', 8, PATTERNS[0]);
+    expect(w[0].weekStart).toBe('2026-10-26');
+    expect(w.map(x => x.type)).toEqual(['load', 'load', 'load', 'deload', 'load', 'load', 'load', 'deload']);
+    expect(generateWeeks('2026-10-26', 3, PATTERNS[3]).every(x => x.type === 'load')).toBe(true);
+  });
+  it('upserts and removes', () => {
+    const a = normalizeWeeks([{ weekStart: '2026-10-26', type: 'load' }]);
+    const b = upsertWeeks(a, [{ weekStart: '2026-10-26', type: 'deload' }]);
+    expect(b).toHaveLength(1);
+    expect(b[0].type).toBe('deload');
+    expect(removeWeek(b, '2026-10-26')).toEqual([]);
+  });
+  it('sums actual km inside the week only', () => {
+    const logs = [
+      { date: '2026-10-25', distance: 5 }, { date: '2026-10-26', distance: 10 },
+      { date: '2026-11-01', distance: 4.5 }, { date: '2026-11-02', distance: 9 },
+    ];
+    expect(actualKm(logs, '2026-10-26')).toBeCloseTo(14.5);
   });
 });

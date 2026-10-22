@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { formatShortDate } from '../lib/model';
+import { WEEK_TYPES } from '../lib/training';
 
 const METRICS = [
   { id: 'volume', label: 'Volume', format: (v) => (v >= 1000 ? `${(v / 1000).toFixed(1)}t` : `${Math.round(v)}kg`), title: 'Weight lifted' },
@@ -16,7 +17,9 @@ export default function WeeklyBars({ weeks }) {
   const [metricId, setMetricId] = useState('volume');
   const metric = METRICS.find(m => m.id === metricId);
   const values = weeks.map(w => w[metricId]);
-  const max = Math.max(...values, 1);
+  const targets = metricId === 'distanceKm' ? weeks.map(w => w.targetKm || 0) : [];
+  const max = Math.max(...values, ...targets, 1);
+  const typesShown = [...new Set(weeks.map(w => w.type).filter(t => t && t !== 'load'))];
 
   const W = 320, H = 168, padX = 6, top = 22, bottom = 26;
   const slot = (W - padX * 2) / weeks.length;
@@ -69,8 +72,12 @@ export default function WeeklyBars({ weeks }) {
             <g key={w.weekStart}>
               <rect
                 x={x} y={y} width={barW} height={h} rx="3"
-                className={v === 0 ? 'fill-gray-200 dark:fill-violet-400/25' : isCurrent ? 'fill-primary' : 'fill-primary-mid'}
+                className={v === 0 ? 'fill-gray-200 dark:fill-violet-400/25' : w.type && w.type !== 'load' ? WEEK_TYPES[w.type].fill : isCurrent ? 'fill-primary' : 'fill-primary-mid'}
               />
+              {targets[i] > 0 && (
+                <line x1={x - 2} x2={x + barW + 2} y1={top + chartH - (targets[i] / max) * chartH} y2={top + chartH - (targets[i] / max) * chartH}
+                  strokeWidth="2" strokeDasharray="3 2" className="stroke-black dark:stroke-white" />
+              )}
               {showLabel && (
                 <text x={x + barW / 2} y={y - 4} textAnchor="middle" fontSize="10" fontWeight="600" className="fill-black dark:fill-white">
                   {metric.format(v)}
@@ -85,6 +92,16 @@ export default function WeeklyBars({ weeks }) {
           );
         })}
       </svg>
+      {(typesShown.length > 0 || targets.some(t => t > 0)) && (
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-1 text-sm text-black dark:text-white">
+          {typesShown.map(t => (
+            <span key={t} className="flex items-center gap-1.5"><span className={`w-2.5 h-2.5 rounded-sm inline-block ${WEEK_TYPES[t].dot}`} /> {WEEK_TYPES[t].label} week</span>
+          ))}
+          {targets.some(t => t > 0) && (
+            <span className="flex items-center gap-1.5"><span className="w-4 border-t-2 border-dashed border-black dark:border-white inline-block" /> Target</span>
+          )}
+        </div>
+      )}
     </div>
   );
 }

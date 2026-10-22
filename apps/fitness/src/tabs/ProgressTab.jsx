@@ -23,13 +23,16 @@ const card = 'bg-white dark:bg-[#211b34] rounded-2xl border border-gray-200 dark
 export default function ProgressTab({ w }) {
   const {
     strengthLogs, cardioLogs, expandedLogId, setExpandedLogId, updateStrengthLogs, updateCardioLogs,
-    updateLogSet, deleteLogSet, totalVolume, totalCardioMin, currentStreak,
+    updateLogSet, deleteLogSet, totalVolume, totalCardioMin, currentStreak, trainingWeeks,
   } = w;
   const [query, setQuery] = useState('');
   const [showAll, setShowAll] = useState(false);
   const [selected, setSelected] = useState(null);
 
-  const weeks = weeklyAggregates(strengthLogs, cardioLogs, 10);
+  const weeks = weeklyAggregates(strengthLogs, cardioLogs, 10).map(wk => {
+    const planned = trainingWeeks.find(t => t.weekStart === wk.weekStart);
+    return planned ? { ...wk, type: planned.type, targetKm: planned.targetKm } : wk;
+  });
   const runs = runSeries(cardioLogs);
   const runInfo = runSummary(runs);
   const runById = Object.fromEntries(runs.map(r => [r.id, r]));

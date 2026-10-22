@@ -5,6 +5,7 @@ import { BottomSheet } from '@summit/core';
 import DaySheet from '../components/DaySheet';
 import RouteThumb from '../components/RouteThumb';
 import TemplateSheet from '../components/TemplateSheet';
+import TrainingWeeks from '../components/TrainingWeeks';
 import { DAYS, DEFAULT_PLAN, REST_WEEK, dayList } from '../lib/model';
 import { parseExercise } from '../lib/exercises';
 import { routeDistanceKm } from '../lib/geo';
@@ -61,6 +62,8 @@ export default function PlanTab({ w, openDay, setOpenDay }) {
 
   return (
     <div className="space-y-6">
+      <TrainingWeeks w={w} />
+
       <section>
         <div className="flex items-center justify-between mb-2">
           <h2 className="text-lg font-bold text-black dark:text-white">This week</h2>
