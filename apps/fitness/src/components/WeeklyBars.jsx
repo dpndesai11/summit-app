@@ -4,6 +4,7 @@ import { formatShortDate } from '../lib/model';
 const METRICS = [
   { id: 'volume', label: 'Volume', format: (v) => (v >= 1000 ? `${(v / 1000).toFixed(1)}t` : `${Math.round(v)}kg`), title: 'Weight lifted' },
   { id: 'activeDays', label: 'Active days', format: (v) => String(v), title: 'Days with a workout or cardio' },
+  { id: 'distanceKm', label: 'Distance', format: (v) => `${v >= 10 ? Math.round(v) : (Math.round(v * 10) / 10)}km`, title: 'Kilometres run or ridden' },
   { id: 'cardioMin', label: 'Cardio', format: (v) => `${Math.round(v)}m`, title: 'Cardio minutes' },
 ];
 

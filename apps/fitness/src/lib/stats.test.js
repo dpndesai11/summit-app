@@ -3,7 +3,7 @@ import {
   calcCurrentStreak, computeAllTimeBests, expandLogSets, logSetCount, logVolume, logType,
   sessionKey, sessionHasProgress, sessionSetCount, groupByDate, weekDates,
   setMetric, lastSetFor, defaultSetInputs, formatSetText,
-  mondayOf, weeklyAggregates, exerciseSeries, prBadgeFor, exerciseSummaries,
+  mondayOf, weeklyAggregates, runSeries, runSummary, formatPace, exerciseSeries, prBadgeFor, exerciseSummaries,
 } from './stats';
 import { toISO } from './model';
 
@@ -262,5 +262,45 @@ describe('formatSetText', () => {
     expect(formatSetText({ reps: 12 }, true)).toBe('12 reps');
     expect(formatSetText({ reps: 0, seconds: 45 }, true)).toBe('45s');
     expect(formatSetText({ reps: 0, seconds: 30, perSide: true }, true)).toBe('30s/side');
+  });
+});
+
+describe('running', () => {
+  const logs = [
+    { id: 1, date: '2026-08-07', activity: 'Running', duration: 70, distance: 9.07 },
+    { id: 2, date: '2026-08-17', activity: 'Running', duration: 90, distance: 11.42 },
+    { id: 3, date: '2026-09-17', activity: 'Zone 2', duration: 33, distance: 0 },
+    { id: 4, date: '2026-10-15', activity: 'Running', duration: 0, distance: 4 },
+    { id: 5, date: '2026-10-18', activity: 'Running', duration: 99, distance: 16.09 },
+  ];
+  it('formats pace', () => {
+    expect(formatPace(6.1667)).toBe('6:10');
+    expect(formatPace(5.999)).toBe('6:00');
+    expect(formatPace(null)).toBe('–');
+  });
+  it('keeps only runs, oldest first, with pace', () => {
+    const s = runSeries([...logs].reverse());
+    expect(s.map(r => r.id)).toEqual([1, 2, 4, 5]);
+    expect(s[0].pace).toBeCloseTo(70 / 9.07);
+    expect(s[2].pace).toBeNull();
+  });
+  it('flags records only against earlier runs', () => {
+    const s = runSeries(logs);
+    expect(s[0].isLongest).toBe(false);
+    expect(s[1].isLongest).toBe(true);
+    expect(s[3].isLongest).toBe(true);
+    expect(s[1].isBestPace).toBe(false); // 7.88 min/km is slower than 7.72
+    expect(s[3].isBestPace).toBe(true); // 6.15 beats everything before
+  });
+  it('summarises', () => {
+    const sm = runSummary(runSeries(logs));
+    expect(sm.count).toBe(4);
+    expect(sm.longest).toBe(16.09);
+    expect(sm.totalKm).toBeCloseTo(40.58);
+    expect(sm.bestPace).toBeCloseTo(99 / 16.09);
+  });
+  it('adds distance to weekly aggregates', () => {
+    const wk = weeklyAggregates([], [{ date: toISO(new Date()), duration: 30, distance: 5 }], 2);
+    expect(wk[1].distanceKm).toBe(5);
   });
 });

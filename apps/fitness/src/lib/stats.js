@@ -129,7 +129,7 @@ export const weeklyAggregates = (strengthLogs, cardioLogs, weeks = 10, today = n
   const [y, m, d] = mondayOf(toISO(today)).split('-').map(Number);
   const list = [];
   for (let i = weeks - 1; i >= 0; i--) {
-    list.push({ weekStart: toISO(new Date(y, m - 1, d - 7 * i)), volume: 0, cardioMin: 0, days: new Set() });
+    list.push({ weekStart: toISO(new Date(y, m - 1, d - 7 * i)), volume: 0, cardioMin: 0, distanceKm: 0, days: new Set() });
   }
   const byWeek = Object.fromEntries(list.map(w => [w.weekStart, w]));
   strengthLogs.forEach(l => {
@@ -142,6 +142,7 @@ export const weeklyAggregates = (strengthLogs, cardioLogs, weeks = 10, today = n
     const wk = byWeek[mondayOf(l.date)];
     if (!wk) return;
     wk.cardioMin += Number(l.duration) || 0;
+    wk.distanceKm += Number(l.distance) || 0;
     wk.days.add(l.date);
   });
   return list.map(({ days, ...wk }) => ({ ...wk, activeDays: days.size }));
@@ -214,4 +215,49 @@ export const exerciseSummaries = (strengthLogs) => {
     })
     .filter(Boolean)
     .sort((a, b) => b.latestDate.localeCompare(a.latestDate) || a.exercise.localeCompare(b.exercise));
+};
+
+// ---------------------------------------------------------------------------
+// Running: pace, longest run, personal bests
+// ---------------------------------------------------------------------------
+
+export const isRun = (l) => /run/i.test(l.activity || '') && Number(l.distance) > 0;
+
+// Minutes per km as "m:ss" (6.17 -> "6:10").
+export const formatPace = (minPerKm) => {
+  if (!(minPerKm > 0)) return '–';
+  let m = Math.floor(minPerKm);
+  let sec = Math.round((minPerKm - m) * 60);
+  if (sec === 60) { m += 1; sec = 0; }
+  return `${m}:${String(sec).padStart(2, '0')}`;
+};
+
+// Every logged run, oldest first, with its pace (min/km; null if no time was
+// recorded). `isLongest` / `isBestPace` are true only when a run beat everything
+// before it — the first run is a starting point, not a record. Runs under 3 km
+// never count as a best pace (a 1 km jog isn't comparable to a 10 km effort).
+export const runSeries = (cardioLogs) => {
+  const runs = cardioLogs.filter(isRun).slice().sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0));
+  let longest = 0;
+  let bestPace = Infinity;
+  return runs.map((l, i) => {
+    const distance = Number(l.distance);
+    const duration = Number(l.duration) || 0;
+    const pace = duration > 0 ? duration / distance : null;
+    const isLongest = i > 0 && distance > longest;
+    const isBestPace = i > 0 && pace !== null && distance >= 3 && pace < bestPace;
+    longest = Math.max(longest, distance);
+    if (pace !== null && distance >= 3) bestPace = Math.min(bestPace, pace);
+    return { id: l.id, date: l.date, distance, duration, pace, isLongest, isBestPace };
+  });
+};
+
+export const runSummary = (series) => {
+  const paced = series.filter(r => r.pace !== null && r.distance >= 3);
+  return {
+    count: series.length,
+    totalKm: series.reduce((a, r) => a + r.distance, 0),
+    longest: series.reduce((m, r) => Math.max(m, r.distance), 0),
+    bestPace: paced.length ? Math.min(...paced.map(r => r.pace)) : null,
+  };
 };

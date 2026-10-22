@@ -1,14 +1,15 @@
 import { useState } from 'react';
-import { Activity, ChevronDown, ChevronRight, Dumbbell, Download, Flame, Search, Timer, Trash2, Trophy } from 'lucide-react';
+import { Activity, ChevronDown, ChevronRight, Dumbbell, Download, Flame, Gauge, Route, Search, Timer, Trash2, Trophy } from 'lucide-react';
 import { CollapsibleCard } from '@summit/core';
 import { formatSwiss, toISO } from '../lib/model';
 import { parseExercise } from '../lib/exercises';
 import { downloadFitnessCsv } from '../lib/exportCsv';
 import {
-  exerciseSummaries, expandLogSets, groupByDate, logSetCount, logType, prBadgeFor, weeklyAggregates,
+  exerciseSummaries, expandLogSets, formatPace, groupByDate, logSetCount, logType, prBadgeFor, runSeries, runSummary, weeklyAggregates,
 } from '../lib/stats';
 import EditableSetRow from '../components/EditableSetRow';
 import ExerciseSheet from '../components/ExerciseSheet';
+import RunPaceChart from '../components/RunPaceChart';
 import Sparkline from '../components/Sparkline';
 import StatCard from '../components/StatCard';
 import StreakCalendar, { STREAK_WEEKS } from '../components/StreakCalendar';
@@ -29,6 +30,9 @@ export default function ProgressTab({ w }) {
   const [selected, setSelected] = useState(null);
 
   const weeks = weeklyAggregates(strengthLogs, cardioLogs, 10);
+  const runs = runSeries(cardioLogs);
+  const runInfo = runSummary(runs);
+  const runById = Object.fromEntries(runs.map(r => [r.id, r]));
   const summaries = exerciseSummaries(strengthLogs);
   const q = query.trim().toLowerCase();
   const filtered = q ? summaries.filter(s => parseExercise(s.exercise).label.toLowerCase().includes(q)) : summaries;
@@ -55,6 +59,20 @@ export default function ProgressTab({ w }) {
         <h2 className="text-lg font-bold text-black dark:text-white mb-2">Last 10 weeks</h2>
         <WeeklyBars weeks={weeks} />
       </section>
+
+      {runs.length > 0 && (
+        <section>
+          <h2 className="text-lg font-bold text-black dark:text-white mb-2">Running</h2>
+          <div className="flex gap-2 mb-2">
+            <StatCard icon={Route} label="Total" value={Math.round(runInfo.totalKm)} sub={`km · ${runInfo.count} runs`} />
+            <StatCard icon={Trophy} tone="achievement" label="Longest" value={fmt(runInfo.longest)} sub="km, one run" />
+            <StatCard icon={Gauge} label="Pace" value={formatPace(runInfo.bestPace)} sub="best min/km" />
+          </div>
+          <div className={`${card} p-4`}>
+            <RunPaceChart runs={runs} />
+          </div>
+        </section>
+      )}
 
       <section>
         <h2 className="text-lg font-bold text-black dark:text-white mb-2">Exercises</h2>
@@ -199,8 +217,23 @@ export default function ProgressTab({ w }) {
                 <div className="space-y-1.5">
                   {logs.map(l => (
                     <div key={l.id} className="flex items-center justify-between gap-2 bg-gray-50 dark:bg-violet-400/5 rounded-xl px-3 min-h-[48px]">
-                      <span className="text-base font-semibold text-black dark:text-white">{l.activity}</span>
+                      <span className="min-w-0">
+                        <span className="block text-base font-semibold text-black dark:text-white">{l.activity}</span>
+                        {runById[l.id]?.pace != null && (
+                          <span className="block text-sm text-black dark:text-white tabular-nums">{formatPace(runById[l.id].pace)} /km</span>
+                        )}
+                      </span>
                       <span className="flex items-center gap-2">
+                        {runById[l.id]?.isLongest && (
+                          <span className="text-sm font-bold px-2 py-0.5 rounded-full bg-accent-ink/15 text-black dark:text-white flex items-center gap-1">
+                            <Trophy className="w-3.5 h-3.5 text-accent-ink" /> Longest
+                          </span>
+                        )}
+                        {runById[l.id]?.isBestPace && (
+                          <span className="text-sm font-bold px-2 py-0.5 rounded-full bg-accent-ink/15 text-black dark:text-white flex items-center gap-1">
+                            <Trophy className="w-3.5 h-3.5 text-accent-ink" /> Best pace
+                          </span>
+                        )}
                         <span className="text-base text-black dark:text-white tabular-nums">
                           {l.duration}min{l.distance ? ` · ${l.distance}km` : ''}
                         </span>
