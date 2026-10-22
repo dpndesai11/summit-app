@@ -112,6 +112,12 @@
   }
 }
 
+/* The canvas behind the page (overscroll bounce, status-bar/notch area, any
+   gap above the content) must match the page colour, or dark mode shows a
+   white band at the top on phones. */
+html { background-color: #f7f7f5; }
+html.dark { background-color: #14101f; color-scheme: dark; }
+
 body {
   margin: 0;
   font-family: var(--font-sans);
