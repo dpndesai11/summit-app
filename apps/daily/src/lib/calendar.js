@@ -177,13 +177,21 @@ export const eventsOnDate = (events, iso) => (
   (Array.isArray(events) ? events : []).filter(e => eventOccursOn(e, iso)).map(normalizeEvent).sort(byStart)
 );
 
+// The workout plan in force on a date: that week's own plan (the Fitness app's
+// summit_week_plans, keyed by the week's Monday) if it has one, else the default
+// weekly plan.
+export const workoutPlanFor = (data, iso) => {
+  const { weekPlans = {}, workoutPlan = {} } = data;
+  return weekPlans[toISODate(startOfWeek(parseISO(iso)))] || workoutPlan;
+};
+
 // --- Everything on one date ----------------------------------------------------
 // Timed blocks for workouts (recurring by weekday), meals (one per slot) and
 // tasks placed on the timeline (keyed by real date). `data` carries the
 // stored state; this is the old Home.buildBlocksForDay, made pure.
 export const buildBlocksForDay = (data, dayName, iso) => {
-  const { templates = [], workoutPlan = {}, workoutTimes = {}, recipes = [], mealPlan = {}, mealTimes = {}, taskTimes = {}, tasks = [] } = data;
-  const workoutBlocks = dayList(workoutPlan[dayName])
+  const { templates = [], workoutTimes = {}, recipes = [], mealPlan = {}, mealTimes = {}, taskTimes = {}, tasks = [] } = data;
+  const workoutBlocks = dayList(workoutPlanFor(data, iso)[dayName])
     .map(name => templates.find(t => t.name === name))
     .filter(Boolean)
     .map(tpl => {
@@ -229,11 +237,11 @@ export const dayItems = (data, iso) => {
 // What a month cell needs: the day's events plus counts of the recurring
 // workouts/meals and the open tasks due or targeted on that date.
 export const dayMarkers = (data, iso) => {
-  const { templates = [], workoutPlan = {}, mealPlan = {}, tasks = [] } = data;
+  const { templates = [], mealPlan = {}, tasks = [] } = data;
   const dayName = weekdayName(iso);
   return {
     events: eventsOnDate(data.events, iso),
-    workouts: dayList(workoutPlan[dayName]).filter(n => templates.some(t => t.name === n)).length,
+    workouts: dayList(workoutPlanFor(data, iso)[dayName]).filter(n => templates.some(t => t.name === n)).length,
     meals: SLOTS.filter(s => slotList(mealPlan[dayName]?.[s]).length > 0).length,
     tasks: tasks.filter(t => !t.isCompleted && (t.dueDate === iso || t.targetDate === iso)).length,
   };

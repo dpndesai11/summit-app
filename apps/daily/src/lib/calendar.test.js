@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   addMonths, buildBlocksForDay, groupBlockDays, layoutLanes, dayItems, dayMarkers, eventOccursOn, eventsOnDate, monthGrid, monthTitle,
-  normalizeEvent, parseISO, weekDays, weekdayName, weekTitle,
+  normalizeEvent, parseISO, workoutPlanFor, weekDays, weekdayName, weekTitle,
 } from './calendar';
 import { toISODate } from './taskUtils';
 
@@ -174,5 +174,24 @@ describe('layoutLanes', () => {
     expect(by.c.lane).toBe(0); // takes a's lane back at 10:00
     expect(by.a.lanes).toBe(2);
     expect(by.d).toMatchObject({ lane: 0, lanes: 1 });
+  });
+});
+
+describe('per-week workout plans', () => {
+  const data = {
+    templates: [{ name: 'Gym A', exercises: [] }, { name: 'Run', exercises: [] }],
+    workoutPlan: { Thursday: ['Run'] },
+    weekPlans: { '2026-10-26': { Thursday: ['Gym A'] } },
+  };
+  it('uses the week plan inside its week and the default outside', () => {
+    expect(workoutPlanFor(data, '2026-10-29').Thursday).toEqual(['Gym A']);
+    expect(workoutPlanFor(data, '2026-11-01').Thursday).toEqual(['Gym A']); // Sunday of that week
+    expect(workoutPlanFor(data, '2026-11-05').Thursday).toEqual(['Run']);
+    expect(workoutPlanFor({ workoutPlan: { Monday: [] } }, '2026-10-29')).toEqual({ Monday: [] });
+  });
+  it('drives the day blocks and month markers', () => {
+    expect(buildBlocksForDay(data, 'Thursday', '2026-10-29').map(b => b.title)).toEqual(['Gym A']);
+    expect(buildBlocksForDay(data, 'Thursday', '2026-11-05').map(b => b.title)).toEqual(['Run']);
+    expect(dayMarkers(data, '2026-10-29').workouts).toBe(1);
   });
 });

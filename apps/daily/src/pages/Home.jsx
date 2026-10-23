@@ -54,7 +54,7 @@ export default function Home({
 }) {
   const cal = useCalendarData();
   const {
-    templates, workoutPlan, workoutTimes, recipes, mealPlan, mealTimes, taskTimes, recurringBlocks, events,
+    templates, workoutPlan, weekPlans, workoutTimes, recipes, mealPlan, mealTimes, taskTimes, recurringBlocks, events,
     toast, isLoading, isRefreshing, showToast, refresh, saveRecurringBlocks,
   } = cal;
   const [view, setView] = useState('month'); // 'month' | 'week' | 'day'
@@ -93,7 +93,7 @@ export default function Home({
   const isViewingToday = selectedISO === todayISO;
 
   // Everything the pure calendar functions need, as one object.
-  const calData = { templates, workoutPlan, workoutTimes, recipes, mealPlan, mealTimes, taskTimes, tasks, events };
+  const calData = { templates, workoutPlan, weekPlans, workoutTimes, recipes, mealPlan, mealTimes, taskTimes, tasks, events };
   const items = dayItems(calData, selectedISO);
   const timedItems = items.filter(i => !i.allDay);
   const allDayItems = items.filter(i => i.allDay);
@@ -129,7 +129,7 @@ export default function Home({
     const interval = setInterval(check, 30000);
     return () => clearInterval(interval);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [notifPermission, isLoading, workoutPlan, workoutTimes, mealPlan, mealTimes, templates, recipes, taskTimes, tasks, events]);
+  }, [notifPermission, isLoading, workoutPlan, weekPlans, workoutTimes, mealPlan, mealTimes, templates, recipes, taskTimes, tasks, events]);
 
   // --- Navigation ---------------------------------------------------------------
   const step = (dir) => setSelectedDate(d => (view === 'month' ? addMonths(d, dir) : addDays(d, dir * (view === 'week' ? 7 : 1))));

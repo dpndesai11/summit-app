@@ -13,6 +13,7 @@ import {
 const STORAGE_KEYS = {
   workoutTemplates: 'summit_workout_templates',
   weeklyWorkoutPlan: 'summit_weekly_workout_plan',
+  weekPlans: 'summit_week_plans',
   workoutTimes: 'summit_workout_times',
   recipes: 'summit_recipes',
   weeklyMealPlan: 'summit_weekly_meal_plan',
@@ -25,6 +26,7 @@ const STORAGE_KEYS = {
 export default function useCalendarData() {
   const [templates, setTemplates] = useState([]);
   const [workoutPlan, setWorkoutPlan] = useState({});
+  const [weekPlans, setWeekPlans] = useState({});
   const [workoutTimes, setWorkoutTimes] = useState({});
   const [recipes, setRecipes] = useState([]);
   const [mealPlan, setMealPlan] = useState({});
@@ -55,7 +57,7 @@ export default function useCalendarData() {
         return fallback;
       }
     };
-    const [wt, wwp, wtm, rc, wmp, mt, tt, rb, ev] = await Promise.all([
+    const [wt, wwp, wtm, rc, wmp, mt, tt, rb, ev, wkp] = await Promise.all([
       loadData(STORAGE_KEYS.workoutTemplates, []),
       loadData(STORAGE_KEYS.weeklyWorkoutPlan, {}),
       loadData(STORAGE_KEYS.workoutTimes, {}),
@@ -65,9 +67,11 @@ export default function useCalendarData() {
       loadData(STORAGE_KEYS.taskTimes, {}),
       loadData(STORAGE_KEYS.recurringBlocks, []),
       loadData(STORAGE_KEYS.events, []),
+      loadData(STORAGE_KEYS.weekPlans, {}),
     ]);
     setTemplates(Array.isArray(wt) ? wt : []);
     setWorkoutPlan(wwp && typeof wwp === 'object' ? wwp : {});
+    setWeekPlans(wkp && typeof wkp === 'object' && !Array.isArray(wkp) ? wkp : {});
     setWorkoutTimes(wtm && typeof wtm === 'object' ? wtm : {});
     setRecipes(Array.isArray(rc) ? rc : []);
     setMealPlan(wmp && typeof wmp === 'object' ? wmp : {});
@@ -155,7 +159,7 @@ export default function useCalendarData() {
   };
 
   return {
-    templates, workoutPlan, workoutTimes, recipes, mealPlan, mealTimes, taskTimes, recurringBlocks, events,
+    templates, workoutPlan, weekPlans, workoutTimes, recipes, mealPlan, mealTimes, taskTimes, recurringBlocks, events,
     toast, isLoading, isRefreshing, showToast, refresh,
     commitWorkoutEntry, commitMealEntry, commitTaskEntry, removeTaskFromTimeline, isTaskScheduled,
     saveRecurringBlocks, addEvent, updateEvent, deleteEvent,
