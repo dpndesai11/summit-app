@@ -4,6 +4,7 @@ import { AppFrame, TabBar } from '@summit/core';
 import useWorkoutData from './useWorkoutData';
 import CardioSheet from './components/CardioSheet';
 import RoutePlanner from './RoutePlanner';
+import { mondayOf } from './lib/stats';
 import TodayTab from './tabs/TodayTab';
 import PlanTab from './tabs/PlanTab';
 import ProgressTab from './tabs/ProgressTab';
@@ -75,7 +76,7 @@ export default function App() {
           </div>
         )}
 
-        {tab === 'today' && <TodayTab w={w} onOpenPlan={(day) => { setOpenDay(day); setTab('plan'); }} />}
+        {tab === 'today' && <TodayTab w={w} onOpenPlan={(day) => { w.setPlanWeek(mondayOf(w.todayISO)); setOpenDay(day); setTab('plan'); }} />}
         {tab === 'plan' && <PlanTab w={w} openDay={openDay} setOpenDay={setOpenDay} />}
         {tab === 'progress' && <ProgressTab w={w} />}
 

@@ -6,8 +6,7 @@ import Stepper from '../components/Stepper';
 import SetDots from '../components/SetDots';
 import TimerPanel from '../components/TimerPanel';
 import WeekStrip from '../components/WeekStrip';
-import { TypeBadge } from '../components/TrainingWeeks';
-import { actualKm, weekFor } from '../lib/training';
+import BlockBanner from '../components/BlockBanner';
 
 const card = 'bg-white dark:bg-[#211b34] rounded-2xl border border-gray-200 dark:border-violet-400/15';
 
@@ -17,14 +16,13 @@ const card = 'bg-white dark:bg-[#211b34] rounded-2xl border border-gray-200 dark
 // shown with icons, dots and the violet accent.
 export default function TodayTab({ w, onOpenPlan }) {
   const {
-    templates, plan, strengthLogs, cardioLogs, sessions, strengthInputs, setStrengthInputs,
+    templates, todayPlan, strengthLogs, cardioLogs, sessions, strengthInputs, setStrengthInputs,
     cardioInputs, setCardioInputs, justLogged, expandedWorkouts, setExpandedWorkouts,
     dismissedStray, setDismissedStray, resumedStray, setResumedStray, todayISO, todayName,
     plannedTemplates, inputKey, straySessions, patchSession, addSet, addTimedSet,
     removeSetFromSession, lockExercise, unlockExercise, completeWorkout, discardSession,
-    logCardioFromPlan, timer, setCardioForm, setCardioSheetOpen, trainingWeeks,
+    logCardioFromPlan, timer, setCardioForm, setCardioSheetOpen,
   } = w;
-  const trainingWeek = weekFor(trainingWeeks, todayISO);
 
   const renderExerciseCard = (session, template, ex) => {
     const sKey = sessionKey(session);
@@ -250,20 +248,8 @@ export default function TodayTab({ w, onOpenPlan }) {
 
   return (
     <div className="space-y-3">
-      {trainingWeek && (
-        <div className="bg-white dark:bg-[#211b34] rounded-2xl border border-gray-200 dark:border-violet-400/15 px-4 py-3 flex items-center justify-between gap-3">
-          <span className="min-w-0">
-            <TypeBadge type={trainingWeek.type} />
-            <span className="block text-base font-semibold text-black dark:text-white truncate">{trainingWeek.label || 'This week'}</span>
-          </span>
-          {trainingWeek.targetKm && (
-            <span className="text-base font-semibold text-black dark:text-white tabular-nums flex-shrink-0">
-              {Math.round(actualKm(cardioLogs, trainingWeek.weekStart) * 10) / 10} / {trainingWeek.targetKm} km
-            </span>
-          )}
-        </div>
-      )}
-      <WeekStrip plan={plan} strengthLogs={strengthLogs} cardioLogs={cardioLogs} onSelectDay={onOpenPlan} />
+      <BlockBanner w={w} onEditWeek={() => onOpenPlan?.(null)} />
+      <WeekStrip plan={todayPlan} strengthLogs={strengthLogs} cardioLogs={cardioLogs} onSelectDay={onOpenPlan} />
 
       <button
         onClick={() => {

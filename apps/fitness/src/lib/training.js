@@ -1,5 +1,5 @@
 import { mondayOf } from './stats';
-import { toISO } from './model';
+import { REST_WEEK, toISO } from './model';
 
 // Training weeks: a plan of upcoming Monday-start weeks, each tagged Load /
 // Deload / Test / Rest with an optional km target and a note. It only labels and
@@ -69,4 +69,71 @@ export const actualKm = (cardioLogs, weekStart) => {
   return cardioLogs
     .filter(l => l.date >= weekStart && l.date <= end)
     .reduce((a, l) => a + (Number(l.distance) || 0), 0);
+};
+
+// ---------------------------------------------------------------------------
+// Per-week plans (summit_week_plans: {[Monday ISO]: {Monday: [...], ...}}) and
+// "life happens" adjustments. Plans move together with their weeks so a shifted
+// block keeps each week's sessions.
+// ---------------------------------------------------------------------------
+
+export const shiftISO = addDays;
+
+// Move every week (and week plan) starting on/after `fromStart` by `days`.
+export const shiftFrom = (weeks, plans, fromStart, days) => ({
+  weeks: normalizeWeeks(weeks.map(w => (w.weekStart >= fromStart ? { ...w, weekStart: addDays(w.weekStart, days) } : w))),
+  plans: Object.fromEntries(Object.entries(plans).map(([k, v]) => [k >= fromStart ? addDays(k, days) : k, v])),
+});
+
+// Repeat a week: a copy right after it (same type, target, notes and plan);
+// everything later moves back a week.
+export const repeatWeek = (weeks, plans, weekStart) => {
+  const src = weeks.find(w => w.weekStart === weekStart);
+  if (!src) return { weeks, plans };
+  const after = addDays(weekStart, 7);
+  const shifted = shiftFrom(weeks, plans, after, 7);
+  const copy = { ...src, weekStart: after, label: `${src.label || 'Week'} (repeat)` };
+  const nextPlans = { ...shifted.plans };
+  if (plans[weekStart]) nextPlans[after] = plans[weekStart];
+  return { weeks: normalizeWeeks([...shifted.weeks, copy]), plans: nextPlans };
+};
+
+// A rest week right after `weekStart`; everything later moves back a week.
+export const insertRestWeek = (weeks, plans, weekStart) => {
+  const after = addDays(weekStart, 7);
+  const shifted = shiftFrom(weeks, plans, after, 7);
+  return {
+    weeks: normalizeWeeks([...shifted.weeks, { weekStart: after, type: 'rest', label: 'Rest week', targetKm: null, note: '' }]),
+    plans: { ...shifted.plans, [after]: { ...REST_WEEK } },
+  };
+};
+
+// Drop a week and pull everything after it forward a week to close the gap.
+export const dropWeek = (weeks, plans, weekStart) => {
+  const without = { weeks: weeks.filter(w => w.weekStart !== weekStart), plans: Object.fromEntries(Object.entries(plans).filter(([k]) => k !== weekStart)) };
+  return shiftFrom(without.weeks, without.plans, addDays(weekStart, 7), -7);
+};
+
+// Push this week and everything after it back by a week (this week becomes empty).
+export const pushBack = (weeks, plans, fromStart) => shiftFrom(weeks, plans, fromStart, 7);
+
+// Where "today" sits in the block: before it starts, in week N of M, or after it.
+export const blockStatus = (weeks, todayISO) => {
+  if (!weeks.length) return null;
+  const total = weeks.length;
+  const first = weeks[0].weekStart;
+  const lastEnd = addDays(weeks[total - 1].weekStart, 6);
+  const dayDiff = (a, b) => Math.round((new Date(`${b}T00:00:00`) - new Date(`${a}T00:00:00`)) / 86400000);
+  if (todayISO < first) return { state: 'before', total, startsInDays: dayDiff(todayISO, first), start: first, progress: 0 };
+  if (todayISO > lastEnd) return { state: 'after', total, progress: 1, end: lastEnd };
+  const monday = mondayOf(todayISO);
+  const found = weeks.findIndex(w => w.weekStart === monday);
+  const dayOfWeek = dayDiff(monday, todayISO) + 1; // 1..7
+  // A calendar week with no entry (a gap) counts as sitting after the weeks before it.
+  const done = found >= 0 ? found : weeks.filter(w => w.weekStart < monday).length;
+  const progress = Math.min(1, (done + (found >= 0 ? dayOfWeek / 7 : 0)) / total);
+  return {
+    state: 'active', index: found >= 0 ? found : Math.min(done, total - 1), total,
+    week: found >= 0 ? weeks[found] : null, dayOfWeek, progress, end: lastEnd,
+  };
 };

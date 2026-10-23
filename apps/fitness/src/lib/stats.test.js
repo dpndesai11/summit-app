@@ -6,7 +6,7 @@ import {
   mondayOf, weeklyAggregates, runSeries, runSummary, formatPace, exerciseSeries, prBadgeFor, exerciseSummaries,
 } from './stats';
 import { toISO } from './model';
-import { normalizeWeeks, weekFor, generateWeeks, upsertWeeks, removeWeek, actualKm, PATTERNS } from './training';
+import { normalizeWeeks, weekFor, generateWeeks, upsertWeeks, removeWeek, actualKm, PATTERNS, shiftFrom, repeatWeek, insertRestWeek, dropWeek, pushBack, blockStatus } from './training';
 
 const daysAgo = (n) => { const d = new Date(); d.setHours(0, 0, 0, 0); d.setDate(d.getDate() - n); return toISO(d); };
 
@@ -343,5 +343,50 @@ describe('training weeks', () => {
       { date: '2026-11-01', distance: 4.5 }, { date: '2026-11-02', distance: 9 },
     ];
     expect(actualKm(logs, '2026-10-26')).toBeCloseTo(14.5);
+  });
+});
+
+describe('adjusting a block', () => {
+  const weeks = normalizeWeeks([
+    { weekStart: '2026-10-26', type: 'load', label: 'Week 1' },
+    { weekStart: '2026-11-02', type: 'load', label: 'Week 2' },
+    { weekStart: '2026-11-09', type: 'deload', label: 'Week 3' },
+  ]);
+  const plans = { '2026-10-26': { Monday: ['A'] }, '2026-11-02': { Monday: ['B'] }, '2026-11-09': { Monday: ['C'] } };
+  const starts = (r) => r.weeks.map(w => w.weekStart);
+
+  it('repeats a week and moves later weeks and plans back', () => {
+    const r = repeatWeek(weeks, plans, '2026-11-02');
+    expect(starts(r)).toEqual(['2026-10-26', '2026-11-02', '2026-11-09', '2026-11-16']);
+    expect(r.weeks[2].label).toBe('Week 2 (repeat)');
+    expect(r.plans['2026-11-09']).toEqual({ Monday: ['B'] });
+    expect(r.plans['2026-11-16']).toEqual({ Monday: ['C'] });
+    expect(r.weeks[3].type).toBe('deload');
+  });
+  it('inserts a rest week', () => {
+    const r = insertRestWeek(weeks, plans, '2026-10-26');
+    expect(starts(r)).toEqual(['2026-10-26', '2026-11-02', '2026-11-09', '2026-11-16']);
+    expect(r.weeks[1].type).toBe('rest');
+    expect(r.plans['2026-11-02'].Monday).toEqual([]);
+    expect(r.plans['2026-11-09']).toEqual({ Monday: ['B'] });
+  });
+  it('drops a week and closes the gap', () => {
+    const r = dropWeek(weeks, plans, '2026-11-02');
+    expect(starts(r)).toEqual(['2026-10-26', '2026-11-02']);
+    expect(r.weeks[1].label).toBe('Week 3');
+    expect(r.plans['2026-11-02']).toEqual({ Monday: ['C'] });
+  });
+  it('pushes the block back from a week', () => {
+    const r = pushBack(weeks, plans, '2026-10-26');
+    expect(starts(r)).toEqual(['2026-11-02', '2026-11-09', '2026-11-16']);
+    expect(shiftFrom(weeks, plans, '2026-11-09', 7).weeks[2].weekStart).toBe('2026-11-16');
+  });
+  it('reports where today sits', () => {
+    expect(blockStatus([], '2026-10-30')).toBeNull();
+    expect(blockStatus(weeks, '2026-10-23')).toMatchObject({ state: 'before', startsInDays: 3 });
+    expect(blockStatus(weeks, '2026-11-20')).toMatchObject({ state: 'after' });
+    const s = blockStatus(weeks, '2026-11-04'); // Wednesday of week 2
+    expect(s).toMatchObject({ state: 'active', index: 1, total: 3, dayOfWeek: 3 });
+    expect(s.progress).toBeCloseTo((1 + 3 / 7) / 3);
   });
 });

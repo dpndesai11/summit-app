@@ -1,27 +1,25 @@
 import { useState } from 'react';
-import { ChevronRight, Ellipsis, MapPin, Plus, Trash2 } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Ellipsis, MapPin, Plus, Trash2 } from 'lucide-react';
 import { CollapsibleCard } from '@summit/core';
 import { BottomSheet } from '@summit/core';
 import DaySheet from '../components/DaySheet';
 import RouteThumb from '../components/RouteThumb';
 import TemplateSheet from '../components/TemplateSheet';
-import TrainingWeeks from '../components/TrainingWeeks';
-import { DAYS, DEFAULT_PLAN, REST_WEEK, dayList } from '../lib/model';
+import TrainingWeeks, { TypeBadge } from '../components/TrainingWeeks';
+import { mondayOf } from '../lib/stats';
+import { shiftISO, weekFor } from '../lib/training';
+import { DAYS, DEFAULT_PLAN, REST_WEEK, dayList, formatShortDate } from '../lib/model';
 import { parseExercise } from '../lib/exercises';
 import { routeDistanceKm } from '../lib/geo';
 
 // "Default" / "Rest week" replace the whole weekly plan, so they live behind a
 // menu with a confirm step instead of sitting next to the plan as one-tap buttons.
-function ResetWeekSheet({ open, onClose, onApply }) {
+function ResetWeekSheet({ open, onClose, onApply, options, title }) {
   const [pending, setPending] = useState(null);
   const close = () => { setPending(null); onClose(); };
-  const options = [
-    { id: 'default', label: 'Default plan', hint: 'Lower / Upper / Lower on Mon, Wed, Fri', plan: DEFAULT_PLAN },
-    { id: 'rest', label: 'Rest week', hint: 'Clears every day', plan: REST_WEEK },
-  ];
   const chosen = options.find(o => o.id === pending);
   return (
-    <BottomSheet open={open} onClose={close} title="Replace the weekly plan">
+    <BottomSheet open={open} onClose={close} title={title}>
       {!chosen ? (
         <div className="space-y-2 pb-2">
           {options.map(o => (
@@ -34,12 +32,10 @@ function ResetWeekSheet({ open, onClose, onApply }) {
         </div>
       ) : (
         <div className="space-y-3 pb-2">
-          <p className="text-base text-black dark:text-white">
-            This replaces every workout you have planned this week with “{chosen.label}”. Workout times are kept.
-          </p>
-          <button onClick={() => { onApply(chosen.plan); close(); }}
+          <p className="text-base text-black dark:text-white">{chosen.confirm}</p>
+          <button onClick={() => { onApply(chosen); close(); }}
             className="w-full min-h-[52px] rounded-xl bg-primary text-on-primary text-base font-bold">
-            Replace plan
+            {chosen.cta || 'Replace plan'}
           </button>
           <button onClick={() => setPending(null)}
             className="w-full min-h-[48px] rounded-xl bg-gray-100 dark:bg-violet-400/10 text-base font-semibold text-black dark:text-white">
@@ -56,9 +52,38 @@ function ResetWeekSheet({ open, onClose, onApply }) {
 export default function PlanTab({ w, openDay, setOpenDay }) {
   const {
     templates, plan, routes, todayName, updatePlan, setBuilderOpen, startEditTemplate,
-    setPlannerOpen, deleteRoute,
+    setPlannerOpen, deleteRoute, planWeek, setPlanWeek, weekPlans, trainingWeeks, todayISO,
+    planFor, defaultPlan, updateWeekPlans, resetViewedWeekToDefault,
   } = w;
   const [resetOpen, setResetOpen] = useState(false);
+  const isDefault = planWeek === 'default';
+  const thisMonday = mondayOf(todayISO);
+  const viewedWeek = isDefault ? null : weekFor(trainingWeeks, planWeek);
+  const hasOwnPlan = !isDefault && Boolean(weekPlans[planWeek]);
+  const stepWeek = (n) => setPlanWeek(shiftISO(isDefault ? thisMonday : planWeek, 7 * n));
+  const weekLabel = isDefault ? 'Default plan'
+    : planWeek === thisMonday ? 'This week'
+    : `Week of ${formatShortDate(planWeek)}`;
+  const resetOptions = isDefault
+    ? [
+        { id: 'default', label: 'Starter plan', hint: 'Lower / Upper / Lower on Mon, Wed, Fri', plan: DEFAULT_PLAN,
+          confirm: 'This replaces the default weekly plan with “Starter plan”. Weeks that have their own plan are not affected. Workout times are kept.' },
+        { id: 'rest', label: 'Rest week', hint: 'Clears every day', plan: REST_WEEK,
+          confirm: 'This clears every day of the default weekly plan. Weeks that have their own plan are not affected.' },
+      ]
+    : [
+        hasOwnPlan && { id: 'usedefault', label: 'Use the default plan', hint: 'Drops this week’s own plan', action: 'default',
+          confirm: 'This week goes back to following the default plan.', cta: 'Use default' },
+        { id: 'copyprev', label: 'Copy last week’s plan', hint: 'Same sessions as the week before', action: 'copy',
+          confirm: 'This replaces this week’s sessions with last week’s.', cta: 'Copy plan' },
+        { id: 'rest', label: 'Make it a rest week', hint: 'Clears every day', plan: REST_WEEK,
+          confirm: 'This clears every session in this week.', cta: 'Clear week' },
+      ].filter(Boolean);
+  const applyReset = (o) => {
+    if (o.action === 'default') resetViewedWeekToDefault();
+    else if (o.action === 'copy') updateWeekPlans({ ...weekPlans, [planWeek]: planFor(shiftISO(planWeek, -7)) });
+    else updatePlan(o.plan);
+  };
 
   return (
     <div className="space-y-6">
@@ -66,16 +91,43 @@ export default function PlanTab({ w, openDay, setOpenDay }) {
 
       <section>
         <div className="flex items-center justify-between mb-2">
-          <h2 className="text-lg font-bold text-black dark:text-white">This week</h2>
+          <h2 className="text-lg font-bold text-black dark:text-white">Weekly plan</h2>
           <button onClick={() => setResetOpen(true)} aria-label="Replace the weekly plan"
             className="w-11 h-11 -mr-2 flex items-center justify-center text-black dark:text-white">
             <Ellipsis className="w-6 h-6" />
           </button>
         </div>
+        <div className="flex items-center gap-1 mb-2">
+          <button onClick={() => stepWeek(-1)} aria-label="Previous week"
+            className="w-11 h-11 flex items-center justify-center rounded-xl text-black dark:text-white active:bg-primary-soft">
+            <ChevronLeft className="w-6 h-6" />
+          </button>
+          <div className="flex-1 min-w-0 text-center">
+            <div className="text-base font-bold text-black dark:text-white truncate">{weekLabel}</div>
+            <div className="text-sm text-black dark:text-white flex items-center justify-center gap-2 flex-wrap">
+              {viewedWeek && <TypeBadge type={viewedWeek.type} />}
+              {isDefault ? 'Used by weeks without their own plan' : hasOwnPlan ? 'Its own plan' : 'Following the default plan'}
+            </div>
+          </div>
+          <button onClick={() => stepWeek(1)} aria-label="Next week"
+            className="w-11 h-11 flex items-center justify-center rounded-xl text-black dark:text-white active:bg-primary-soft">
+            <ChevronRight className="w-6 h-6" />
+          </button>
+        </div>
+        <div className="flex gap-2 mb-2">
+          <button onClick={() => setPlanWeek(thisMonday)} aria-pressed={planWeek === thisMonday}
+            className={`flex-1 min-h-[44px] rounded-xl text-sm font-bold text-black dark:text-white ${planWeek === thisMonday ? 'bg-primary-soft border-2 border-primary' : 'bg-gray-100 dark:bg-violet-400/10'}`}>
+            This week
+          </button>
+          <button onClick={() => setPlanWeek('default')} aria-pressed={isDefault}
+            className={`flex-1 min-h-[44px] rounded-xl text-sm font-bold text-black dark:text-white ${isDefault ? 'bg-primary-soft border-2 border-primary' : 'bg-gray-100 dark:bg-violet-400/10'}`}>
+            Default plan
+          </button>
+        </div>
         <div className="bg-white dark:bg-[#211b34] rounded-2xl border border-gray-200 dark:border-violet-400/15 divide-y divide-gray-100 dark:divide-violet-400/15 overflow-hidden">
           {DAYS.map(day => {
             const assigned = dayList(plan[day]);
-            const isToday = day === todayName;
+            const isToday = day === todayName && planWeek === thisMonday;
             return (
               <button
                 key={day}
@@ -181,7 +233,7 @@ export default function PlanTab({ w, openDay, setOpenDay }) {
 
       <DaySheet w={w} day={openDay} onClose={() => setOpenDay(null)} />
       <TemplateSheet w={w} />
-      <ResetWeekSheet open={resetOpen} onClose={() => setResetOpen(false)} onApply={updatePlan} />
+      <ResetWeekSheet open={resetOpen} onClose={() => setResetOpen(false)} onApply={applyReset} options={resetOptions} title={isDefault ? 'Replace the default plan' : 'Change this week’s plan'} />
     </div>
   );
 }

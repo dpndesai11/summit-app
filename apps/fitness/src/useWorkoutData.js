@@ -1,6 +1,7 @@
 import { normalizeWeeks } from './lib/training';
 import { useState, useEffect } from 'react';
 import { STORAGE_KEYS, DEFAULT_TEMPLATES, DEFAULT_PLAN, DAYS, DEFAULT_WORKOUT_TIME, DEFAULT_WORKOUT_DURATION, normalizeTimeEntry, toISO, dayList, normalizePlan } from './lib/model';
+import { mondayOf } from './lib/stats';
 import { cycleExerciseType, normalizeTemplateExercises, parseExercise } from './lib/exercises';
 import { calcCurrentStreak, computeAllTimeBests, expandLogSets, logVolume, sessionKey, sessionHasProgress, setMetric, lastSetFor, defaultSetInputs } from './lib/stats';
 import useTimer from './useTimer';
@@ -21,6 +22,9 @@ export default function useWorkoutData() {
   const [cardioLogs, setCardioLogs] = useState([]);
   const [trainingWeeks, setTrainingWeeks] = useState([]);
   const [trainingBlocks, setTrainingBlocks] = useState([]);
+  const [weekPlans, setWeekPlans] = useState({});
+  // Which weekly plan the Plan tab is showing/editing: a week's Monday (ISO) or 'default'.
+  const [planWeek, setPlanWeek] = useState(() => mondayOf(toISO(new Date())));
   const [sessions, setSessions] = useState([]);
   const [routes, setRoutes] = useState([]);
   const [toast, setToast] = useState(null);
@@ -53,7 +57,11 @@ export default function useWorkoutData() {
 
   const todayISO = toISO(new Date());
   const todayName = new Date().toLocaleDateString('en-US', { weekday: 'long' });
-  const plannedNames = dayList(plan[todayName]);
+  // A week can carry its own plan; weeks without one use the default plan.
+  const planFor = (monday) => weekPlans[monday] || plan;
+  const todayPlan = planFor(mondayOf(todayISO));
+  const viewedPlan = planWeek === 'default' ? plan : planFor(planWeek);
+  const plannedNames = dayList(todayPlan[todayName]);
   const plannedTemplates = plannedNames
     .map(n => templates.find(t => t.name === n))
     .filter(Boolean);
@@ -85,7 +93,7 @@ export default function useWorkoutData() {
         return fallback;
       }
     };
-    const [sl, cl, wt, wwp, wtm, as, rt, tw, tb] = await Promise.all([
+    const [sl, cl, wt, wwp, wtm, as, rt, tw, tb, wpl] = await Promise.all([
       loadData(STORAGE_KEYS.strengthLogs, []),
       loadData(STORAGE_KEYS.cardioLogs, []),
       loadData(STORAGE_KEYS.workoutTemplates, DEFAULT_TEMPLATES),
@@ -95,6 +103,7 @@ export default function useWorkoutData() {
       loadData(STORAGE_KEYS.cardioRoutes, []),
       loadData(STORAGE_KEYS.trainingWeeks, []),
       loadData(STORAGE_KEYS.trainingBlocks, []),
+      loadData(STORAGE_KEYS.weekPlans, {}),
     ]);
     setStrengthLogs(sl);
     setCardioLogs(cl);
@@ -105,6 +114,8 @@ export default function useWorkoutData() {
     setRoutes(rt);
     setTrainingWeeks(normalizeWeeks(tw));
     setTrainingBlocks(Array.isArray(tb) ? tb : []);
+    setWeekPlans(wpl && typeof wpl === 'object' && !Array.isArray(wpl)
+      ? Object.fromEntries(Object.entries(wpl).map(([k, v]) => [k, normalizePlan(v)])) : {});
   };
 
   useEffect(() => {
@@ -140,6 +151,7 @@ export default function useWorkoutData() {
   const updateWorkoutTimes = (next) => { setWorkoutTimes(next); saveToStorage(STORAGE_KEYS.workoutTimes, next); };
   const updateSessions = (next) => { setSessions(next); saveToStorage(STORAGE_KEYS.activeSession, next); };
   const updateTrainingWeeks = (next) => { const n = normalizeWeeks(next); setTrainingWeeks(n); saveToStorage(STORAGE_KEYS.trainingWeeks, n); };
+  const updateWeekPlans = (next) => { setWeekPlans(next); saveToStorage(STORAGE_KEYS.weekPlans, next); };
   const updateTrainingBlocks = (next) => { setTrainingBlocks(next); saveToStorage(STORAGE_KEYS.trainingBlocks, next); };
   const updateRoutes = (next) => { setRoutes(next); saveToStorage(STORAGE_KEYS.cardioRoutes, next); };
 
@@ -174,7 +186,7 @@ export default function useWorkoutData() {
     const keysOf = (arr) => arr.map(sessionKey).sort().join('|');
     if (keysOf(next) !== keysOf(sessions)) updateSessions(next);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isLoading, plan, templates, sessions]);
+  }, [isLoading, todayPlan, templates, sessions]);
 
   const straySessions = sessions.filter(s =>
     !(s.date === todayISO && plannedNames.includes(s.templateName)) && sessionHasProgress(s)
@@ -433,19 +445,36 @@ export default function useWorkoutData() {
     const tpl = templates.find(t => t.id === id);
     updateTemplates(templates.filter(t => t.id !== id));
     if (tpl) {
-      const next = { ...plan };
-      DAYS.forEach(d => { next[d] = dayList(next[d]).filter(n => n !== tpl.name); });
-      updatePlan(next);
+      const scrub = (p) => {
+        const next = { ...p };
+        DAYS.forEach(d => { next[d] = dayList(next[d]).filter(n => n !== tpl.name); });
+        return next;
+      };
+      updatePlan(scrub(plan));
+      if (Object.keys(weekPlans).length) {
+        updateWeekPlans(Object.fromEntries(Object.entries(weekPlans).map(([k, v]) => [k, scrub(v)])));
+      }
     }
   };
 
+  // Write the plan the Plan tab is editing: the default, or one week's own copy.
+  const writeViewedPlan = (next) => {
+    if (planWeek === 'default') updatePlan(next);
+    else updateWeekPlans({ ...weekPlans, [planWeek]: next });
+  };
+  const resetViewedWeekToDefault = () => {
+    if (planWeek === 'default') return;
+    const { [planWeek]: _drop, ...rest } = weekPlans;
+    updateWeekPlans(rest);
+  };
+
   const addWorkoutToDay = (day, name) => {
-    if (!name || dayList(plan[day]).includes(name)) return;
-    updatePlan({ ...plan, [day]: [...dayList(plan[day]), name] });
+    if (!name || dayList(viewedPlan[day]).includes(name)) return;
+    writeViewedPlan({ ...viewedPlan, [day]: [...dayList(viewedPlan[day]), name] });
   };
 
   const removeWorkoutFromDay = (day, name) => {
-    updatePlan({ ...plan, [day]: dayList(plan[day]).filter(n => n !== name) });
+    writeViewedPlan({ ...viewedPlan, [day]: dayList(viewedPlan[day]).filter(n => n !== name) });
   };
 
   const totalVolume = strengthLogs.reduce((a, l) => a + logVolume(l), 0);
@@ -459,7 +488,15 @@ export default function useWorkoutData() {
     addTimedSet,
     templates,
     setTemplates,
-    plan,
+    plan: viewedPlan,
+    defaultPlan: plan,
+    todayPlan,
+    planFor,
+    planWeek,
+    setPlanWeek,
+    weekPlans,
+    updateWeekPlans,
+    resetViewedWeekToDefault,
     setPlan,
     workoutTimes,
     setWorkoutTimes,
@@ -518,7 +555,7 @@ export default function useWorkoutData() {
     updateStrengthLogs,
     updateCardioLogs,
     updateTemplates,
-    updatePlan,
+    updatePlan: writeViewedPlan,
     updateWorkoutTimes,
     updateSessions,
     updateRoutes,

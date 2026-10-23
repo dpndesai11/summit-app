@@ -12,6 +12,7 @@ export const STORAGE_KEYS = {
   activeSession: 'summit_active_session',
   cardioRoutes: 'summit_cardio_routes',
   trainingWeeks: 'summit_training_weeks',
+  weekPlans: 'summit_week_plans',
   trainingBlocks: 'summit_training_blocks'
 };
 
