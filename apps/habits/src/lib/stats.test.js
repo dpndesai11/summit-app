@@ -61,6 +61,8 @@ describe('heatmapWeeks', () => {
     weeks.forEach(w => expect(w).toHaveLength(7));
     const flat = weeks.flat();
     expect(flat.find(c => c.iso === iso(0)).done).toBe(true);
-    expect(flat.some(c => c.isFuture)).toBe(true);
+    // The last week runs Monday to Sunday, so on a Sunday there are no future cells.
+    const isSunday = new Date().getDay() === 0;
+    expect(flat.some(c => c.isFuture)).toBe(!isSunday);
   });
 });
