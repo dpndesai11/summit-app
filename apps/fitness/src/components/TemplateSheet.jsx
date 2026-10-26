@@ -1,7 +1,7 @@
 import { useState } from 'react';
-import { Plus, X, ClipboardList, Timer, Trash2 } from 'lucide-react';
+import { Minus, Plus, X, ClipboardList, Timer, Trash2 } from 'lucide-react';
 import { BottomSheet } from '@summit/core';
-import { TYPE_META, cycleExerciseType, parseExercise } from '../lib/exercises';
+import { TYPE_META, cycleExerciseType, parseExerciseItem } from '../lib/exercises';
 
 const inputClass = 'w-full bg-gray-100 dark:bg-violet-400/10 rounded-xl px-4 py-3 text-base text-black dark:text-white outline-none focus:ring-2 focus:ring-focus-ring';
 
@@ -40,9 +40,13 @@ export default function TemplateSheet({ w }) {
               {builder.exercises.map((ex, i) => {
                 const meta = TYPE_META[ex.type] || TYPE_META.weight;
                 const Icon = meta.icon;
-                const p = parseExercise(ex.name);
+                const p = parseExerciseItem(ex);
+                const setSets = (n) => setBuilder(prev => ({
+                  ...prev,
+                  exercises: prev.exercises.map((e, j) => (j === i ? { ...e, sets: Math.min(12, Math.max(1, n)) } : e)),
+                }));
                 return (
-                  <li key={i} className="flex items-center gap-2 min-h-[48px] py-1">
+                  <li key={i} className="flex flex-wrap items-center gap-x-2 min-h-[48px] py-1">
                     <button
                       onClick={() => setBuilder(prev => ({
                         ...prev,
@@ -68,6 +72,18 @@ export default function TemplateSheet({ w }) {
                     >
                       <X className="w-5 h-5" />
                     </button>
+                    <div className="w-full flex items-center gap-2 pl-[30px] pb-1">
+                      <span className="text-sm font-semibold text-black dark:text-white">Sets</span>
+                      <button onClick={() => setSets((p.sets ?? 0) - 1)} disabled={!p.sets || p.sets <= 1} aria-label={`Fewer sets of ${p.label}`}
+                        className="w-10 h-10 rounded-xl bg-gray-100 dark:bg-violet-400/10 flex items-center justify-center text-black dark:text-white disabled:opacity-40">
+                        <Minus className="w-5 h-5" />
+                      </button>
+                      <span className="w-8 text-center text-base font-bold text-black dark:text-white tabular-nums" aria-label={`${p.label} sets`}>{p.sets ?? '–'}</span>
+                      <button onClick={() => setSets((p.sets ?? 0) + 1)} disabled={p.sets >= 12} aria-label={`More sets of ${p.label}`}
+                        className="w-10 h-10 rounded-xl bg-gray-100 dark:bg-violet-400/10 flex items-center justify-center text-black dark:text-white disabled:opacity-40">
+                        <Plus className="w-5 h-5" />
+                      </button>
+                    </div>
                   </li>
                 );
               })}

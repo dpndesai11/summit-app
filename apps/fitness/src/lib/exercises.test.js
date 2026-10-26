@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { parseExercise, parseHold, normalizeExerciseType, cycleExerciseType } from './exercises';
+import { parseExercise, parseHold, normalizeExerciseType, cycleExerciseType, parseExerciseItem } from './exercises';
 
 // Names below are shaped like the ones pasted into real templates.
 describe('parseExercise', () => {
@@ -97,5 +97,22 @@ describe('exercise types', () => {
     expect(cycleExerciseType('weight')).toBe('bodyweight');
     expect(cycleExerciseType('bodyweight')).toBe('cardio');
     expect(cycleExerciseType('cardio')).toBe('weight');
+  });
+});
+
+describe('parseExerciseItem', () => {
+  it('uses the sets baked into the name by default', () => {
+    expect(parseExerciseItem({ name: 'Bench\t3\t5–6' }).sets).toBe(3);
+  });
+  it('lets an explicit sets count override it without touching the name', () => {
+    const ex = { name: 'Bench\t3\t5–6', sets: 4 };
+    const p = parseExerciseItem(ex);
+    expect(p.sets).toBe(4);
+    expect(p.prescription).toBe('4 × 5–6');
+    expect(p.raw).toBe('Bench\t3\t5–6');
+  });
+  it('adds a sets count to a prescription that had none', () => {
+    expect(parseExerciseItem({ name: 'Side plank — 30s/side', sets: 2 }).prescription).toBe('2 × 30s/side');
+    expect(parseExerciseItem({ name: 'Face pull', sets: 3 }).prescription).toBe('3 sets');
   });
 });

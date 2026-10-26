@@ -112,3 +112,17 @@ export const parseHold = (name) => {
   const { holdSeconds, perSide } = parseExercise(name);
   return holdSeconds ? { seconds: holdSeconds, perSide } : null;
 };
+
+// parseExercise for a template exercise object: the same label/prescription, but
+// an explicit `sets` count on the exercise (edited in Plan) overrides the one
+// baked into the name, so changing sets never rewrites the stored name.
+export const parseExerciseItem = (ex) => {
+  const p = parseExercise(ex?.name);
+  const n = Math.floor(Number(ex?.sets));
+  if (!(n >= 1)) return p;
+  let prescription;
+  if (p.sets) prescription = p.prescription.replace(/^\d+ × /, `${n} × `);
+  else if (p.prescription) prescription = `${n} × ${p.prescription}`;
+  else prescription = `${n} sets`;
+  return { ...p, sets: n, prescription };
+};

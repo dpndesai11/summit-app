@@ -1,6 +1,6 @@
 import { Plus, Check, Moon, ChevronDown, X, AlertTriangle, Lock, Unlock, Timer as TimerIcon, Activity } from 'lucide-react';
 import { formatSwiss } from '../lib/model';
-import { TYPE_META, parseExercise } from '../lib/exercises';
+import { TYPE_META, parseExerciseItem } from '../lib/exercises';
 import { sessionKey, sessionSetCount, lastSetFor, defaultSetInputs, formatSetText } from '../lib/stats';
 import Stepper from '../components/Stepper';
 import SetDots from '../components/SetDots';
@@ -30,7 +30,7 @@ export default function TodayTab({ w, onOpenPlan }) {
     const logged = justLogged[k];
     const meta = TYPE_META[ex.type] || TYPE_META.weight;
     const Icon = meta.icon;
-    const p = parseExercise(ex.name);
+    const p = parseExerciseItem(ex);
 
     if (ex.type === 'cardio') {
       return (
@@ -158,43 +158,6 @@ export default function TodayTab({ w, onOpenPlan }) {
           </button>
         ))}
 
-        {p.sets > 0 && (
-          <div className="mb-3" role="group" aria-label={`${p.label} sets`}>
-            <div className="flex gap-2">
-              {Array.from({ length: p.sets }).map((_, i) => {
-                const done = i < setCount;
-                const isNext = i === setCount;
-                const canUndo = i === setCount - 1;
-                const tick = () => {
-                  if (isNext) {
-                    if (hold && isBodyweight) addTimedSet(session, ex, hold.seconds, hold.perSide);
-                    else addSet(session, ex);
-                  } else if (canUndo) removeSetFromSession(session, ex.name, i);
-                };
-                return (
-                  <button
-                    key={i}
-                    onClick={tick}
-                    disabled={!isNext && !canUndo}
-                    aria-pressed={done}
-                    aria-label={`Set ${i + 1} of ${p.sets}${done ? ', done' : ''}`}
-                    className={`flex-1 min-h-[52px] rounded-xl border-2 flex items-center justify-center gap-1.5 text-base font-bold ${
-                      done ? 'bg-primary border-primary text-on-primary'
-                        : isNext ? 'border-primary text-black dark:text-white'
-                        : 'border-border-strong text-black dark:text-white'
-                    }`}
-                  >
-                    {done ? <Check className="w-5 h-5" /> : i + 1}
-                  </button>
-                );
-              })}
-            </div>
-            <div className="text-sm text-black dark:text-white mt-1.5">
-              Tap the next number to log set {Math.min(setCount + 1, p.sets)}; tap the last tick to undo it.
-            </div>
-          </div>
-        )}
-
         {!(hold && isBodyweight) && (
           <div className="flex gap-2 mb-3">
             {!isBodyweight && (
@@ -204,7 +167,7 @@ export default function TodayTab({ w, onOpenPlan }) {
           </div>
         )}
         <div className="flex gap-2">
-          {!(hold && isBodyweight) && !(p.sets > 0) && (
+          {!(hold && isBodyweight) && (
             <button
               onClick={() => addSet(session, ex)}
               className={`flex-1 min-h-[52px] rounded-xl text-base font-bold text-white flex items-center justify-center gap-2 ${meta.logBtn}`}
