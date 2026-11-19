@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { Minus, Plus, X, ClipboardList, Timer, Trash2 } from 'lucide-react';
 import { BottomSheet } from '@summit/core';
-import { TYPE_META, cycleExerciseType, parseExerciseItem } from '../lib/exercises';
+import { TYPE_META, cycleExerciseType, parseExerciseItem, parseRx } from '../lib/exercises';
+import { findEntry, matchKey, similarEntries } from '../lib/library';
 
 const inputClass = 'w-full bg-gray-100 dark:bg-violet-400/10 rounded-xl px-4 py-3 text-base text-black dark:text-white outline-none focus:ring-2 focus:ring-focus-ring';
 
@@ -13,8 +14,20 @@ const inputClass = 'w-full bg-gray-100 dark:bg-violet-400/10 rounded-xl px-4 py-
 export default function TemplateSheet({ w }) {
   const {
     builder, setBuilder, builderOpen, editingTemplateId, closeBuilder, saveTemplate,
-    addDraftExercise, addBulkExercises, deleteTemplate,
+    addDraftExercise, addBulkExercises, deleteTemplate, library, addExerciseToBuilder,
   } = w;
+  const draft = builder.draftName.trim();
+  const draftKey = matchKey(draft);
+  const exact = draft ? findEntry(library, draft) : null;
+  const similar = draft && !exact ? similarEntries(library, draft) : [];
+  const suggestions = draftKey
+    ? library.filter(e => (matchKey(e.name).includes(draftKey) || draftKey.split(' ').every(t => matchKey(e.name).includes(t)))
+        && !builder.exercises.some(x => x.name === e.name)).slice(0, 5)
+    : [];
+  const patchExercise = (i, patch) => setBuilder(prev => ({
+    ...prev,
+    exercises: prev.exercises.map((e, j) => (j === i ? { ...e, ...patch } : e)),
+  }));
   const [confirmDelete, setConfirmDelete] = useState(false);
   const close = () => { setConfirmDelete(false); closeBuilder(); };
 
@@ -83,6 +96,22 @@ export default function TemplateSheet({ w }) {
                         className="w-10 h-10 rounded-xl bg-gray-100 dark:bg-violet-400/10 flex items-center justify-center text-black dark:text-white disabled:opacity-40">
                         <Plus className="w-5 h-5" />
                       </button>
+                      <input
+                        value={ex.rx ?? ''}
+                        onChange={e => patchExercise(i, { rx: e.target.value })}
+                        placeholder="Reps or hold, e.g. 8, 6–8, 10/side, 45s"
+                        aria-label={`Reps or hold for ${p.label}`}
+                        className={`${inputClass} !py-2 flex-1 min-w-0 ${ex.rx && !parseRx(ex.rx) ? 'ring-2 ring-danger' : ''}`}
+                      />
+                    </div>
+                    <div className="w-full pl-[30px] pb-2">
+                      <input
+                        value={ex.note ?? ''}
+                        onChange={e => patchExercise(i, { note: e.target.value })}
+                        placeholder="Note, e.g. about 45 kg, build toward 6 reps at 70 kg"
+                        aria-label={`Note for ${p.label}`}
+                        className={`${inputClass} !py-2`}
+                      />
                     </div>
                   </li>
                 );
@@ -133,6 +162,7 @@ export default function TemplateSheet({ w }) {
               </div>
             </div>
           ) : (
+            <div className="space-y-2">
             <div className="flex gap-2">
               <input
                 value={builder.draftName}
@@ -153,6 +183,34 @@ export default function TemplateSheet({ w }) {
                 className="w-12 min-h-[48px] rounded-xl bg-primary text-on-primary flex items-center justify-center flex-shrink-0">
                 <Plus className="w-5 h-5" />
               </button>
+            </div>
+            {exact && (
+              <p className="text-sm text-black dark:text-white">
+                Already in your library as <span className="font-bold">{exact.name}</span> — adding it reuses that exercise, so its history stays together.
+              </p>
+            )}
+            {!exact && similar.length > 0 && (
+              <div className="rounded-xl border border-warning p-2 space-y-1">
+                <p className="text-sm font-semibold text-black dark:text-white">Similar exercises already in your library — use one to avoid a duplicate:</p>
+                {similar.map(e => (
+                  <button key={e.id} onClick={() => { addExerciseToBuilder(e.name, e.type, { sets: 3 }); setBuilder(p => ({ ...p, draftName: '' })); }}
+                    className="w-full min-h-[44px] px-3 rounded-lg bg-gray-100 dark:bg-violet-400/10 text-left text-base font-semibold text-black dark:text-white">
+                    Use “{e.name}”
+                  </button>
+                ))}
+              </div>
+            )}
+            {suggestions.length > 0 && (
+              <div className="rounded-xl border border-gray-200 dark:border-violet-400/15 divide-y divide-gray-100 dark:divide-violet-400/15 overflow-hidden">
+                {suggestions.map(e => (
+                  <button key={e.id} onClick={() => { addExerciseToBuilder(e.name, e.type, { sets: 3 }); setBuilder(p => ({ ...p, draftName: '' })); }}
+                    className="w-full min-h-[44px] px-3 flex items-center justify-between gap-2 text-left text-base text-black dark:text-white">
+                    <span className="font-semibold truncate">{e.name}</span>
+                    <span className="text-sm flex-shrink-0">{TYPE_META[e.type]?.label}</span>
+                  </button>
+                ))}
+              </div>
+            )}
             </div>
           )}
         </div>

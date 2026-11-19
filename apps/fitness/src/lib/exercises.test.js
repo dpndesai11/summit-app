@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { parseExercise, parseHold, normalizeExerciseType, cycleExerciseType, parseExerciseItem } from './exercises';
+import { parseExercise, parseHold, normalizeExerciseType, cycleExerciseType, parseExerciseItem, parseRx } from './exercises';
 
 // Names below are shaped like the ones pasted into real templates.
 describe('parseExercise', () => {
@@ -114,5 +114,32 @@ describe('parseExerciseItem', () => {
   it('adds a sets count to a prescription that had none', () => {
     expect(parseExerciseItem({ name: 'Side plank — 30s/side', sets: 2 }).prescription).toBe('2 × 30s/side');
     expect(parseExerciseItem({ name: 'Face pull', sets: 3 }).prescription).toBe('3 sets');
+  });
+});
+
+describe('structured prescriptions (sets / rx / note in their own fields)', () => {
+  it('parses a typed prescription', () => {
+    expect(parseRx('8')).toEqual({ reps: '8', seconds: null, perSide: false });
+    expect(parseRx('6–8')).toMatchObject({ reps: '6–8' });
+    expect(parseRx('10/side')).toEqual({ reps: '10', seconds: null, perSide: true });
+    expect(parseRx('30–45s')).toEqual({ reps: null, seconds: 30, perSide: false });
+    expect(parseRx('banana')).toBeNull();
+  });
+  it('builds the prescription from fields and keeps the name clean', () => {
+    const p = parseExerciseItem({ name: 'Lat pulldown', sets: 4, rx: '8', note: 'about 45 kg' });
+    expect(p.label).toBe('Lat pulldown');
+    expect(p.prescription).toBe('4 × 8');
+    expect(p.sets).toBe(4);
+    expect(p.note).toBe('about 45 kg');
+  });
+  it('gives holds a timer preset and keeps ranges as typed', () => {
+    const p = parseExerciseItem({ name: 'Wall squat', sets: 2, rx: '45s' });
+    expect(p.holdSeconds).toBe(45);
+    expect(p.prescription).toBe('2 × 45s');
+    expect(parseExerciseItem({ name: 'Step-ups', sets: 2, rx: '10/side' }).prescription).toBe('2 × 10/side');
+    expect(parseExerciseItem({ name: 'Single-leg balance', rx: '30–60s/side' }).prescription).toBe('30–60s/side');
+  });
+  it('explicit fields win over a prescription baked into a legacy name', () => {
+    expect(parseExerciseItem({ name: 'Bench\t3\t5–6', sets: 4, rx: '8' }).prescription).toBe('4 × 8');
   });
 });

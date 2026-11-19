@@ -1,6 +1,7 @@
 import { Plus, Check, Moon, ChevronDown, X, AlertTriangle, Lock, Unlock, Timer as TimerIcon, Activity } from 'lucide-react';
 import { formatSwiss } from '../lib/model';
 import { TYPE_META, parseExerciseItem } from '../lib/exercises';
+import { canonicalName } from '../lib/library';
 import { sessionKey, sessionSetCount, lastSetFor, defaultSetInputs, formatSetText } from '../lib/stats';
 import Stepper from '../components/Stepper';
 import SetDots from '../components/SetDots';
@@ -16,7 +17,7 @@ const card = 'bg-white dark:bg-[#211b34] rounded-2xl border border-gray-200 dark
 // shown with icons, dots and the violet accent.
 export default function TodayTab({ w, onOpenPlan }) {
   const {
-    templates, todayPlan, strengthLogs, cardioLogs, sessions, strengthInputs, setStrengthInputs,
+    templates, todayPlan, strengthLogs, statsLogs, library, cardioLogs, sessions, strengthInputs, setStrengthInputs,
     cardioInputs, setCardioInputs, justLogged, expandedWorkouts, setExpandedWorkouts,
     dismissedStray, setDismissedStray, resumedStray, setResumedStray, todayISO, todayName,
     plannedTemplates, inputKey, straySessions, patchSession, addSet, addTimedSet,
@@ -107,7 +108,7 @@ export default function TodayTab({ w, onOpenPlan }) {
       );
     }
 
-    const last = lastSetFor(ex.name, strengthLogs);
+    const last = lastSetFor(canonicalName(library, ex.name), statsLogs);
     const inp = strengthInputs[k] || defaultSetInputs(isBodyweight, last);
     const setInp = (field, v) => setStrengthInputs(prev => ({ ...prev, [k]: { ...inp, [field]: v } }));
     const timerHere = timer.timer && timer.timer.key === k ? timer.timer : null;
@@ -118,6 +119,7 @@ export default function TodayTab({ w, onOpenPlan }) {
           <span className="flex-1 min-w-0">
             <span className="block text-lg font-bold text-black dark:text-white">{p.label}</span>
             {p.prescription && <span className="block text-base text-black dark:text-white">{p.prescription}</span>}
+            {p.note && <span className="block text-sm text-black dark:text-white">{p.note}</span>}
           </span>
           <SetDots done={setCount} total={p.sets} />
         </div>

@@ -22,7 +22,7 @@ const card = 'bg-white dark:bg-[#211b34] rounded-2xl border border-gray-200 dark
 // you've logged, the consistency heatmap, and the full editable log history.
 export default function ProgressTab({ w }) {
   const {
-    strengthLogs, cardioLogs, expandedLogId, setExpandedLogId, updateStrengthLogs, updateCardioLogs,
+    strengthLogs, statsLogs, cardioLogs, expandedLogId, setExpandedLogId, updateStrengthLogs, updateCardioLogs,
     updateLogSet, deleteLogSet, totalVolume, totalCardioMin, currentStreak, trainingWeeks,
   } = w;
   const [query, setQuery] = useState('');
@@ -36,7 +36,8 @@ export default function ProgressTab({ w }) {
   const runs = runSeries(cardioLogs);
   const runInfo = runSummary(runs);
   const runById = Object.fromEntries(runs.map(r => [r.id, r]));
-  const summaries = exerciseSummaries(strengthLogs);
+  const summaries = exerciseSummaries(statsLogs);
+  const statsById = Object.fromEntries(statsLogs.map(l => [l.id, l]));
   const q = query.trim().toLowerCase();
   const filtered = q ? summaries.filter(s => parseExercise(s.exercise).label.toLowerCase().includes(q)) : summaries;
   const visible = showAll || q ? filtered : filtered.slice(0, 6);
@@ -157,7 +158,7 @@ export default function ProgressTab({ w }) {
                     const sets = expandLogSets(l);
                     const expanded = expandedLogId === l.id;
                     const type = logType(l);
-                    const isPR = prBadgeFor(l, strengthLogs);
+                    const isPR = prBadgeFor(statsById[l.id] || l, statsLogs);
                     return (
                       <div key={l.id} className="bg-gray-50 dark:bg-violet-400/5 rounded-xl px-3 py-2">
                         <button

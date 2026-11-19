@@ -1,4 +1,5 @@
 import { normalizeWeeks } from './lib/training';
+import { addToLibrary, canonicalName, canonicalizeLogs, cleanLabel, seedLibrary } from './lib/library';
 import { useState, useEffect } from 'react';
 import { STORAGE_KEYS, DEFAULT_TEMPLATES, DEFAULT_PLAN, DAYS, DEFAULT_WORKOUT_TIME, DEFAULT_WORKOUT_DURATION, normalizeTimeEntry, toISO, dayList, normalizePlan } from './lib/model';
 import { mondayOf } from './lib/stats';
@@ -23,6 +24,7 @@ export default function useWorkoutData() {
   const [trainingWeeks, setTrainingWeeks] = useState([]);
   const [trainingBlocks, setTrainingBlocks] = useState([]);
   const [weekPlans, setWeekPlans] = useState({});
+  const [library, setLibrary] = useState([]);
   // Which weekly plan the Plan tab is showing/editing: a week's Monday (ISO) or 'default'.
   const [planWeek, setPlanWeek] = useState(() => mondayOf(toISO(new Date())));
   const [sessions, setSessions] = useState([]);
@@ -93,7 +95,7 @@ export default function useWorkoutData() {
         return fallback;
       }
     };
-    const [sl, cl, wt, wwp, wtm, as, rt, tw, tb, wpl] = await Promise.all([
+    const [sl, cl, wt, wwp, wtm, as, rt, tw, tb, wpl, xl] = await Promise.all([
       loadData(STORAGE_KEYS.strengthLogs, []),
       loadData(STORAGE_KEYS.cardioLogs, []),
       loadData(STORAGE_KEYS.workoutTemplates, DEFAULT_TEMPLATES),
@@ -104,6 +106,7 @@ export default function useWorkoutData() {
       loadData(STORAGE_KEYS.trainingWeeks, []),
       loadData(STORAGE_KEYS.trainingBlocks, []),
       loadData(STORAGE_KEYS.weekPlans, {}),
+      loadData(STORAGE_KEYS.exerciseLibrary, []),
     ]);
     setStrengthLogs(sl);
     setCardioLogs(cl);
@@ -112,6 +115,13 @@ export default function useWorkoutData() {
     setWorkoutTimes(wtm && typeof wtm === 'object' ? wtm : {});
     setSessions(Array.isArray(as) ? as : as ? [as] : []);
     setRoutes(rt);
+    // The exercise library: keep what is saved, and add anything in the logs or
+    // templates it doesn't know yet (first run builds it from existing data).
+    const tpls = (Array.isArray(wt) ? wt : []).map(normalizeTemplateExercises);
+    const existingLib = Array.isArray(xl) ? xl : [];
+    const seeded = seedLibrary(tpls, Array.isArray(sl) ? sl : [], existingLib);
+    setLibrary(seeded);
+    if (JSON.stringify(seeded) !== JSON.stringify(existingLib)) saveToStorage(STORAGE_KEYS.exerciseLibrary, seeded);
     setTrainingWeeks(normalizeWeeks(tw));
     setTrainingBlocks(Array.isArray(tb) ? tb : []);
     setWeekPlans(wpl && typeof wpl === 'object' && !Array.isArray(wpl)
@@ -153,6 +163,7 @@ export default function useWorkoutData() {
   const updateTrainingWeeks = (next) => { const n = normalizeWeeks(next); setTrainingWeeks(n); saveToStorage(STORAGE_KEYS.trainingWeeks, n); };
   const updateWeekPlans = (next) => { setWeekPlans(next); saveToStorage(STORAGE_KEYS.weekPlans, next); };
   const updateTrainingBlocks = (next) => { setTrainingBlocks(next); saveToStorage(STORAGE_KEYS.trainingBlocks, next); };
+  const updateLibrary = (next) => { setLibrary(next); saveToStorage(STORAGE_KEYS.exerciseLibrary, next); };
   const updateRoutes = (next) => { setRoutes(next); saveToStorage(STORAGE_KEYS.cardioRoutes, next); };
 
   // Time-of-day the Dashboard should place this day/workout at. Falls back
@@ -201,7 +212,7 @@ export default function useWorkoutData() {
     const ik = inputKey(sKey, exDef.name);
     const isBodyweight = exDef.type === 'bodyweight';
     // New sets start from what you did last time (falls back to 40 kg x 8 / 8 reps).
-    const inp = strengthInputs[ik] || defaultSetInputs(isBodyweight, lastSetFor(exDef.name, strengthLogs));
+    const inp = strengthInputs[ik] || defaultSetInputs(isBodyweight, lastSetFor(canonicalName(library, exDef.name), statsLogs));
     const ex = session.exercises[exDef.name] || { sets: [], locked: false };
     if (ex.locked) return;
     const newSet = {
@@ -296,7 +307,7 @@ export default function useWorkoutData() {
     const prMessages = entries
       .map(entry => {
         const bestNow = entry.setDetails.reduce((m, s) => Math.max(m, setMetric(s, entry.type)), 0);
-        const prior = allTimeBests[entry.exercise];
+        const prior = allTimeBests[canonicalName(library, entry.exercise)];
         if (!prior || bestNow <= prior.value) return null;
         const timed = entry.type === 'bodyweight' && entry.setDetails.some(s => Number(s.seconds) > 0 && !(Number(s.reps) > 0));
         const unit = entry.type !== 'bodyweight' ? 'kg' : timed ? 's' : ' reps';
@@ -381,25 +392,46 @@ export default function useWorkoutData() {
 
   const deleteRoute = (id) => updateRoutes(routes.filter(r => r.id !== id));
 
-  const addDraftExercise = () => {
-    if (!builder.draftName.trim()) return;
-    setBuilder(p => ({
-      ...p,
-      exercises: [...p.exercises, { name: p.draftName.trim(), type: p.draftType }],
-      draftName: ''
-    }));
+  // Library-backed adding: an exercise that already exists is reused, never duplicated.
+  const addExerciseToBuilder = (name, type, extra = {}) => {
+    const { library: nextLib, entry } = addToLibrary(library, name, type);
+    if (nextLib !== library) updateLibrary(nextLib);
+    setBuilder(p => (p.exercises.some(e => e.name === entry.name) ? p
+      : { ...p, exercises: [...p.exercises, { name: entry.name, type: entry.type, ...extra }] }));
+    return entry;
   };
 
+  const addDraftExercise = () => {
+    if (!builder.draftName.trim()) return;
+    addExerciseToBuilder(builder.draftName.trim(), builder.draftType, { sets: 3 });
+    setBuilder(p => ({ ...p, draftName: '' }));
+  };
+
+  // Pasted lines like "Bench Press\t4\t8–10" become the plain library exercise plus
+  // separate sets / prescription fields.
   const addBulkExercises = () => {
-    const names = builder.bulkText
+    const lines = builder.bulkText
       .split(/[\n,]+/)
       .map(s => s.trim())
       .filter(Boolean);
-    if (names.length === 0) return;
+    if (lines.length === 0) return;
+    let lib = library;
+    const items = [];
+    lines.forEach(line => {
+      const parsed = parseExercise(line);
+      const name = cleanLabel(line) || line;
+      const { library: nextLib, entry } = addToLibrary(lib, name, builder.bulkType);
+      lib = nextLib;
+      if (items.some(it => it.name === entry.name)) return;
+      const side = parsed.perSide ? '/side' : '';
+      const rx = parsed.holdSeconds != null ? `${parsed.holdSeconds}s${side}` : parsed.reps != null ? `${parsed.reps}${side}` : '';
+      items.push({ name: entry.name, type: entry.type, ...(parsed.sets ? { sets: parsed.sets } : {}), ...(rx ? { rx } : {}) });
+    });
+    if (lib !== library) updateLibrary(lib);
     setBuilder(p => ({
       ...p,
-      exercises: [...p.exercises, ...names.map(name => ({ name, type: p.bulkType }))],
-      bulkText: ''
+      exercises: [...p.exercises, ...items.filter(it => !p.exercises.some(e => e.name === it.name))],
+      bulkText: '',
     }));
   };
 
@@ -417,6 +449,9 @@ export default function useWorkoutData() {
 
   const saveTemplate = () => {
     if (!builder.name.trim() || builder.exercises.length === 0) return;
+    let lib = library;
+    builder.exercises.forEach(e => { if (e.type !== 'cardio') lib = addToLibrary(lib, e.name, e.type).library; });
+    if (lib !== library) updateLibrary(lib);
     if (editingTemplateId) {
       updateTemplates(templates.map(t =>
         t.id === editingTemplateId ? { ...t, name: builder.name.trim(), exercises: builder.exercises } : t
@@ -481,7 +516,10 @@ export default function useWorkoutData() {
   const totalCardioMin = cardioLogs.reduce((a, l) => a + l.duration, 0);
   const activeDates = new Set([...strengthLogs, ...cardioLogs].map(l => l.date));
   const currentStreak = calcCurrentStreak(activeDates);
-  const allTimeBests = computeAllTimeBests(strengthLogs);
+  // Stats see every log under its library name (old spellings are aliases);
+  // the saved logs themselves are never changed.
+  const statsLogs = canonicalizeLogs(library, strengthLogs);
+  const allTimeBests = computeAllTimeBests(statsLogs);
 
   return {
     timer,
@@ -501,6 +539,10 @@ export default function useWorkoutData() {
     workoutTimes,
     setWorkoutTimes,
     strengthLogs,
+    statsLogs,
+    library,
+    updateLibrary,
+    addExerciseToBuilder,
     setStrengthLogs,
     cardioLogs,
     setCardioLogs,

@@ -113,16 +113,30 @@ export const parseHold = (name) => {
   return holdSeconds ? { seconds: holdSeconds, perSide } : null;
 };
 
-// parseExercise for a template exercise object: the same label/prescription, but
-// an explicit `sets` count on the exercise (edited in Plan) overrides the one
-// baked into the name, so changing sets never rewrites the stored name.
+// A prescription typed on its own ("8", "6–8", "10/side", "45s", "30–45s/side")
+// -> { reps, seconds, perSide }, or null when it isn't one.
+export const parseRx = (rx) => {
+  const t = parseToken(String(rx ?? ''));
+  return t ? { reps: t.reps, seconds: t.holdSeconds, perSide: t.perSide } : null;
+};
+
+// parseExercise for a template exercise object. Sets, the reps-or-hold prescription
+// (`rx`) and a `note` live in their own fields, so the stored name stays the plain
+// exercise name that history is keyed on. Names that still carry a prescription
+// ("Bench\t3\t5–6") are parsed as before, and explicit fields win over them.
 export const parseExerciseItem = (ex) => {
   const p = parseExercise(ex?.name);
   const n = Math.floor(Number(ex?.sets));
-  if (!(n >= 1)) return p;
+  const sets = n >= 1 ? n : p.sets;
+  const rx = ex?.rx ? parseRx(ex.rx) : null;
+  const reps = rx ? rx.reps : p.reps;
+  const holdSeconds = rx ? rx.seconds : p.holdSeconds;
+  const perSide = rx ? rx.perSide : p.perSide;
+  const side = perSide ? '/side' : '';
   let prescription;
-  if (p.sets) prescription = p.prescription.replace(/^\d+ × /, `${n} × `);
-  else if (p.prescription) prescription = `${n} × ${p.prescription}`;
-  else prescription = `${n} sets`;
-  return { ...p, sets: n, prescription };
+  if (ex?.rx && rx) prescription = `${sets ? `${sets} × ` : ''}${String(ex.rx).trim()}`;
+  else if (holdSeconds != null) prescription = `${sets ? `${sets} × ` : ''}${holdSeconds}s${side}`;
+  else if (reps != null) prescription = sets ? `${sets} × ${reps}${side}` : `${reps} reps${side}`;
+  else prescription = sets ? `${sets} sets` : '';
+  return { ...p, sets: sets ?? null, reps, holdSeconds, perSide, prescription, note: ex?.note || '' };
 };

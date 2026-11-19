@@ -5,6 +5,7 @@ import { BottomSheet } from '@summit/core';
 import DaySheet from '../components/DaySheet';
 import RouteThumb from '../components/RouteThumb';
 import TemplateSheet from '../components/TemplateSheet';
+import ExerciseLibrary from '../components/ExerciseLibrary';
 import TrainingWeeks, { TypeBadge } from '../components/TrainingWeeks';
 import { mondayOf } from '../lib/stats';
 import { shiftISO, weekFor } from '../lib/training';
@@ -233,6 +234,8 @@ export default function PlanTab({ w, openDay, setOpenDay }) {
 
       <DaySheet w={w} day={openDay} onClose={() => setOpenDay(null)} />
       <TemplateSheet w={w} />
+      <ExerciseLibrary w={w} />
+
       <ResetWeekSheet open={resetOpen} onClose={() => setResetOpen(false)} onApply={applyReset} options={resetOptions} title={isDefault ? 'Replace the default plan' : 'Change this week’s plan'} />
     </div>
   );

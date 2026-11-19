@@ -13,6 +13,7 @@ export const STORAGE_KEYS = {
   cardioRoutes: 'summit_cardio_routes',
   trainingWeeks: 'summit_training_weeks',
   weekPlans: 'summit_week_plans',
+  exerciseLibrary: 'summit_exercise_library',
   trainingBlocks: 'summit_training_blocks'
 };
 
