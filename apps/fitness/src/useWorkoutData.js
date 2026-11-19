@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { STORAGE_KEYS, DEFAULT_TEMPLATES, DEFAULT_PLAN, DAYS, DEFAULT_WORKOUT_TIME, DEFAULT_WORKOUT_DURATION, normalizeTimeEntry, toISO, dayList, normalizePlan } from './lib/model';
 import { mondayOf } from './lib/stats';
 import { cycleExerciseType, normalizeTemplateExercises, parseExercise } from './lib/exercises';
-import { calcCurrentStreak, computeAllTimeBests, expandLogSets, logVolume, sessionKey, sessionHasProgress, setMetric, lastSetFor, defaultSetInputs } from './lib/stats';
+import { computeAllTimeBests, expandLogSets, logVolume, sessionKey, sessionHasProgress, setMetric, lastSetFor, defaultSetInputs } from './lib/stats';
 import useTimer from './useTimer';
 import { dbGet, dbSet, dbRefresh } from '@summit/core/db';
 import { routeDistanceKm } from './lib/geo';
@@ -514,8 +514,6 @@ export default function useWorkoutData() {
 
   const totalVolume = strengthLogs.reduce((a, l) => a + logVolume(l), 0);
   const totalCardioMin = cardioLogs.reduce((a, l) => a + l.duration, 0);
-  const activeDates = new Set([...strengthLogs, ...cardioLogs].map(l => l.date));
-  const currentStreak = calcCurrentStreak(activeDates);
   // Stats see every log under its library name (old spellings are aliases);
   // the saved logs themselves are never changed.
   const statsLogs = canonicalizeLogs(library, strengthLogs);
@@ -636,8 +634,6 @@ export default function useWorkoutData() {
     removeWorkoutFromDay,
     totalVolume,
     totalCardioMin,
-    activeDates,
-    currentStreak,
     allTimeBests,
   };
 }

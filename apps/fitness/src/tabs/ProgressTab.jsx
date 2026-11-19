@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Activity, ChevronDown, ChevronRight, Dumbbell, Download, Flame, Gauge, Route, Search, Timer, Trash2, Trophy } from 'lucide-react';
+import { Activity, ChevronDown, ChevronRight, Dumbbell, Download, Gauge, Route, Search, Timer, Trash2, Trophy } from 'lucide-react';
 import { CollapsibleCard } from '@summit/core';
 import { formatSwiss, toISO } from '../lib/model';
 import { parseExercise } from '../lib/exercises';
@@ -23,7 +23,7 @@ const card = 'bg-white dark:bg-[#211b34] rounded-2xl border border-gray-200 dark
 export default function ProgressTab({ w }) {
   const {
     strengthLogs, statsLogs, cardioLogs, expandedLogId, setExpandedLogId, updateStrengthLogs, updateCardioLogs,
-    updateLogSet, deleteLogSet, totalVolume, totalCardioMin, currentStreak, trainingWeeks,
+    updateLogSet, deleteLogSet, totalVolume, totalCardioMin, trainingWeeks,
   } = w;
   const [query, setQuery] = useState('');
   const [showAll, setShowAll] = useState(false);
@@ -48,7 +48,6 @@ export default function ProgressTab({ w }) {
       <div className="flex gap-2">
         <StatCard icon={Dumbbell} label="Lifted" value={`${(totalVolume / 1000).toFixed(1)}t`} sub="lifetime" />
         <StatCard icon={Timer} label="Cardio" value={`${totalCardioMin}m`} sub="lifetime" />
-        <StatCard icon={Flame} tone="achievement" label="Streak" value={currentStreak} sub={currentStreak === 1 ? 'day' : 'days'} />
       </div>
 
       <button

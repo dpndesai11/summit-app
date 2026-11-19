@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import {
-  calcCurrentStreak, computeAllTimeBests, expandLogSets, logSetCount, logVolume, logType,
+  computeAllTimeBests, expandLogSets, logSetCount, logVolume, logType,
   sessionKey, sessionHasProgress, sessionSetCount, groupByDate, weekDates,
   setMetric, lastSetFor, defaultSetInputs, formatSetText,
   mondayOf, weeklyAggregates, runSeries, runSummary, formatPace, exerciseSeries, prBadgeFor, exerciseSummaries,
@@ -9,21 +9,6 @@ import { toISO } from './model';
 import { normalizeWeeks, weekFor, generateWeeks, upsertWeeks, removeWeek, actualKm, PATTERNS, shiftFrom, repeatWeek, insertRestWeek, dropWeek, pushBack, blockStatus } from './training';
 
 const daysAgo = (n) => { const d = new Date(); d.setHours(0, 0, 0, 0); d.setDate(d.getDate() - n); return toISO(d); };
-
-describe('calcCurrentStreak', () => {
-  it('counts consecutive days ending today', () => {
-    expect(calcCurrentStreak(new Set([daysAgo(0), daysAgo(1), daysAgo(2)]))).toBe(3);
-  });
-  it('does not look broken until a full day has passed with nothing logged', () => {
-    expect(calcCurrentStreak(new Set([daysAgo(1), daysAgo(2)]))).toBe(2);
-  });
-  it('is 0 after a gap of two days', () => {
-    expect(calcCurrentStreak(new Set([daysAgo(2), daysAgo(3)]))).toBe(0);
-  });
-  it('stops at the first gap', () => {
-    expect(calcCurrentStreak(new Set([daysAgo(0), daysAgo(1), daysAgo(3)]))).toBe(2);
-  });
-});
 
 describe('log helpers', () => {
   const detailed = { exercise: 'Squat', date: '2026-09-01', setDetails: [{ weight: 100, reps: 5 }, { weight: 110, reps: 3 }] };

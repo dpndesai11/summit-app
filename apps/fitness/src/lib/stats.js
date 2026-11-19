@@ -1,18 +1,6 @@
 import { toISO } from './model';
 
-// Pure workout maths — streaks, personal bests, log/set helpers. No React, no I/O.
-
-export const calcCurrentStreak = (activeDates) => {
-  const cursor = new Date();
-  cursor.setHours(0, 0, 0, 0);
-  if (!activeDates.has(toISO(cursor))) cursor.setDate(cursor.getDate() - 1);
-  let count = 0;
-  while (activeDates.has(toISO(cursor))) {
-    count++;
-    cursor.setDate(cursor.getDate() - 1);
-  }
-  return count;
-};
+// Pure workout maths — personal bests, log/set helpers. No React, no I/O.
 
 // The number that decides "better" for a set: weight for lifts; reps for
 // bodyweight, or seconds for a timed hold (a set logged from the timer has
