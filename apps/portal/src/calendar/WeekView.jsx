@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react';
 import {
   BLOCK_COLOR_PRESETS, EVENT_COLORS, dayItems, formatHour, layoutLanes, normalizeBlockDays, timeToMinutes, toISODate, weekdayName,
-} from '../../lib/calendar';
+} from './calendar';
 
 const START_MIN = 6 * 60;
 const END_MIN = 22 * 60;
@@ -16,9 +16,9 @@ const WEEKDAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 // their text flips with them (that is what `text-on-primary` is for).
 const fillFor = (item) => (
   item.kind === 'event' ? EVENT_COLORS[item.event.color].fill
-    : item.kind === 'workout' ? 'bg-orange-500 text-white'
-    : item.kind === 'task' ? 'bg-primary text-on-primary'
-    : 'bg-green-600 text-white'
+    : item.kind === 'workout' ? 'bg-[#d6006e] text-white'
+    : item.kind === 'task' ? 'bg-blue-600 text-white'
+    : 'bg-emerald-700 text-white'
 );
 
 // Seven day columns over an hour grid (6am–10pm), the way Google Calendar's

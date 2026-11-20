@@ -1,4 +1,4 @@
-import { toISODate, startOfWeek, addDays } from './taskUtils';
+import { toISODate, startOfWeek, addDays } from '@summit/core/taskUtils';
 
 // Pure calendar maths for the Planner — date grids, the user's own events
 // (one-off and repeating), and merging everything that happens on a date

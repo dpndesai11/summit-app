@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react';
-import { Plus } from 'lucide-react';
-import { filterTasks } from '../lib/taskUtils';
+import { Archive, Plus, RotateCcw } from 'lucide-react';
+import { CollapsibleCard } from '@summit/core';
+import { TaskDetailModal } from '@summit/core';
+import { filterTasks } from '@summit/core/taskUtils';
 import BoardView from '../components/BoardView';
 import PlannerView from '../components/PlannerView';
-import TaskDetailModal from '../components/TaskDetailModal';
 import NewTaskModal from '../components/NewTaskModal';
 import FilterBar from '../components/FilterBar';
 
@@ -46,7 +47,11 @@ export default function TaskBoard({
 
   const overdueIds = new Set(overdueTasks.map(t => t.id));
   const openTask = tasks.find(t => t.id === openTaskId) || null;
-  const filteredTasks = filterTasks(tasks, filters, projects);
+  // Done tasks are archived: off the board, still on their project, restorable below.
+  const archivedTasks = tasks.filter(t => t.status === 'done')
+    .sort((a, b) => String(b.completedAt || '').localeCompare(String(a.completedAt || '')));
+  const projectName = (t) => projects.find(p => p.id === t.properties?.projectId)?.name;
+  const filteredTasks = filterTasks(tasks.filter(t => t.status !== 'done'), filters, projects);
 
   return (
     <div className="space-y-6">
@@ -133,6 +138,32 @@ export default function TaskBoard({
           )}
         </div>
       </div>
+
+      <CollapsibleCard title="Archive" icon={Archive} iconColor="text-primary" badge={archivedTasks.length ? `${archivedTasks.length}` : null}>
+        {archivedTasks.length === 0 ? (
+          <p className="text-sm text-black dark:text-white">Tasks you mark done land here, and stay on their project.</p>
+        ) : (
+          <div className="space-y-1.5 max-h-80 overflow-y-auto">
+            {archivedTasks.map(t => (
+              <div key={t.id} className="flex items-center gap-2 bg-gray-50 dark:bg-violet-400/5 border border-gray-200 dark:border-violet-400/15 rounded-lg p-2">
+                <button onClick={() => setOpenTaskId(t.id)} className="flex-1 min-w-0 text-left">
+                  <span className="block text-sm font-semibold text-black dark:text-white truncate">{t.name}</span>
+                  <span className="block text-xs text-black dark:text-white truncate">
+                    {projectName(t) || 'No project'}{t.completedAt ? ` · done ${formatToSwissDate(String(t.completedAt).slice(0, 10))}` : ''}
+                  </span>
+                </button>
+                <button
+                  onClick={() => handleUpdateTaskStatus(t.id, 'todo')}
+                  aria-label={`Restore ${t.name} to the board`}
+                  className="min-h-[40px] px-3 rounded-lg text-xs font-bold text-on-primary bg-primary active:bg-primary-hover flex items-center gap-1.5 flex-shrink-0"
+                >
+                  <RotateCcw className="w-3.5 h-3.5" /> Restore
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+      </CollapsibleCard>
 
       <div className="bg-white dark:bg-[#211b34] border border-gray-200 dark:border-violet-400/15 rounded-xl p-5">
         <h3 className="text-sm font-semibold text-black dark:text-white mb-4">14-day load forecast</h3>

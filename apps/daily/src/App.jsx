@@ -1,269 +1,43 @@
-import { useState, useEffect } from 'react';
-import { dbGet, dbSet } from '@summit/core/db';
-import { AppFrame } from '@summit/core';
-import { migrateTasksAndProjects, weightedCompletion, toISODate, startOfWeek } from './lib/taskUtils';
+import { useState } from 'react';
+import { AppFrame, useTaskEngine } from '@summit/core';
 import DailyApp from './DailyApp';
 
 // ---------------------------------------------------------------------------
-// Summit Daily — top-level state owner (2026-08-30 merge). This app used to
-// be Tasks (at the site root, password-gated) and Daily (a separate phone
-// app for Workouts/Meals) side by side; they're now one app under the Daily
-// identity, deployed at the root. This file owns exactly what Tasks' App.jsx
-// used to own for tasks/projects/today-focus/weekly-review — the auth gate,
-// the load-on-mount, and every handler — since those are shared across
-// Home/Tasks/Projects. It deliberately does NOT own workout/meal state:
-// WorkoutsSection/MealsSection/Home keep loading those domains themselves,
-// same self-contained pattern as before the merge.
-//
-// The old Tasks app also carried its own redundant copy of fitness data
-// (workoutTemplates, weeklyWorkoutPlan, strengthLogs, cardioLogs) purely to
-// feed its standalone "Fitness Dashboard" page and a "Training today" widget
-// on its old Main Hub. Both are gone — Workouts already owns this data
-// properly (sessions, PRs, streaks) — so none of that carries over here.
+// The Planner: Tasks (board + planner view) and Projects. The calendar moved to
+// the Summit home screen (apps/portal), and the weekly review was cut. All the
+// task / project state and handlers live in the shared useTaskEngine (@summit/core)
+// because the home-screen calendar shows tasks too; this file is just the shell's
+// section state and the deep links between pages.
 // ---------------------------------------------------------------------------
 
-const STORAGE_KEYS = {
-  tasks: 'summit_tasks',
-  projects: 'summit_projects',
-  dailySelections: 'summit_daily_selections',
-  weeklyReviewLog: 'summit_weekly_review_log',
+// `?project=<id>` opens Projects with that project expanded: the home-screen
+// calendar's task sheet links here.
+const initialNav = () => {
+  try {
+    const id = new URLSearchParams(window.location.search).get('project');
+    if (id) return { section: 'Projects', pendingNav: { page: 'Projects', payload: { projectId: Number(id) || id } } };
+  } catch { /* no window / bad URL: start on Tasks */ }
+  return { section: 'Task Dashboard', pendingNav: null };
 };
 
 export default function App() {
-  const [tasks, setTasks] = useState([]);
-  const [projects, setProjects] = useState([]);
-  const [dailySelections, setDailySelections] = useState({});
-  const [weeklyReviewLog, setWeeklyReviewLog] = useState([]);
+  const engine = useTaskEngine();
+  const [start] = useState(initialNav);
+  const [section, setSection] = useState(start.section);
 
-  // Cross-page deep links (task -> project, project -> task) without a
-  // router: a page sets `pendingNav` via `navigateTo`, the target page reads
-  // its own scoped payload and clears it.
-  const [pendingNav, setPendingNav] = useState(null); // { page, payload } | null
+  // Cross-page deep links (task -> project, project -> task) without a router:
+  // a page sets `pendingNav` via `navigateTo`, the target page reads its own
+  // scoped payload and clears it.
+  const [pendingNav, setPendingNav] = useState(start.pendingNav);
   const navigateTo = (page, payload = null) => {
     setPendingNav(payload ? { page, payload } : null);
     setSection(page);
   };
   const clearPendingNav = () => setPendingNav(null);
 
-  const [section, setSection] = useState('Home');
-  const [isLoading, setIsLoading] = useState(true);
-  const [loadError, setLoadError] = useState(null);
-  const [toast, setToast] = useState(null);
-
-  const showToast = (message, isError = false) => {
-    setToast({ message, isError });
-    setTimeout(() => setToast(null), 3000);
-  };
-
-  const saveToStorage = (key, data) => {
-    dbSet(key, data).catch(() => {
-      showToast('Save failed — your change is visible but may not persist.', true);
-    });
-  };
-
-  useEffect(() => {
-    const load = async () => {
-      const loadData = async (key, fallback) => {
-        try {
-          const val = await dbGet(key);
-          return val ?? fallback;
-        } catch {
-          return fallback;
-        }
-      };
-      try {
-        const [t, rawProjects, ds, wrl] = await Promise.all([
-          loadData(STORAGE_KEYS.tasks, []),
-          loadData(STORAGE_KEYS.projects, []),
-          loadData(STORAGE_KEYS.dailySelections, {}),
-          loadData(STORAGE_KEYS.weeklyReviewLog, []),
-        ]);
-
-        const { tasks: migratedTasks, projects: migratedProjects, forceWrite } =
-          migrateTasksAndProjects(t, rawProjects);
-
-        setTasks(migratedTasks);
-        setProjects(migratedProjects);
-        setDailySelections(ds);
-        setWeeklyReviewLog(wrl);
-
-        if (forceWrite) {
-          saveToStorage(STORAGE_KEYS.tasks, migratedTasks);
-          saveToStorage(STORAGE_KEYS.projects, migratedProjects);
-        }
-      } catch {
-        setLoadError('Could not load saved data. Starting with a clean slate — anything you add will still try to save.');
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    load();
-  }, []);
-
-  // ---------------------------------------------------------------------------
-  // TASK ENGINE ACTIONS
-  // ---------------------------------------------------------------------------
-  const emptyTaskForm = { name: '', dueDate: '', targetDate: '', notes: '', checklist: [], tags: [], properties: {} };
-  const [taskForm, setTaskForm] = useState(emptyTaskForm);
-
-  const handleCreateTask = () => {
-    if (!taskForm.name.trim() || !taskForm.targetDate) return;
-    const newTask = {
-      id: Date.now(),
-      name: taskForm.name.trim(),
-      dueDate: taskForm.dueDate,
-      targetDate: taskForm.targetDate,
-      notes: taskForm.notes,
-      isCompleted: false,
-      status: 'todo',
-      completedAt: null,
-      checklist: taskForm.checklist,
-      tags: taskForm.tags,
-      properties: taskForm.properties
-    };
-    const updated = [...tasks, newTask];
-    setTasks(updated);
-    saveToStorage(STORAGE_KEYS.tasks, updated);
-    setTaskForm(emptyTaskForm);
-  };
-
-  const handleToggleSubtask = (taskId, itemId) => {
-    const updated = tasks.map(t => {
-      if (t.id === taskId) {
-        return { ...t, checklist: t.checklist.map(item => item.id === itemId ? { ...item, isCompleted: !item.isCompleted } : item) };
-      }
-      return t;
-    });
-    setTasks(updated);
-    saveToStorage(STORAGE_KEYS.tasks, updated);
-  };
-
-  const handleUpdateTaskStatus = (taskId, newStatus) => {
-    const updated = tasks.map(t => {
-      if (t.id !== taskId) return t;
-      return {
-        ...t,
-        status: newStatus,
-        isCompleted: newStatus === 'done',
-        completedAt: newStatus === 'done' ? new Date().toISOString() : null
-      };
-    });
-    setTasks(updated);
-    saveToStorage(STORAGE_KEYS.tasks, updated);
-  };
-
-  const handleDeleteTask = (taskId) => {
-    const updated = tasks.filter(t => t.id !== taskId);
-    setTasks(updated);
-    saveToStorage(STORAGE_KEYS.tasks, updated);
-  };
-
-  const handleUpdateTask = (taskId, updates) => {
-    const updated = tasks.map(t => t.id === taskId ? { ...t, ...updates } : t);
-    setTasks(updated);
-    saveToStorage(STORAGE_KEYS.tasks, updated);
-  };
-
-  const getHistoricalVelocity = () => {
-    const allItems = tasks.flatMap(t => t.checklist);
-    return weightedCompletion(allItems);
-  };
-
-  const getDistributedMilestonesCount = (targetDateStr) => {
-    let count = 0;
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const checkDate = new Date(targetDateStr);
-    checkDate.setHours(0, 0, 0, 0);
-
-    tasks.forEach(t => {
-      if (t.isCompleted) return;
-      const target = new Date(t.targetDate);
-      target.setHours(0, 0, 0, 0);
-      if (today <= checkDate && checkDate <= target) {
-        const daysRemaining = Math.max(1, Math.ceil((target - today) / (1000 * 60 * 60 * 24)) + 1);
-        const incompleteChecklist = t.checklist.filter(item => !item.isCompleted).length;
-        const remainingMilestones = incompleteChecklist === 0 ? 1 : incompleteChecklist;
-        count += remainingMilestones / daysRemaining;
-      }
-    });
-    return Math.round(count * 10) / 10;
-  };
-
-  const getOverdueTasks = () => {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    return tasks.filter(t => {
-      if (t.isCompleted || !t.dueDate) return false;
-      const due = new Date(t.dueDate);
-      due.setHours(0, 0, 0, 0);
-      return due < today;
-    });
-  };
-
-  // ---------------------------------------------------------------------------
-  // PROJECT ENGINE ACTIONS
-  // ---------------------------------------------------------------------------
-  const handleCreateProject = (name, notes = '') => {
-    if (!name.trim()) return null;
-    const newProject = { id: Date.now(), name: name.trim(), notes, createdAt: new Date().toISOString() };
-    const updated = [...projects, newProject];
-    setProjects(updated);
-    saveToStorage(STORAGE_KEYS.projects, updated);
-    return newProject.id;
-  };
-
-  const handleRenameProject = (projectId, name) => {
-    if (!name.trim()) return;
-    const updated = projects.map(p => p.id === projectId ? { ...p, name: name.trim() } : p);
-    setProjects(updated);
-    saveToStorage(STORAGE_KEYS.projects, updated);
-  };
-
-  const handleUpdateProjectNotes = (projectId, notes) => {
-    const updated = projects.map(p => p.id === projectId ? { ...p, notes } : p);
-    setProjects(updated);
-    saveToStorage(STORAGE_KEYS.projects, updated);
-  };
-
-  const handleDeleteProject = (projectId) => {
-    const updated = projects.filter(p => p.id !== projectId);
-    setProjects(updated);
-    saveToStorage(STORAGE_KEYS.projects, updated);
-  };
-
-  // ---------------------------------------------------------------------------
-  // TODAY / FOCUS + WEEKLY REVIEW ACTIONS
-  // ---------------------------------------------------------------------------
-  const handleToggleDailySelection = (taskId) => {
-    const todayISO = toISODate(new Date());
-    const current = dailySelections[todayISO] || [];
-    const updatedForToday = current.includes(taskId) ? current.filter(id => id !== taskId) : [...current, taskId];
-    const updated = { ...dailySelections, [todayISO]: updatedForToday };
-    setDailySelections(updated);
-    saveToStorage(STORAGE_KEYS.dailySelections, updated);
-  };
-
-  const handleCompleteWeeklyReview = (notes) => {
-    const entry = { weekStartDate: toISODate(startOfWeek(new Date())), completedAt: new Date().toISOString(), notes };
-    const updated = [...weeklyReviewLog, entry];
-    setWeeklyReviewLog(updated);
-    saveToStorage(STORAGE_KEYS.weeklyReviewLog, updated);
-  };
-
-  const formatToSwissDate = (dateStr) => {
-    if (!dateStr) return '—';
-    const parts = dateStr.split('-');
-    if (parts.length === 3) return `${parts[2]}.${parts[1]}.${parts[0]}`;
-    return dateStr;
-  };
-
-  // ---------------------------------------------------------------------------
-  // LOADING STATE
-  // ---------------------------------------------------------------------------
-  if (isLoading) {
+  if (engine.isLoading) {
     return (
-      <AppFrame appId="daily" title={section === 'Home' ? 'Home' : section === 'Task Dashboard' ? 'Tasks' : 'Projects'}>
+      <AppFrame appId="daily" title={section === 'Task Dashboard' ? 'Tasks' : 'Projects'}>
         <div className="space-y-3">
           <div className="skeleton h-32 w-full" />
           <div className="flex gap-3">
@@ -276,23 +50,14 @@ export default function App() {
     );
   }
 
-  const overdueTasks = getOverdueTasks();
-  const velocity = getHistoricalVelocity();
-
+  const { toast, loadError, isLoading, showToast, ...taskProps } = engine;
   return (
     <DailyApp
       section={section}
       setSection={setSection}
       toast={toast}
       loadError={loadError}
-      taskProps={{
-        tasks, projects, overdueTasks, velocity, dailySelections, weeklyReviewLog,
-        getDistributedMilestonesCount, formatToSwissDate, taskForm, setTaskForm,
-        handleCreateTask, handleToggleSubtask, handleUpdateTaskStatus, handleUpdateTask,
-        handleDeleteTask, handleCreateProject, handleRenameProject, handleUpdateProjectNotes,
-        handleDeleteProject, handleToggleDailySelection, handleCompleteWeeklyReview,
-        navigateTo, pendingNav, clearPendingNav,
-      }}
+      taskProps={{ ...taskProps, navigateTo, pendingNav, clearPendingNav }}
     />
   );
 }

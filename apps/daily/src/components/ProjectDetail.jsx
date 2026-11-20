@@ -1,13 +1,13 @@
 const STATUS_COLUMNS = [
   { id: 'todo', title: 'To Do' },
   { id: 'in_progress', title: 'In Progress' },
-  { id: 'done', title: 'Done' },
+  { id: 'done', title: 'Done · archived' },
 ];
 
 // One project's notes + its linked tasks grouped by status. Stays in sync
 // with task edits/status changes automatically since it derives the list
 // from `tasks` on every render rather than storing its own copy.
-export default function ProjectDetail({ project, tasks, onUpdateNotes, onOpenTask }) {
+export default function ProjectDetail({ project, tasks, onUpdateNotes, onOpenTask, onRestoreTask }) {
   const linkedTasks = tasks.filter(t => t.properties?.projectId === project.id);
 
   return (
@@ -36,13 +36,23 @@ export default function ProjectDetail({ project, tasks, onUpdateNotes, onOpenTas
                 </div>
                 <div className="space-y-1.5">
                   {linkedTasks.filter(t => t.status === col.id).map(task => (
-                    <button
-                      key={task.id}
-                      onClick={() => onOpenTask(task.id)}
-                      className="w-full text-left bg-gray-50 dark:bg-violet-400/5 border border-gray-200 dark:border-violet-400/15 rounded-lg p-2 text-xs text-black dark:text-white hover:border-border-strong transition-colors"
-                    >
-                      {task.name}
-                    </button>
+                    <div key={task.id} className="flex items-stretch gap-1.5">
+                      <button
+                        onClick={() => onOpenTask(task.id)}
+                        className="flex-1 min-w-0 text-left bg-gray-50 dark:bg-violet-400/5 border border-gray-200 dark:border-violet-400/15 rounded-lg p-2 text-xs text-black dark:text-white hover:border-border-strong transition-colors"
+                      >
+                        {task.name}
+                      </button>
+                      {col.id === 'done' && onRestoreTask && (
+                        <button
+                          onClick={() => onRestoreTask(task.id, 'todo')}
+                          aria-label={`Restore ${task.name} to the board`}
+                          className="px-2.5 rounded-lg text-xs font-bold text-on-primary bg-primary active:bg-primary-hover flex-shrink-0"
+                        >
+                          Restore
+                        </button>
+                      )}
+                    </div>
                   ))}
                 </div>
               </div>

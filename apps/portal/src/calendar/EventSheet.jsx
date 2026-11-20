@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Trash2 } from 'lucide-react';
 import { BottomSheet } from '@summit/core';
-import { EVENT_COLORS, EVENT_COLOR_IDS, MIN_EVENT_DURATION, REPEATS, formatDuration, weekdayName } from '../../lib/calendar';
+import { EVENT_COLORS, EVENT_COLOR_IDS, MIN_EVENT_DURATION, REPEATS, formatDuration, weekdayName } from './calendar';
 
 const field = 'w-full min-h-[48px] px-4 rounded-xl bg-surface-sunken border border-border-strong text-base text-black dark:text-white outline-none focus:ring-2 focus:ring-focus-ring';
 const LENGTHS = [15, 30, 45, 60, 90, 120];

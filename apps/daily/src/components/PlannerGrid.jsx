@@ -1,4 +1,4 @@
-import { toISODate, startOfWeek, addDays, getMonthGridDates } from '../lib/taskUtils';
+import { toISODate, startOfWeek, addDays, getMonthGridDates } from '@summit/core/taskUtils';
 
 const WEEKDAY_LABELS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 

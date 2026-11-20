@@ -1,5 +1,5 @@
 import { DndContext, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
-import { SWIMLANES, getSwimlaneKey } from '../lib/taskUtils';
+import { SWIMLANES, getSwimlaneKey } from '@summit/core/taskUtils';
 import SwimlaneRow from './SwimlaneRow';
 
 // Swimlane-grouped kanban: urgency lanes (This Week / Next Week / Later /

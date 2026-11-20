@@ -1,21 +1,16 @@
-import { CalendarDays, CheckSquare, Folder, AlertTriangle, Check } from 'lucide-react';
+import { CheckSquare, Folder, AlertTriangle, Check } from 'lucide-react';
 import { AppFrame, TabBar } from '@summit/core';
-import Home from './pages/Home';
 import TaskBoard from './pages/TaskBoard';
 import Projects from './pages/Projects';
 
-// The Planner: Home (calendar + today's focus), Tasks and Projects. Fitness
-// and Eat used to be sections here (merged 2026-08-30) and were split back
-// out into their own apps; Home's timeline still shows their workouts and
-// meals by reading the same shared data, and AppFrame's AppSwitcher links to
-// them.
+// The Planner: Tasks and Projects. The calendar moved to the Summit home screen
+// (apps/portal) on 2026-11-20; Fitness and Eat are their own apps.
 //
 // 2026-09-26: dropped the old always-visible desktop sidebar for the same
 // AppFrame + TabBar shell every other Summit app uses (bottom bar on phone,
 // top pills from `md` up) — one interface across the whole suite instead of
 // Planner being the odd one out.
 const TABS = [
-  { id: 'Home', label: 'Calendar', icon: CalendarDays }, // id stays 'Home' (deep links use it)
   { id: 'Task Dashboard', label: 'Tasks', icon: CheckSquare },
   { id: 'Projects', label: 'Projects', icon: Folder },
 ];
@@ -46,7 +41,6 @@ export default function DailyApp({ section, setSection, toast, loadError, taskPr
           </div>
         )}
 
-        {section === 'Home' && <Home {...taskProps} />}
         {section === 'Task Dashboard' && <TaskBoard {...taskProps} />}
         {section === 'Projects' && <Projects {...taskProps} />}
       </div>

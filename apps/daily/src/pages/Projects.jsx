@@ -9,6 +9,7 @@ export default function Projects({
   tasks,
   projects,
   handleCreateProject,
+  handleUpdateTaskStatus,
   handleRenameProject,
   handleUpdateProjectNotes,
   handleDeleteProject,
@@ -144,6 +145,7 @@ export default function Projects({
                   tasks={tasks}
                   onUpdateNotes={handleUpdateProjectNotes}
                   onOpenTask={onOpenTask}
+                  onRestoreTask={handleUpdateTaskStatus}
                 />
               </CollapsibleCard>
             );

@@ -6,7 +6,8 @@
   "description": "Shared code for the Summit apps (Planner, Fitness, Eat): GitHub data layer, theme, password gate, dark mode, shell pieces. Source-only — each app's Vite build compiles it.",
   "exports": {
     ".": "./src/index.js",
-    "./db": "./src/db.js"
+    "./db": "./src/db.js",
+    "./taskUtils": "./src/taskUtils.js"
   },
   "scripts": {
     "test": "vitest run"

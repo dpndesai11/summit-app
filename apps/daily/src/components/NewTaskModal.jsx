@@ -1,5 +1,5 @@
 import { X } from 'lucide-react';
-import ChecklistEditor from './ChecklistEditor';
+import { ChecklistEditor } from '@summit/core';
 
 export default function NewTaskModal({ taskForm, setTaskForm, onCreate, onClose }) {
   const canSubmit = taskForm.name.trim() && taskForm.targetDate;

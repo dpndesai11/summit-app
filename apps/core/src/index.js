@@ -8,3 +8,8 @@ export { default as TabBar } from './TabBar.jsx';
 export { default as BottomSheet } from './BottomSheet.jsx';
 export { default as ErrorBoundary } from './ErrorBoundary.jsx';
 export { default as useDarkMode } from './useDarkMode.js';
+export { default as TaskDetailModal } from './tasks/TaskDetailModal.jsx';
+export { default as useTaskEngine } from './useTaskEngine.js';
+export * from './taskUtils.js';
+export { default as ChecklistEditor } from './tasks/ChecklistEditor.jsx';
+export { default as TagInput } from './tasks/TagInput.jsx';

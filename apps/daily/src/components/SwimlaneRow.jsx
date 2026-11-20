@@ -23,7 +23,8 @@ export default function SwimlaneRow({ laneId, title, tasks, formatToSwissDate, o
           <KanbanColumn
             key={col.id}
             id={`${laneId}:${col.id}`}
-            title={col.title}
+            title={col.id === 'done' ? 'Done · archives' : col.title}
+            archive={col.id === 'done'}
             tasks={tasks.filter(t => t.status === col.id)}
             formatToSwissDate={formatToSwissDate}
             onOpenTask={onOpenTask}

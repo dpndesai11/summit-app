@@ -1,4 +1,4 @@
-import { EVENT_COLORS, dayMarkers, monthGrid, toISODate } from '../../lib/calendar';
+import { EVENT_COLORS, dayMarkers, monthGrid, toISODate } from './calendar';
 
 const WEEKDAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 const MAX_CHIPS = 2;
@@ -29,9 +29,9 @@ export default function MonthView({ date, selectedISO, todayISO, data, onSelect 
           const isSelected = iso === selectedISO;
           const dots = [
             ...m.events.map(e => EVENT_COLORS[e.color].dot),
-            ...(m.workouts ? ['bg-orange-500'] : []),
-            ...(m.meals ? ['bg-green-600'] : []),
-            ...(m.tasks ? ['bg-primary'] : []),
+            ...(m.workouts ? ['bg-[#d6006e]'] : []),
+            ...(m.meals ? ['bg-emerald-700'] : []),
+            ...(m.tasks ? ['bg-blue-600'] : []),
           ];
           const total = m.events.length + m.workouts + m.meals + m.tasks;
           const label = `${d.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' })}${total ? `, ${total} item${total === 1 ? '' : 's'}` : ''}`;
@@ -71,9 +71,9 @@ export default function MonthView({ date, selectedISO, todayISO, data, onSelect 
                 )}
                 {(m.workouts > 0 || m.meals > 0 || m.tasks > 0) && (
                   <span className="flex items-center gap-1 px-1 pt-0.5">
-                    {m.workouts > 0 && <span className="w-1.5 h-1.5 rounded-full bg-orange-500" />}
-                    {m.meals > 0 && <span className="w-1.5 h-1.5 rounded-full bg-green-600" />}
-                    {m.tasks > 0 && <span className="w-1.5 h-1.5 rounded-full bg-primary" />}
+                    {m.workouts > 0 && <span className="w-1.5 h-1.5 rounded-full bg-[#d6006e]" />}
+                    {m.meals > 0 && <span className="w-1.5 h-1.5 rounded-full bg-emerald-700" />}
+                    {m.tasks > 0 && <span className="w-1.5 h-1.5 rounded-full bg-blue-600" />}
                   </span>
                 )}
               </span>

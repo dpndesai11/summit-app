@@ -140,38 +140,6 @@ export function getTodayFocusTasks(tasks, overdueTasks, dailySelectionsToday, to
   return result;
 }
 
-// Buckets for the weekly review ritual. completedThisWeek relies on the
-// `completedAt` timestamp (set when a task's status becomes 'done'); legacy
-// tasks completed before this field existed simply won't count, which is
-// more honest than guessing from due/target dates.
-export function getWeeklyReviewData(tasks, today = new Date()) {
-  const t0 = startOfDay(today);
-  const wkStart = startOfWeek(t0);
-  const wkEnd = endOfWeek(t0);
-  const nextStart = addDays(wkEnd, 1);
-  const nextEnd = addDays(nextStart, 6);
-
-  const within = (dateStr, a, b) => {
-    if (!dateStr) return false;
-    const d = startOfDay(new Date(dateStr));
-    return d >= a && d <= b;
-  };
-
-  const completedThisWeek = tasks.filter(
-    t => t.isCompleted && t.completedAt && within(t.completedAt, wkStart, wkEnd)
-  );
-  const overdue = tasks.filter(
-    t => !t.isCompleted && t.dueDate && startOfDay(new Date(t.dueDate)) < t0
-  );
-  const comingUpNextWeek = tasks.filter(t => {
-    if (t.isCompleted) return false;
-    const dateStr = t.targetDate || t.dueDate;
-    return within(dateStr, nextStart, nextEnd);
-  });
-
-  return { weekStart: wkStart, weekEnd: wkEnd, completedThisWeek, overdue, comingUpNextWeek };
-}
-
 // Backfills weight/tags/properties/completedAt on tasks (in-memory, same
 // convention as App.jsx's `withStatus`) and migrates any legacy freeform
 // `properties.project` string into a real entry in the `projects` list.

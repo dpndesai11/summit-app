@@ -3,7 +3,7 @@ import {
   addMonths, buildBlocksForDay, groupBlockDays, layoutLanes, dayItems, dayMarkers, eventOccursOn, eventsOnDate, monthGrid, monthTitle,
   normalizeEvent, parseISO, workoutPlanFor, weekDays, weekdayName, weekTitle,
 } from './calendar';
-import { toISODate } from './taskUtils';
+import { toISODate } from '@summit/core/taskUtils';
 
 const ev = (over = {}) => ({ id: 1, title: 'Dentist', date: '2026-10-03', time: '14:00', duration: 45, color: 'blue', repeat: 'none', notes: '', ...over });
 

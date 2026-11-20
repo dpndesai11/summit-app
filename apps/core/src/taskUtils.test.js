@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import {
   toISODate, startOfWeek, endOfWeek, addDays, weightedCompletion,
   getDueBadgeLevel, getSwimlaneKey, filterTasks, getTodayFocusTasks,
-  getWeeklyReviewData, migrateTasksAndProjects,
+  migrateTasksAndProjects,
 } from './taskUtils';
 
 describe('toISODate', () => {
@@ -138,18 +138,6 @@ describe('getTodayFocusTasks', () => {
   it('a completed task only shows if manually picked', () => {
     const result = getTodayFocusTasks(tasks, overdueTasks, [], todayISO);
     expect(result.find(t => t.id === 4)).toBeUndefined();
-  });
-});
-
-describe('getWeeklyReviewData', () => {
-  it('buckets completed-this-week by completedAt, not by due/target date', () => {
-    const today = new Date(2026, 5, 17); // Wednesday
-    const tasks = [
-      { isCompleted: true, completedAt: '2026-06-16T10:00:00.000Z', dueDate: '2020-01-01' },
-      { isCompleted: true, completedAt: null, dueDate: today.toISOString() }, // legacy, no completedAt — excluded
-    ];
-    const { completedThisWeek } = getWeeklyReviewData(tasks, today);
-    expect(completedThisWeek).toHaveLength(1);
   });
 });
 

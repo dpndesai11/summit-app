@@ -2,7 +2,7 @@ import { useRef, useState } from 'react';
 import { Apple, CalendarDays, CheckSquare, ChevronDown, Coffee, CookingPot, Cookie, Dumbbell, Pencil, Sandwich } from 'lucide-react';
 import {
   BLOCK_COLOR_PRESETS, EVENT_COLORS, formatDuration, formatHour, formatTime, minutesToTime, timeToMinutes,
-} from '../../lib/calendar';
+} from './calendar';
 
 const SLOT_ICONS = { breakfast: Coffee, snack1: Apple, lunch: Sandwich, snack2: Cookie, dinner: CookingPot };
 
@@ -174,9 +174,9 @@ export default function DayTimeline({
             // Each kind has its own fill. The primary fills (task, purple event) flip
             // to a light tint in dark mode, so their text flips dark with them.
             const fill = isEvent ? EVENT_COLORS[block.event.color].fill
-              : isWorkout ? 'bg-orange-500 text-white'
-              : isTask ? 'bg-primary text-on-primary'
-              : 'bg-green-600 text-white';
+              : isWorkout ? 'bg-[#d6006e] text-white'
+              : isTask ? 'bg-blue-600 text-white'
+              : 'bg-emerald-700 text-white';
             const Icon = isEvent ? CalendarDays : isWorkout ? Dumbbell : isTask ? CheckSquare : (SLOT_ICONS[block.slot] || CookingPot);
             const expanded = expandedBlock === block.key;
             const showDurationLabel = height >= 44;
@@ -220,7 +220,7 @@ export default function DayTimeline({
                 {isResizing && <div className="text-[11px] text-black dark:text-white mt-0.5">{formatDuration(drag.liveDuration)}</div>}
 
                 {expanded && !isDragging && (
-                  <div className={`mt-1 rounded-xl px-3 py-2 text-xs ${isEvent ? 'bg-primary-soft text-primary' : isWorkout ? 'bg-orange-50 dark:bg-orange-500/10 text-orange-800' : isTask ? 'bg-primary-soft text-primary' : 'bg-green-50 dark:bg-green-500/10 text-green-800'}`}>
+                  <div className={`mt-1 rounded-xl px-3 py-2 text-xs ${isEvent ? 'bg-primary-soft text-primary' : isWorkout ? 'bg-pink-50 dark:bg-pink-500/10 text-black dark:text-white' : isTask ? 'bg-blue-50 dark:bg-blue-500/10 text-black dark:text-white' : 'bg-emerald-50 dark:bg-emerald-500/10 text-black dark:text-white'}`}>
                     {isEvent ? (
                       <div className="space-y-2">
                         {block.event.notes && <p className="whitespace-pre-line">{block.event.notes}</p>}

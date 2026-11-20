@@ -1,33 +1,31 @@
 import { useState, useEffect, useRef } from 'react';
-import { AlertTriangle, Bell, CalendarCheck, Check, X } from 'lucide-react';
+import { AlertTriangle, Bell, Check, X } from 'lucide-react';
 import { CollapsibleCard } from '@summit/core';
-import { toISODate, addDays, getTodayFocusTasks } from '../lib/taskUtils';
+import { TaskDetailModal, toISODate, addDays, getTodayFocusTasks } from '@summit/core';
 import {
   DEFAULT_EVENT_DURATION, addMonths, dayItems, dayTitle, formatTime, formatDuration, monthTitle, normalizeBlockDays,
   parseISO, timeToMinutes, weekDays, weekTitle, weekdayName,
-} from '../lib/calendar';
-import useCalendarData from '../useCalendarData';
-import TaskDetailModal from '../components/TaskDetailModal';
-import WeeklyReview from '../components/WeeklyReview';
-import CalendarHeader from '../components/calendar/CalendarHeader';
-import MonthView from '../components/calendar/MonthView';
-import WeekView from '../components/calendar/WeekView';
-import DayTimeline from '../components/calendar/DayTimeline';
-import AgendaPanel from '../components/calendar/AgendaPanel';
-import DayTaskList from '../components/calendar/DayTaskList';
-import EventSheet from '../components/calendar/EventSheet';
-import RecurringBlocksCard from '../components/calendar/RecurringBlocksCard';
+} from './calendar';
+import useCalendarData from './useCalendarData';
+import CalendarHeader from './CalendarHeader';
+import MonthView from './MonthView';
+import WeekView from './WeekView';
+import DayTimeline from './DayTimeline';
+import AgendaPanel from './AgendaPanel';
+import DayTaskList from './DayTaskList';
+import EventSheet from './EventSheet';
+import RecurringBlocksCard from './RecurringBlocksCard';
 
 // ---------------------------------------------------------------------------
-// Summit Planner — the calendar. Month (a grid with the selected day's agenda
+// Summit home screen — the calendar. Month (a grid with the selected day's agenda
 // beside/below it), Week (seven columns over an hour grid) and Day (the
 // draggable hour timeline). It shows the user's own events (one-off and
 // repeating), the recurring workout/meal plan from Fitness and Eat, tasks that
 // are due or placed on the timeline, and recurring blocks like work hours.
 //
 // Loading/saving lives in useCalendarData.js, the date/event maths in
-// lib/calendar.js. Task data (tasks/projects/dailySelections/weeklyReviewLog)
-// is owned by the top-level App and arrives as props.
+// calendar.js. Task data (tasks/projects/dailySelections) comes from the shared
+// useTaskEngine in the top-level App and arrives as props.
 // ---------------------------------------------------------------------------
 
 // A new event starts at the next whole hour today, or 09:00 on any other day.
@@ -37,19 +35,17 @@ const defaultEventTime = (iso, todayISO) => {
   return `${String(next).padStart(2, '0')}:00`;
 };
 
-export default function Home({
+export default function CalendarPage({
   tasks,
   projects,
   overdueTasks,
   dailySelections,
-  weeklyReviewLog,
   formatToSwissDate,
   handleToggleSubtask,
   handleUpdateTaskStatus,
   handleUpdateTask,
   handleDeleteTask,
   handleToggleDailySelection,
-  handleCompleteWeeklyReview,
   navigateTo,
 }) {
   const cal = useCalendarData();
@@ -345,15 +341,6 @@ export default function Home({
           </div>
         </div>
       )}
-
-      <CollapsibleCard title="Weekly review" icon={CalendarCheck} iconColor="text-primary">
-        <WeeklyReview
-          tasks={tasks}
-          weeklyReviewLog={weeklyReviewLog}
-          formatToSwissDate={formatToSwissDate}
-          onCompleteReview={handleCompleteWeeklyReview}
-        />
-      </CollapsibleCard>
 
       <EventSheet
         open={eventSheet !== null}

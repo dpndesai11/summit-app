@@ -3,7 +3,7 @@ import { dbGet, dbSet, dbRefresh } from '@summit/core/db';
 import {
   DEFAULT_TASK_DURATION, DEFAULT_TASK_TIME, DEFAULT_WORKOUT_DURATION, DEFAULT_WORKOUT_TIME,
   SLOT_DEFAULT_DURATIONS, SLOT_DEFAULT_TIMES, normalizeEvent, normalizeTimeEntry,
-} from './lib/calendar';
+} from './calendar';
 
 // Everything the calendar reads and writes, in one place (same hook pattern as
 // Fitness/Eat/Habits). Workout and meal data belongs to Fitness and Eat and is

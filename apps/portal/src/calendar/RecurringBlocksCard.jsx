@@ -3,7 +3,7 @@ import { Repeat, Plus, Pencil, Trash2, X } from 'lucide-react';
 import { CollapsibleCard } from '@summit/core';
 import {
   BLOCK_COLORS, BLOCK_COLOR_PRESETS, DAYS, formatDuration, formatTime, groupBlockDays, normalizeBlockDays,
-} from '../../lib/calendar';
+} from './calendar';
 
 const DEFAULT_RECURRING_BLOCK = { name: '', color: 'slate', days: {} };
 

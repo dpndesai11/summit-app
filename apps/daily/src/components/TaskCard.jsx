@@ -1,6 +1,6 @@
 import { useDraggable } from '@dnd-kit/core';
 import { CSS } from '@dnd-kit/utilities';
-import { weightedCompletion, getDueBadgeLevel } from '../lib/taskUtils';
+import { weightedCompletion, getDueBadgeLevel } from '@summit/core/taskUtils';
 
 const DUE_BADGE_STYLES = {
   overdue: 'text-danger bg-danger/10',

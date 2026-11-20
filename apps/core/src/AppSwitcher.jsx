@@ -1,13 +1,13 @@
-// Links between the Summit apps. They are separate deployed apps under
+// Links between the Summit apps. `color` is each app's own accent (the dot in
+// the switcher and the tile on the home screen). They are separate deployed apps under
 // one GitHub Pages site, so these are plain links (full page load) — the
 // password unlock (sessionStorage) and dark mode (localStorage) both carry
 // over because everything is on the same origin.
 export const SUMMIT_APPS = [
-  { id: 'portal', label: 'Summit', href: '/summit-app/' },
-  { id: 'daily', label: 'Planner', href: '/summit-app/planner/' },
-  { id: 'fitness', label: 'Fitness', href: '/summit-app/fitness/' },
-  { id: 'eat', label: 'Eat', href: '/summit-app/eat/' },
-  { id: 'habits', label: 'Habits', href: '/summit-app/habits/' },
+  { id: 'portal', label: 'Summit', href: '/summit-app/', color: '#7c3aed' },
+  { id: 'daily', label: 'Planner', href: '/summit-app/planner/', color: '#2563eb' },
+  { id: 'fitness', label: 'Fitness', href: '/summit-app/fitness/', color: '#d6006e' },
+  { id: 'eat', label: 'Eat', href: '/summit-app/eat/', color: '#047857' },
 ];
 
 export default function AppSwitcher({ current, className = '' }) {
@@ -18,12 +18,17 @@ export default function AppSwitcher({ current, className = '' }) {
           key={app.id}
           href={app.href}
           aria-current={app.id === current ? 'page' : undefined}
-          className={`text-[11px] font-medium px-2.5 py-1 rounded-full transition-colors ${
+          className={`flex items-center gap-1.5 text-[11px] font-medium px-2.5 py-1 rounded-full transition-colors ${
             app.id === current
               ? 'bg-primary text-on-primary'
               : 'text-black dark:text-white hover:bg-black/5 dark:hover:bg-violet-400/10'
           }`}
         >
+          <span
+            aria-hidden="true"
+            className="w-2 h-2 rounded-full flex-shrink-0"
+            style={{ backgroundColor: app.id === current ? 'currentColor' : app.color }}
+          />
           {app.label}
         </a>
       ))}

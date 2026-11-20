@@ -1,10 +1,10 @@
 import { CalendarDays, CalendarRange, CheckSquare, ChevronRight, Dumbbell, Plus, UtensilsCrossed } from 'lucide-react';
-import { EVENT_COLORS, formatDuration, formatTime } from '../../lib/calendar';
+import { EVENT_COLORS, formatDuration, formatTime } from './calendar';
 
 const KIND = {
-  workout: { Icon: Dumbbell, bar: 'bg-orange-500', label: 'Workout' },
-  meal: { Icon: UtensilsCrossed, bar: 'bg-green-600', label: 'Meal' },
-  task: { Icon: CheckSquare, bar: 'bg-primary', label: 'Task on the timeline' },
+  workout: { Icon: Dumbbell, bar: 'bg-[#d6006e]', label: 'Workout' },
+  meal: { Icon: UtensilsCrossed, bar: 'bg-emerald-700', label: 'Meal' },
+  task: { Icon: CheckSquare, bar: 'bg-blue-600', label: 'Task on the timeline' },
 };
 
 // The selected day as a plain list, the way a phone calendar's agenda reads:

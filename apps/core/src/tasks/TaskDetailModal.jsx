@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { X, Trash2, Pencil } from 'lucide-react';
-import { weightedCompletion } from '../lib/taskUtils';
+import { weightedCompletion } from '../taskUtils';
 import TaskEditForm from './TaskEditForm';
 
 const STATUS_OPTIONS = [

@@ -1,1 +1,21 @@
 @import "../../core/src/theme.css";
+
+/* Eat's own accent: emerald (Planner is cobalt blue, Fitness hot pink, the Summit
+   home screen brand purple). Everything "primary" in this app reads these
+   variables. White on #047857 is 5.5:1; dark mode flips to a mint with dark text. */
+:root {
+  --primary: #047857;
+  --primary-hover: #065f46;
+  --on-primary: #ffffff;
+  --primary-soft: #d1fae5;
+  --primary-mid: #2fa37a;
+  --primary-low: #a7f3d0;
+}
+.dark {
+  --primary: #34d399;
+  --primary-hover: #6ee7b7;
+  --on-primary: #04210f;
+  --primary-soft: #0e2f23;
+  --primary-mid: #1f9d72;
+  --primary-low: #14513b;
+}
