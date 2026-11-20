@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ChevronLeft, ChevronRight, Ellipsis, MapPin, Plus, Trash2 } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Ellipsis, MapPin, Pencil, Plus, Trash2 } from 'lucide-react';
 import { CollapsibleCard } from '@summit/core';
 import { BottomSheet } from '@summit/core';
 import DaySheet from '../components/DaySheet';
@@ -53,7 +53,7 @@ function ResetWeekSheet({ open, onClose, onApply, options, title }) {
 export default function PlanTab({ w, openDay, setOpenDay }) {
   const {
     templates, plan, routes, todayName, updatePlan, setBuilderOpen, startEditTemplate,
-    setPlannerOpen, deleteRoute, planWeek, setPlanWeek, weekPlans, trainingWeeks, todayISO,
+    setPlannerOpen, deleteRoute, startEditRoute, planWeek, setPlanWeek, weekPlans, trainingWeeks, todayISO,
     planFor, defaultPlan, updateWeekPlans, resetViewedWeekToDefault,
   } = w;
   const [resetOpen, setResetOpen] = useState(false);
@@ -222,6 +222,10 @@ export default function PlanTab({ w, openDay, setOpenDay }) {
                     {r.activity} · {routeDistanceKm(r).toFixed(2)} km · {r.waypoints.length} points
                   </div>
                 </div>
+                <button onClick={() => startEditRoute(r)} aria-label={`Edit ${r.name}`}
+                  className="w-11 h-11 flex items-center justify-center text-black dark:text-white active:text-primary flex-shrink-0">
+                  <Pencil className="w-5 h-5" />
+                </button>
                 <button onClick={() => deleteRoute(r.id)} aria-label={`Delete ${r.name}`}
                   className="w-11 h-11 flex items-center justify-center text-black dark:text-white active:text-danger flex-shrink-0">
                   <Trash2 className="w-5 h-5" />

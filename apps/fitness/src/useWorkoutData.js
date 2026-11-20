@@ -3,7 +3,7 @@ import { addToLibrary, canonicalName, canonicalizeLogs, cleanLabel, seedLibrary 
 import { useState, useEffect } from 'react';
 import { STORAGE_KEYS, DEFAULT_TEMPLATES, DEFAULT_PLAN, DAYS, DEFAULT_WORKOUT_TIME, DEFAULT_WORKOUT_DURATION, normalizeTimeEntry, toISO, dayList, normalizePlan } from './lib/model';
 import { mondayOf } from './lib/stats';
-import { cycleExerciseType, normalizeTemplateExercises, parseExercise } from './lib/exercises';
+import { cycleExerciseType, normalizeTemplateExercises, parseExercise, parseExerciseItem } from './lib/exercises';
 import { computeAllTimeBests, expandLogSets, logVolume, sessionKey, sessionHasProgress, setMetric, lastSetFor, defaultSetInputs } from './lib/stats';
 import useTimer from './useTimer';
 import { dbGet, dbSet, dbRefresh } from '@summit/core/db';
@@ -56,6 +56,7 @@ export default function useWorkoutData() {
   const [cardioSheetOpen, setCardioSheetOpen] = useState(false);
   const [cardioForm, setCardioForm] = useState({ activity: 'Running', duration: 30, distance: 5, routeId: '' });
   const [plannerOpen, setPlannerOpen] = useState(false);
+  const [editingRoute, setEditingRoute] = useState(null); // the route open in the planner, or null for a new one
 
   const todayISO = toISO(new Date());
   const todayName = new Date().toLocaleDateString('en-US', { weekday: 'long' });
@@ -215,11 +216,16 @@ export default function useWorkoutData() {
     const inp = strengthInputs[ik] || defaultSetInputs(isBodyweight, lastSetFor(canonicalName(library, exDef.name), statsLogs));
     const ex = session.exercises[exDef.name] || { sets: [], locked: false };
     if (ex.locked) return;
+    // A rep drill done one side then the other (e.g. "10/side"): one set covers both
+    // sides, and it is marked so it reads "10 reps/side". Timed holds use the timer instead.
+    const p = parseExerciseItem(exDef);
+    const sided = p.perSide && !(p.holdSeconds && isBodyweight);
     const newSet = {
       setNumber: ex.sets.length + 1,
       reps: Number(inp.reps) || 0,
       weight: isBodyweight ? 0 : (Number(inp.weight) || 0),
-      timestamp: Date.now()
+      timestamp: Date.now(),
+      ...(sided ? { perSide: true } : {}),
     };
     patchSession(sKey, s => ({
       ...s,
@@ -384,11 +390,18 @@ export default function useWorkoutData() {
     showToast(selectedRoute ? `${selectedRoute.name} logged` : 'Cardio session logged');
   };
 
+  // Saves a new route, or replaces one being edited (same id). Cardio logs that came
+  // from a route keep their own distance, so editing a route never changes history.
   const saveRoute = (route) => {
-    updateRoutes([...routes, route]);
+    const exists = routes.some(r => r.id === route.id);
+    updateRoutes(exists ? routes.map(r => (r.id === route.id ? route : r)) : [...routes, route]);
     setPlannerOpen(false);
-    showToast(`Route saved · ${(route.distanceMeters / 1000).toFixed(2)} km`);
+    setEditingRoute(null);
+    showToast(`${exists ? 'Route updated' : 'Route saved'} · ${(route.distanceMeters / 1000).toFixed(2)} km`);
   };
+
+  const startEditRoute = (route) => { setEditingRoute(route); setPlannerOpen(true); };
+  const closePlanner = () => { setPlannerOpen(false); setEditingRoute(null); };
 
   const deleteRoute = (id) => updateRoutes(routes.filter(r => r.id !== id));
 
@@ -622,6 +635,9 @@ export default function useWorkoutData() {
     selectedRoute,
     logQuickCardio,
     saveRoute,
+    editingRoute,
+    startEditRoute,
+    closePlanner,
     deleteRoute,
     addDraftExercise,
     addBulkExercises,

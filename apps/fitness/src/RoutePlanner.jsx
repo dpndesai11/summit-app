@@ -1,20 +1,23 @@
 import { useState, useEffect, useRef } from 'react';
-import { X, Undo2, Trash2, ChevronDown, MapPin } from 'lucide-react';
+import { X, Undo2, Trash2, ChevronDown, MapPin, ArrowLeftRight } from 'lucide-react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { routeDistanceMeters } from './lib/geo';
 
 // Full-screen route planner: tap the map to drop waypoints (start, any number
-// of via-points, end), watch the distance update live, then name + save.
+// of via-points, end), watch the distance update live, then name + save. Opened
+// with an existing `route` it edits that one instead: drag any point to move it,
+// add more at the end, undo, reverse the direction, rename, change the activity.
+// Dragging a point is how you fix a route that went down the wrong street.
 // Distance is straight-line between taps — a pragmatic first version; snapping
 // to real roads via a directions API would be the upgrade path.
 
 const FALLBACK_CENTER = [47.3769, 8.5417]; // Zürich — overridden by geolocation when available
 
-export default function RoutePlanner({ activities, onSave, onClose }) {
-  const [waypoints, setWaypoints] = useState([]);
-  const [name, setName] = useState('');
-  const [activity, setActivity] = useState(activities[0] || 'Running');
+export default function RoutePlanner({ activities, route = null, onSave, onClose }) {
+  const [waypoints, setWaypoints] = useState(() => (route ? route.waypoints.map(w => ({ ...w })) : []));
+  const [name, setName] = useState(route ? route.name : '');
+  const [activity, setActivity] = useState(route ? route.activity : (activities[0] || 'Running'));
 
   const mapEl = useRef(null);
   const mapRef = useRef(null);
@@ -30,7 +33,10 @@ export default function RoutePlanner({ activities, onSave, onClose }) {
     map.on('click', (e) => {
       setWaypoints(prev => [...prev, { latitude: e.latlng.lat, longitude: e.latlng.lng }]);
     });
-    if (navigator.geolocation) {
+    if (route && route.waypoints.length > 0) {
+      // Editing: open on the route itself, not on where you are.
+      map.fitBounds(route.waypoints.map(w => [w.latitude, w.longitude]), { padding: [40, 40], maxZoom: 17 });
+    } else if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
         pos => map.setView([pos.coords.latitude, pos.coords.longitude], 15),
         () => {},
@@ -50,13 +56,22 @@ export default function RoutePlanner({ activities, onSave, onClose }) {
     waypoints.forEach((wp, i) => {
       const isStart = i === 0;
       const isEnd = i === waypoints.length - 1 && waypoints.length > 1;
-      L.circleMarker([wp.latitude, wp.longitude], {
-        radius: 6,
-        color: '#fff',
-        weight: 2,
-        fillOpacity: 1,
-        fillColor: isStart ? '#16a34a' : isEnd ? '#dc2626' : '#2563eb'
-      }).addTo(layer);
+      const color = isStart ? '#16a34a' : isEnd ? '#dc2626' : '#2563eb';
+      // A draggable marker with a plain CSS dot (no Leaflet image assets), so any point can be moved.
+      const marker = L.marker([wp.latitude, wp.longitude], {
+        draggable: true,
+        icon: L.divIcon({
+          className: '',
+          html: `<div style="width:20px;height:20px;border-radius:50%;background:${color};border:3px solid #fff;box-shadow:0 0 0 1px rgba(0,0,0,.35)"></div>`,
+          iconSize: [26, 26],
+          iconAnchor: [13, 13],
+        }),
+      });
+      marker.on('dragend', () => {
+        const { lat, lng } = marker.getLatLng();
+        setWaypoints(prev => prev.map((w, j) => (j === i ? { latitude: lat, longitude: lng } : w)));
+      });
+      marker.addTo(layer);
     });
     if (waypoints.length > 1) {
       L.polyline(waypoints.map(wp => [wp.latitude, wp.longitude]), {
@@ -71,12 +86,14 @@ export default function RoutePlanner({ activities, onSave, onClose }) {
   const save = () => {
     if (!canSave) return;
     onSave({
-      id: Date.now(),
+      ...(route || {}),
+      id: route ? route.id : Date.now(),
       name: name.trim(),
       activity,
       waypoints,
       distanceMeters: Math.round(distanceMeters),
-      createdAt: Date.now()
+      createdAt: route ? route.createdAt : Date.now(),
+      ...(route ? { updatedAt: Date.now() } : {}),
     });
   };
 
@@ -86,7 +103,7 @@ export default function RoutePlanner({ activities, onSave, onClose }) {
       <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200 flex-shrink-0">
         <div className="flex items-center gap-2">
           <MapPin className="w-4 h-4 text-blue-500" />
-          <span className="font-semibold text-black text-sm">Plan route</span>
+          <span className="font-semibold text-black text-sm">{route ? 'Edit route' : 'Plan route'}</span>
         </div>
         <button onClick={onClose} className="text-black active:text-black p-1" aria-label="Close route planner">
           <X className="w-5 h-5" />
@@ -100,10 +117,18 @@ export default function RoutePlanner({ activities, onSave, onClose }) {
         <div className="absolute top-3 left-1/2 -translate-x-1/2 z-[1000] bg-gray-900/90 text-white text-xs font-semibold px-3 py-1.5 rounded-full shadow-lg tabular-nums">
           {waypoints.length < 2
             ? `Tap the map to add points (${waypoints.length}/2 min)`
-            : `${(distanceMeters / 1000).toFixed(2)} km · ${waypoints.length} points`}
+            : `${(distanceMeters / 1000).toFixed(2)} km · ${waypoints.length} points${route ? ' · drag a point to move it' : ''}`}
         </div>
         {/* Undo / clear */}
         <div className="absolute bottom-3 right-3 z-[1000] flex flex-col gap-2">
+          <button
+            onClick={() => setWaypoints(p => p.slice().reverse())}
+            disabled={waypoints.length < 2}
+            className="w-10 h-10 bg-white rounded-xl shadow-lg border border-gray-200 flex items-center justify-center text-black disabled:opacity-40 active:bg-gray-100"
+            aria-label="Reverse the route direction"
+          >
+            <ArrowLeftRight className="w-4 h-4" />
+          </button>
           <button
             onClick={() => setWaypoints(p => p.slice(0, -1))}
             disabled={waypoints.length === 0}
@@ -148,7 +173,7 @@ export default function RoutePlanner({ activities, onSave, onClose }) {
           disabled={!canSave}
           className="w-full h-11 bg-blue-600 text-white rounded-xl text-sm font-semibold disabled:opacity-40 active:bg-blue-700"
         >
-          Save route{waypoints.length >= 2 ? ` · ${(distanceMeters / 1000).toFixed(2)} km` : ''}
+          {route ? 'Save changes' : 'Save route'}{waypoints.length >= 2 ? ` · ${(distanceMeters / 1000).toFixed(2)} km` : ''}
         </button>
       </div>
     </div>

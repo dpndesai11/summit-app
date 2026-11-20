@@ -10,6 +10,14 @@ import { normalizeWeeks, weekFor, generateWeeks, upsertWeeks, removeWeek, actual
 
 const daysAgo = (n) => { const d = new Date(); d.setHours(0, 0, 0, 0); d.setDate(d.getDate() - n); return toISO(d); };
 
+describe('formatSetText', () => {
+  it('marks a per-side set', () => {
+    expect(formatSetText({ reps: 10, weight: 0, perSide: true }, true)).toBe('10 reps/side');
+    expect(formatSetText({ weight: 20, reps: 8, perSide: true }, false)).toBe('20kg × 8/side');
+    expect(formatSetText({ weight: 20, reps: 8 }, false)).toBe('20kg × 8');
+  });
+});
+
 describe('log helpers', () => {
   const detailed = { exercise: 'Squat', date: '2026-09-01', setDetails: [{ weight: 100, reps: 5 }, { weight: 110, reps: 3 }] };
   const legacy = { exercise: 'Squat', date: '2026-08-01', weight: 80, sets: 3, reps: 8 };

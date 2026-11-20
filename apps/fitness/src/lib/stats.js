@@ -76,9 +76,9 @@ export const defaultSetInputs = (isBodyweight, last) => (
 export const formatSetText = (s, isBodyweight) => {
   if (isBodyweight) {
     if (Number(s.seconds) > 0 && !(Number(s.reps) > 0)) return `${s.seconds}s${s.perSide ? '/side' : ''}`;
-    return `${s.reps} reps`;
+    return `${s.reps} reps${s.perSide ? '/side' : ''}`;
   }
-  return `${s.weight}kg × ${s.reps}`;
+  return `${s.weight}kg × ${s.reps}${s.perSide ? '/side' : ''}`;
 };
 
 // The Monday-start week containing `today`, one entry per day. Used by the

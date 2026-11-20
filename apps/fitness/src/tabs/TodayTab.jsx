@@ -1,4 +1,5 @@
-import { Plus, Check, Moon, ChevronDown, X, AlertTriangle, Lock, Unlock, Timer as TimerIcon, Activity } from 'lucide-react';
+import { useState } from 'react';
+import { ArrowLeftRight, Plus, Check, Moon, ChevronDown, X, AlertTriangle, Lock, Unlock, Timer as TimerIcon, Activity } from 'lucide-react';
 import { formatSwiss } from '../lib/model';
 import { TYPE_META, parseExerciseItem } from '../lib/exercises';
 import { canonicalName } from '../lib/library';
@@ -16,6 +17,9 @@ const card = 'bg-white dark:bg-[#211b34] rounded-2xl border border-gray-200 dark
 // unfinished sessions, and the rest-day card. Text is plain black/white; state is
 // shown with icons, dots and the violet accent.
 export default function TodayTab({ w, onOpenPlan }) {
+  // Which side a per-side drill is on (0 = first side, 1 = the other), per exercise.
+  // Not saved: it only guides the set you are in the middle of.
+  const [sideStep, setSideStep] = useState({});
   const {
     templates, todayPlan, strengthLogs, statsLogs, library, cardioLogs, sessions, strengthInputs, setStrengthInputs,
     cardioInputs, setCardioInputs, justLogged, expandedWorkouts, setExpandedWorkouts,
@@ -112,6 +116,9 @@ export default function TodayTab({ w, onOpenPlan }) {
     const inp = strengthInputs[k] || defaultSetInputs(isBodyweight, last);
     const setInp = (field, v) => setStrengthInputs(prev => ({ ...prev, [k]: { ...inp, [field]: v } }));
     const timerHere = timer.timer && timer.timer.key === k ? timer.timer : null;
+    // Rep drills done one side then the other ("10/side") step through Left → Next side → Right → Log.
+    const sided = p.perSide && !(isBodyweight && hold);
+    const step = sideStep[k] || 0;
     return (
       <div key={k} className={`bg-white dark:bg-[#211b34] rounded-2xl border-2 p-4 ${meta.cardBorder}`}>
         <div className="flex items-start gap-2.5 mb-1">
@@ -168,13 +175,39 @@ export default function TodayTab({ w, onOpenPlan }) {
             <Stepper label="Reps" value={inp.reps} onChange={v => setInp('reps', v)} />
           </div>
         )}
+        {sided && (
+          <div className="mb-3 rounded-xl border-2 border-primary px-3 py-2 flex items-center justify-between gap-2" aria-live="polite">
+            <span className="text-base font-bold text-black dark:text-white">
+              {step === 0 ? 'Left side' : 'Right side'}
+            </span>
+            <span className="text-sm text-black dark:text-white">
+              {step === 0 ? 'Do your reps, then tap Next side' : 'Now the other side, then log the set'}
+            </span>
+          </div>
+        )}
         <div className="flex gap-2">
           {!(hold && isBodyweight) && (
             <button
-              onClick={() => addSet(session, ex)}
+              onClick={() => {
+                if (!sided) { addSet(session, ex); return; }
+                if (step === 0) { setSideStep(prev => ({ ...prev, [k]: 1 })); return; }
+                addSet(session, ex);
+                setSideStep(prev => ({ ...prev, [k]: 0 }));
+              }}
               className={`flex-1 min-h-[52px] rounded-xl text-base font-bold text-white flex items-center justify-center gap-2 ${meta.logBtn}`}
             >
-              <Plus className="w-5 h-5" /> Add set
+              {!sided ? <><Plus className="w-5 h-5" /> Add set</>
+                : step === 0 ? <><ArrowLeftRight className="w-5 h-5" /> Next side</>
+                : <><Check className="w-5 h-5" /> Log set</>}
+            </button>
+          )}
+          {sided && step === 1 && (
+            <button
+              onClick={() => setSideStep(prev => ({ ...prev, [k]: 0 }))}
+              aria-label="Back to the first side"
+              className="min-h-[52px] px-4 rounded-xl text-base font-bold bg-gray-100 dark:bg-violet-400/10 text-black dark:text-white"
+            >
+              Back
             </button>
           )}
           <button

@@ -26,7 +26,7 @@ export default function App() {
   // The day whose editor is open on the Plan tab (also opened by tapping a day in Today's week strip).
   const [openDay, setOpenDay] = useState(null);
   const w = useWorkoutData();
-  const { toast, isLoading, isRefreshing, refreshFromRemote, loadError, plannerOpen, setPlannerOpen, saveRoute } = w;
+  const { toast, isLoading, isRefreshing, refreshFromRemote, loadError, plannerOpen, closePlanner, editingRoute, saveRoute } = w;
   const title = TABS.find(t => t.id === tab).label;
 
   const refreshButton = (
@@ -85,8 +85,9 @@ export default function App() {
         {plannerOpen && (
           <RoutePlanner
             activities={CARDIO_ACTIVITIES}
+            route={editingRoute}
             onSave={saveRoute}
-            onClose={() => setPlannerOpen(false)}
+            onClose={closePlanner}
           />
         )}
       </div>
