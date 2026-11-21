@@ -7,7 +7,6 @@ import BoardView from '../components/BoardView';
 import PlannerView from '../components/PlannerView';
 import NewTaskModal from '../components/NewTaskModal';
 import FilterBar from '../components/FilterBar';
-import NextBlockCard from '../components/NextBlockCard';
 import SomedayCard from '../components/SomedayCard';
 
 export default function TaskBoard({
@@ -61,8 +60,6 @@ export default function TaskBoard({
 
   return (
     <div className="space-y-6">
-      <NextBlockCard tasks={tasks} projects={projects} onOpenTask={setOpenTaskId} />
-
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div className="bg-white dark:bg-[#211b34] border border-gray-200 dark:border-violet-400/15 rounded-xl p-4 text-center">
           <span className="text-xs text-black dark:text-white block">Completion velocity</span>
