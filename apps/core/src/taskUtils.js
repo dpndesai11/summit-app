@@ -188,3 +188,96 @@ export function migrateTasksAndProjects(rawTasks, rawProjects) {
 
   return { tasks: migratedTasks, projects, forceWrite: createdAny };
 }
+
+// ---------------------------------------------------------------------------
+// Focus rules for the Planner's board (2026-11): at most one in-progress task per
+// project and two in total; ideas parked as "someday" stay off the board; the
+// "Next block" card picks one task and schedules one 2-hour block at a time.
+// ---------------------------------------------------------------------------
+
+export const SOMEDAY_TAG = 'someday';
+// An idea parked for later: a normal todo task carrying the someday tag. Hidden from the
+// board, the planner view and the calendar's lists; shown in the Planner's Someday card.
+export const isSomeday = (task) => (task.tags || []).some(t => String(t).toLowerCase() === SOMEDAY_TAG);
+
+// When a task was last touched (ms): its `updatedAt` stamp (set by every edit and status
+// change), else the creation time baked into its id, else 0 (older, untouched tasks).
+export const taskLastTouched = (task) => {
+  const stamped = Date.parse(task.updatedAt || '');
+  if (!Number.isNaN(stamped)) return stamped;
+  const id = Number(task.id);
+  return id > 1e12 ? id : 0;
+};
+
+const PRIORITY_RANK = { High: 3, Medium: 2, Low: 1 };
+export const priorityRank = (task) => PRIORITY_RANK[task.properties?.priority] || 0;
+
+export const IN_PROGRESS_PER_PROJECT = 1;
+export const IN_PROGRESS_TOTAL = 2;
+const projectKey = (task) => task.properties?.projectId ?? null;
+
+// Can this task move to In Progress? { ok: true } or { ok: false, reason: 'project' | 'total',
+// blocker } where blocker is a task already in progress. Tasks with no project share one group.
+export function checkInProgressLimit(tasks, taskId) {
+  const me = tasks.find(t => t.id === taskId);
+  if (!me) return { ok: true };
+  const active = tasks.filter(t => t.id !== taskId && t.status === 'in_progress' && !isSomeday(t));
+  const sameProject = active.filter(t => projectKey(t) === projectKey(me));
+  if (sameProject.length >= IN_PROGRESS_PER_PROJECT) return { ok: false, reason: 'project', blocker: sameProject[0] };
+  if (active.length >= IN_PROGRESS_TOTAL) return { ok: false, reason: 'total', blocker: active[0] };
+  return { ok: true };
+}
+
+// A gentle message for a refused move.
+export function inProgressLimitMessage(result, projects = []) {
+  const name = (t) => t.name.length > 40 ? `${t.name.slice(0, 40)}…` : t.name;
+  if (result.reason === 'project') {
+    const p = projects.find(x => x.id === projectKey(result.blocker));
+    return `${p ? p.name : 'This group'} already has “${name(result.blocker)}” in progress. Finish it or move it back to To Do first.`;
+  }
+  return `Two cards are already in progress (one is “${name(result.blocker)}”). Finish one or move it back to To Do first.`;
+}
+
+// The one task the "Next block" card offers: the in-progress task touched longest ago; if
+// nothing is in progress, the highest-priority todo task from Academic, else from Portfolio.
+export function pickNextBlock(tasks, projects) {
+  const live = tasks.filter(t => t.status !== 'done' && !t.isCompleted && !isSomeday(t));
+  const inProgress = live.filter(t => t.status === 'in_progress')
+    .sort((a, b) => taskLastTouched(a) - taskLastTouched(b) || a.id - b.id);
+  if (inProgress.length) return { task: inProgress[0], reason: 'in_progress' };
+  for (const name of ['academic', 'portfolio']) {
+    const project = projects.find(p => String(p.name).trim().toLowerCase() === name);
+    if (!project) continue;
+    const todo = live.filter(t => t.status === 'todo' && t.properties?.projectId === project.id)
+      .sort((a, b) => priorityRank(b) - priorityRank(a) || a.id - b.id);
+    if (todo.length) return { task: todo[0], reason: 'todo', project };
+  }
+  return null;
+}
+
+export const NEXT_BLOCK_MINUTES = 120;
+
+// summit_task_times is {[isoDate]: {[taskId]: {time, duration}}}. Put a task's block on one
+// date, removing any other block it had, so a task never has more than one block.
+export function scheduleBlock(taskTimes, taskId, iso, time, duration = NEXT_BLOCK_MINUTES) {
+  const id = String(taskId);
+  const next = {};
+  Object.entries(taskTimes || {}).forEach(([date, entries]) => {
+    const rest = { ...(entries || {}) };
+    delete rest[id];
+    next[date] = rest;
+  });
+  next[iso] = { ...(next[iso] || {}), [id]: { time, duration } };
+  return next;
+}
+
+// The task's block today or later, if it has one: { iso, time, duration } or null.
+export function findScheduledBlock(taskTimes, taskId, fromISO) {
+  const id = String(taskId);
+  const dates = Object.keys(taskTimes || {}).filter(d => d >= fromISO).sort();
+  for (const iso of dates) {
+    const entry = taskTimes[iso]?.[id];
+    if (entry) return { iso, ...(typeof entry === 'string' ? { time: entry, duration: NEXT_BLOCK_MINUTES } : entry) };
+  }
+  return null;
+}

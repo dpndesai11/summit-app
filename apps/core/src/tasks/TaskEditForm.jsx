@@ -24,7 +24,18 @@ export default function TaskEditForm({ task, projects, onSave, onCancel }) {
           value={draft.name}
           onChange={(e) => setField('name', e.target.value)}
           autoFocus
-          className="w-full bg-gray-50 dark:bg-violet-400/5 border border-gray-200 dark:border-violet-400/15 text-black dark:text-white rounded-lg p-2.5 focus:outline-none focus:border-focus-ring"
+          className="w-full bg-gray-50 dark:bg-violet-400/5 border border-gray-200 dark:border-violet-400/15 text-black dark:text-white rounded-lg p-2.5 text-base focus:outline-none focus:border-focus-ring"
+        />
+      </div>
+
+      <div>
+        <label className="block text-xs font-medium text-black dark:text-white mb-1">Next action</label>
+        <input
+          type="text"
+          value={draft.properties?.nextAction || ''}
+          onChange={(e) => setProperty('nextAction', e.target.value)}
+          placeholder="The one concrete step for the next block"
+          className="w-full bg-gray-50 dark:bg-violet-400/5 border border-gray-200 dark:border-violet-400/15 text-black dark:text-white rounded-lg p-2.5 text-base focus:outline-none focus:border-focus-ring"
         />
       </div>
 
@@ -35,7 +46,7 @@ export default function TaskEditForm({ task, projects, onSave, onCancel }) {
             type="date"
             value={draft.dueDate || ''}
             onChange={(e) => setField('dueDate', e.target.value)}
-            className="w-full bg-gray-50 dark:bg-violet-400/5 border border-gray-200 dark:border-violet-400/15 text-black dark:text-white rounded-lg p-2.5 focus:outline-none focus:border-focus-ring"
+            className="w-full bg-gray-50 dark:bg-violet-400/5 border border-gray-200 dark:border-violet-400/15 text-black dark:text-white rounded-lg p-2.5 text-base focus:outline-none focus:border-focus-ring"
           />
         </div>
         <div>
@@ -44,7 +55,7 @@ export default function TaskEditForm({ task, projects, onSave, onCancel }) {
             type="date"
             value={draft.targetDate || ''}
             onChange={(e) => setField('targetDate', e.target.value)}
-            className="w-full bg-gray-50 dark:bg-violet-400/5 border border-gray-200 dark:border-violet-400/15 text-black dark:text-white rounded-lg p-2.5 focus:outline-none focus:border-focus-ring"
+            className="w-full bg-gray-50 dark:bg-violet-400/5 border border-gray-200 dark:border-violet-400/15 text-black dark:text-white rounded-lg p-2.5 text-base focus:outline-none focus:border-focus-ring"
           />
         </div>
       </div>
@@ -54,7 +65,7 @@ export default function TaskEditForm({ task, projects, onSave, onCancel }) {
         <textarea
           value={draft.notes}
           onChange={(e) => setField('notes', e.target.value)}
-          className="w-full bg-gray-50 dark:bg-violet-400/5 border border-gray-200 dark:border-violet-400/15 text-black dark:text-white rounded-lg p-2.5 focus:outline-none focus:border-focus-ring h-20"
+          className="w-full bg-gray-50 dark:bg-violet-400/5 border border-gray-200 dark:border-violet-400/15 text-black dark:text-white rounded-lg p-2.5 text-base focus:outline-none focus:border-focus-ring h-20"
         />
       </div>
 

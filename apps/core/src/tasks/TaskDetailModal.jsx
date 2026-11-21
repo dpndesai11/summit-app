@@ -106,6 +106,13 @@ export default function TaskDetailModal({
                 </div>
               )}
 
+              {task.properties?.nextAction && (
+                <div className="rounded-lg bg-primary-soft p-3">
+                  <span className="text-xs font-bold text-black dark:text-white block mb-0.5">Next action</span>
+                  <p className="text-sm text-black dark:text-white">{task.properties.nextAction}</p>
+                </div>
+              )}
+
               {task.notes && (
                 <div>
                   <span className="text-xs font-medium text-black dark:text-white block mb-1.5">Notes</span>

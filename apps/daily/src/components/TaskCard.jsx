@@ -34,6 +34,14 @@ export default function TaskCard({ task, formatToSwissDate, onOpen }) {
     >
       <div className="text-sm font-medium text-black dark:text-white mb-1.5">{task.name}</div>
 
+      {/* The single concrete step for the next block, shown on in-progress cards. */}
+      {task.status === 'in_progress' && (
+        <div className="mb-2 rounded-md bg-primary-soft px-2 py-1.5 text-xs text-black dark:text-white">
+          <span className="font-bold">Next: </span>
+          {task.properties?.nextAction ? task.properties.nextAction : <span className="font-medium">add a next action (tap the card)</span>}
+        </div>
+      )}
+
       {totalCount > 0 && (
         <div className="mb-2">
           <div className="w-full bg-gray-200 dark:bg-violet-400/10 h-1 rounded-full overflow-hidden">

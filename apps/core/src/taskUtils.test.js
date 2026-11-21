@@ -2,7 +2,8 @@ import { describe, it, expect } from 'vitest';
 import {
   toISODate, startOfWeek, endOfWeek, addDays, weightedCompletion,
   getDueBadgeLevel, getSwimlaneKey, filterTasks, getTodayFocusTasks,
-  migrateTasksAndProjects,
+  migrateTasksAndProjects, isSomeday, taskLastTouched, checkInProgressLimit, inProgressLimitMessage,
+  pickNextBlock, scheduleBlock, findScheduledBlock, NEXT_BLOCK_MINUTES,
 } from './taskUtils';
 
 describe('toISODate', () => {
@@ -168,5 +169,111 @@ describe('migrateTasksAndProjects', () => {
     expect(projects).toHaveLength(1);
     expect(tasks[0].properties.projectId).toBe(42);
     expect(forceWrite).toBe(false);
+  });
+});
+
+// --- focus rules ----------------------------------------------------------------------
+const mk = (id, over = {}) => ({
+  id, name: `Task ${id}`, status: 'todo', isCompleted: false, tags: [], checklist: [],
+  properties: { projectId: 1, priority: null }, ...over,
+});
+const projects = [{ id: 1, name: 'Academic' }, { id: 2, name: 'Portfolio' }];
+
+describe('isSomeday / taskLastTouched', () => {
+  it('recognises the someday tag in any case', () => {
+    expect(isSomeday(mk(1, { tags: ['Someday'] }))).toBe(true);
+    expect(isSomeday(mk(1, { tags: ['academic'] }))).toBe(false);
+    expect(isSomeday({ id: 1 })).toBe(false);
+  });
+  it('uses updatedAt, then the creation time in the id, then 0', () => {
+    expect(taskLastTouched(mk(1795000000000, { updatedAt: '2026-11-01T00:00:00.000Z' }))).toBe(Date.parse('2026-11-01T00:00:00.000Z'));
+    expect(taskLastTouched(mk(1795000000000))).toBe(1795000000000);
+    expect(taskLastTouched(mk(5))).toBe(0);
+  });
+});
+
+describe('checkInProgressLimit', () => {
+  it('allows the first card in a project', () => {
+    expect(checkInProgressLimit([mk(1), mk(2)], 1)).toEqual({ ok: true });
+  });
+  it('refuses a second card in the same project', () => {
+    const tasks = [mk(1, { status: 'in_progress' }), mk(2)];
+    const r = checkInProgressLimit(tasks, 2);
+    expect(r).toMatchObject({ ok: false, reason: 'project' });
+    expect(r.blocker.id).toBe(1);
+    expect(inProgressLimitMessage(r, projects)).toMatch(/Academic already has .*Task 1.* in progress/);
+  });
+  it('allows one card per project, up to two in total', () => {
+    const tasks = [mk(1, { status: 'in_progress' }), mk(2, { properties: { projectId: 2 } })];
+    expect(checkInProgressLimit(tasks, 2)).toEqual({ ok: true });
+  });
+  it('refuses a third card in total, even from a third group', () => {
+    const tasks = [
+      mk(1, { status: 'in_progress' }),
+      mk(2, { status: 'in_progress', properties: { projectId: 2 } }),
+      mk(3, { properties: { projectId: 3 } }),
+    ];
+    const r = checkInProgressLimit(tasks, 3);
+    expect(r).toMatchObject({ ok: false, reason: 'total' });
+    expect(inProgressLimitMessage(r, projects)).toMatch(/Two cards are already in progress/);
+  });
+  it('ignores the moving task itself, done tasks and someday ideas', () => {
+    const tasks = [mk(1, { status: 'in_progress' }), mk(2, { status: 'done' }), mk(3, { tags: ['someday'], status: 'in_progress', properties: { projectId: 2 } })];
+    expect(checkInProgressLimit(tasks, 1)).toEqual({ ok: true });
+    expect(checkInProgressLimit(tasks, 2)).toMatchObject({ ok: false, reason: 'project' });
+  });
+  it('groups tasks with no project together', () => {
+    const tasks = [mk(1, { status: 'in_progress', properties: {} }), mk(2, { properties: {} })];
+    expect(checkInProgressLimit(tasks, 2)).toMatchObject({ ok: false, reason: 'project' });
+  });
+});
+
+describe('pickNextBlock', () => {
+  it('returns null when there is nothing to do', () => {
+    expect(pickNextBlock([], projects)).toBeNull();
+    expect(pickNextBlock([mk(1, { status: 'done' })], projects)).toBeNull();
+  });
+  it('prefers the in-progress task touched longest ago', () => {
+    const tasks = [
+      mk(1, { status: 'in_progress', updatedAt: '2026-11-20T10:00:00.000Z' }),
+      mk(2, { status: 'in_progress', properties: { projectId: 2 }, updatedAt: '2026-11-10T10:00:00.000Z' }),
+      mk(3, { properties: { projectId: 1, priority: 'High' } }),
+    ];
+    const r = pickNextBlock(tasks, projects);
+    expect(r.task.id).toBe(2);
+    expect(r.reason).toBe('in_progress');
+  });
+  it('otherwise takes the highest-priority todo from Academic first', () => {
+    const tasks = [
+      mk(1, { properties: { projectId: 2, priority: 'High' } }),
+      mk(2, { properties: { projectId: 1, priority: 'Medium' } }),
+      mk(3, { properties: { projectId: 1, priority: 'High' } }),
+      mk(4, { properties: { projectId: 1, priority: 'High' } }),
+    ];
+    expect(pickNextBlock(tasks, projects).task.id).toBe(3);
+  });
+  it('falls back to Portfolio when Academic has no todo', () => {
+    const tasks = [mk(1, { properties: { projectId: 2, priority: 'Medium' } }), mk(2, { properties: { projectId: 2, priority: 'High' } })];
+    expect(pickNextBlock(tasks, projects).task.id).toBe(2);
+  });
+  it('skips someday ideas and tasks in other projects', () => {
+    const tasks = [mk(1, { tags: ['someday'] }), mk(2, { properties: { projectId: 9, priority: 'High' } })];
+    expect(pickNextBlock(tasks, projects)).toBeNull();
+  });
+});
+
+describe('scheduleBlock / findScheduledBlock', () => {
+  it('writes one 2-hour block and removes the task\'s other blocks', () => {
+    const before = { '2026-11-22': { 7: { time: '09:00', duration: 30 }, 8: { time: '11:00', duration: 60 } }, '2026-11-23': {} };
+    const next = scheduleBlock(before, 7, '2026-11-28', '10:00');
+    expect(next['2026-11-28']).toEqual({ 7: { time: '10:00', duration: NEXT_BLOCK_MINUTES } });
+    expect(next['2026-11-22']).toEqual({ 8: { time: '11:00', duration: 60 } });
+    expect(before['2026-11-22'][7]).toBeDefined(); // input is not mutated
+  });
+  it('finds a block today or later, earliest first', () => {
+    const times = { '2026-11-10': { 7: { time: '09:00', duration: 60 } }, '2026-11-25': { 7: { time: '10:00', duration: 120 } }, '2026-11-30': { 7: { time: '08:00', duration: 120 } } };
+    expect(findScheduledBlock(times, 7, '2026-11-20')).toEqual({ iso: '2026-11-25', time: '10:00', duration: 120 });
+    expect(findScheduledBlock(times, 8, '2026-11-20')).toBeNull();
+    expect(findScheduledBlock({}, 7, '2026-11-20')).toBeNull();
   });
 });

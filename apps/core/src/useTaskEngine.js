@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import { dbGet, dbSet } from './db.js';
-import { migrateTasksAndProjects, weightedCompletion, toISODate } from './taskUtils.js';
+import {
+  SOMEDAY_TAG, checkInProgressLimit, inProgressLimitMessage, isSomeday, migrateTasksAndProjects, weightedCompletion, toISODate,
+} from './taskUtils.js';
 
 // The tasks / projects / today-focus engine, shared by the Planner (the board and
 // projects pages) and the Summit home screen (the calendar shows tasks too).
@@ -11,6 +13,11 @@ import { migrateTasksAndProjects, weightedCompletion, toISODate } from './taskUt
 // A task moved to Done is archived: `status === 'done'` is the whole rule. The
 // board hides done tasks; they stay on their project and in the Planner's Archive,
 // and moving one back out of Done (restore) brings it onto the board again.
+
+// Focus rules: at most one In Progress task per project and two in total (a move that
+// would break that is refused with a gentle toast); a task with the `someday` tag is an
+// idea parked for later, off the board; every edit stamps `updatedAt` so "last touched"
+// is known.
 
 const STORAGE_KEYS = {
   tasks: 'summit_tasks',
@@ -27,9 +34,9 @@ export default function useTaskEngine() {
   const [loadError, setLoadError] = useState(null);
   const [toast, setToast] = useState(null);
 
-  const showToast = (message, isError = false) => {
+  const showToast = (message, isError = false, ms = 3000) => {
     setToast({ message, isError });
-    setTimeout(() => setToast(null), 3000);
+    setTimeout(() => setToast(null), ms);
   };
 
   const saveToStorage = (key, data) => {
@@ -105,7 +112,7 @@ export default function useTaskEngine() {
   const handleToggleSubtask = (taskId, itemId) => {
     const updated = tasks.map(t => {
       if (t.id === taskId) {
-        return { ...t, checklist: t.checklist.map(item => item.id === itemId ? { ...item, isCompleted: !item.isCompleted } : item) };
+        return { ...t, updatedAt: new Date().toISOString(), checklist: t.checklist.map(item => item.id === itemId ? { ...item, isCompleted: !item.isCompleted } : item) };
       }
       return t;
     });
@@ -113,18 +120,31 @@ export default function useTaskEngine() {
     saveToStorage(STORAGE_KEYS.tasks, updated);
   };
 
+  // Returns false (and shows a gentle toast) when the move would put a second card of a
+  // project, or a third card overall, in progress.
   const handleUpdateTaskStatus = (taskId, newStatus) => {
+    const current = tasks.find(t => t.id === taskId);
+    if (current && current.status !== newStatus && newStatus === 'in_progress') {
+      const check = checkInProgressLimit(tasks, taskId);
+      if (!check.ok) {
+        showToast(inProgressLimitMessage(check, projects), false, 6000);
+        return false;
+      }
+    }
+    const now = new Date().toISOString();
     const updated = tasks.map(t => {
       if (t.id !== taskId) return t;
       return {
         ...t,
         status: newStatus,
         isCompleted: newStatus === 'done',
-        completedAt: newStatus === 'done' ? new Date().toISOString() : null
+        completedAt: newStatus === 'done' ? now : null,
+        updatedAt: now,
       };
     });
     setTasks(updated);
     saveToStorage(STORAGE_KEYS.tasks, updated);
+    return true;
   };
 
   const handleDeleteTask = (taskId) => {
@@ -134,7 +154,28 @@ export default function useTaskEngine() {
   };
 
   const handleUpdateTask = (taskId, updates) => {
-    const updated = tasks.map(t => t.id === taskId ? { ...t, ...updates } : t);
+    const updated = tasks.map(t => t.id === taskId ? { ...t, ...updates, updatedAt: new Date().toISOString() } : t);
+    setTasks(updated);
+    saveToStorage(STORAGE_KEYS.tasks, updated);
+  };
+
+  // Someday: an idea parked as a todo task with the `someday` tag (no dates, no project).
+  const handleAddSomeday = (name) => {
+    if (!name.trim()) return;
+    const idea = {
+      id: Date.now(), name: name.trim(), dueDate: '', targetDate: '', notes: '', isCompleted: false,
+      status: 'todo', completedAt: null, checklist: [], tags: [SOMEDAY_TAG], properties: {},
+    };
+    const updated = [...tasks, idea];
+    setTasks(updated);
+    saveToStorage(STORAGE_KEYS.tasks, updated);
+  };
+
+  // Move an idea onto the board: it keeps being a todo task, just without the tag.
+  const handlePromoteSomeday = (taskId) => {
+    const updated = tasks.map(t => (t.id === taskId
+      ? { ...t, tags: (t.tags || []).filter(x => String(x).toLowerCase() !== SOMEDAY_TAG), updatedAt: new Date().toISOString() }
+      : t));
     setTasks(updated);
     saveToStorage(STORAGE_KEYS.tasks, updated);
   };
@@ -169,7 +210,7 @@ export default function useTaskEngine() {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     return tasks.filter(t => {
-      if (t.isCompleted || !t.dueDate) return false;
+      if (t.isCompleted || isSomeday(t) || !t.dueDate) return false;
       const due = new Date(t.dueDate);
       due.setHours(0, 0, 0, 0);
       return due < today;
@@ -235,6 +276,6 @@ export default function useTaskEngine() {
     getDistributedMilestonesCount, formatToSwissDate, taskForm, setTaskForm,
     handleCreateTask, handleToggleSubtask, handleUpdateTaskStatus, handleUpdateTask,
     handleDeleteTask, handleCreateProject, handleRenameProject, handleUpdateProjectNotes,
-    handleDeleteProject, handleToggleDailySelection,
+    handleDeleteProject, handleToggleDailySelection, handleAddSomeday, handlePromoteSomeday,
   };
 }

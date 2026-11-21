@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { AlertTriangle, Bell, Check, X } from 'lucide-react';
 import { CollapsibleCard } from '@summit/core';
-import { TaskDetailModal, toISODate, addDays, getTodayFocusTasks } from '@summit/core';
+import { TaskDetailModal, toISODate, addDays, getTodayFocusTasks, isSomeday } from '@summit/core';
 import {
   DEFAULT_EVENT_DURATION, addMonths, dayItems, dayTitle, formatTime, formatDuration, monthTitle, normalizeBlockDays,
   parseISO, timeToMinutes, weekDays, weekTitle, weekdayName,
@@ -177,7 +177,7 @@ export default function CalendarPage({
   const selectedToday = dailySelections[todayISO] || [];
   const overdueIds = new Set(overdueTasks.map(t => t.id));
   const focusTasks = getTodayFocusTasks(tasks, overdueTasks, selectedToday, todayISO);
-  const openTasks = tasks.filter(t => !t.isCompleted);
+  const openTasks = tasks.filter(t => !t.isCompleted && !isSomeday(t)); // parked ideas are not focus candidates
   const openTask = tasks.find(t => t.id === openTaskId) || null;
   const otherDaySelections = dailySelections[selectedISO] || [];
   const otherDayTasks = isViewingToday ? [] : tasks.filter(t =>

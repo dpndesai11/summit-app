@@ -2,11 +2,13 @@ import { useState, useEffect } from 'react';
 import { Archive, Plus, RotateCcw } from 'lucide-react';
 import { CollapsibleCard } from '@summit/core';
 import { TaskDetailModal } from '@summit/core';
-import { filterTasks } from '@summit/core/taskUtils';
+import { filterTasks, isSomeday } from '@summit/core/taskUtils';
 import BoardView from '../components/BoardView';
 import PlannerView from '../components/PlannerView';
 import NewTaskModal from '../components/NewTaskModal';
 import FilterBar from '../components/FilterBar';
+import NextBlockCard from '../components/NextBlockCard';
+import SomedayCard from '../components/SomedayCard';
 
 export default function TaskBoard({
   tasks,
@@ -22,6 +24,8 @@ export default function TaskBoard({
   handleUpdateTaskStatus,
   handleUpdateTask,
   handleDeleteTask,
+  handleAddSomeday,
+  handlePromoteSomeday,
   navigateTo,
   pendingNav,
   clearPendingNav,
@@ -48,13 +52,17 @@ export default function TaskBoard({
   const overdueIds = new Set(overdueTasks.map(t => t.id));
   const openTask = tasks.find(t => t.id === openTaskId) || null;
   // Done tasks are archived: off the board, still on their project, restorable below.
-  const archivedTasks = tasks.filter(t => t.status === 'done')
+  // Someday ideas never appear on the board; they live in their own card.
+  const somedayIdeas = tasks.filter(t => isSomeday(t) && t.status !== 'done');
+  const archivedTasks = tasks.filter(t => t.status === 'done' && !isSomeday(t))
     .sort((a, b) => String(b.completedAt || '').localeCompare(String(a.completedAt || '')));
   const projectName = (t) => projects.find(p => p.id === t.properties?.projectId)?.name;
-  const filteredTasks = filterTasks(tasks.filter(t => t.status !== 'done'), filters, projects);
+  const filteredTasks = filterTasks(tasks.filter(t => t.status !== 'done' && !isSomeday(t)), filters, projects);
 
   return (
     <div className="space-y-6">
+      <NextBlockCard tasks={tasks} projects={projects} onOpenTask={setOpenTaskId} />
+
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div className="bg-white dark:bg-[#211b34] border border-gray-200 dark:border-violet-400/15 rounded-xl p-4 text-center">
           <span className="text-xs text-black dark:text-white block">Completion velocity</span>
@@ -73,7 +81,7 @@ export default function TaskBoard({
         <div className="bg-white dark:bg-[#211b34] border border-gray-200 dark:border-violet-400/15 rounded-xl p-4 text-center">
           <span className="text-xs text-black dark:text-white block">Open tasks</span>
           <span className="text-2xl font-display font-extrabold text-black dark:text-white block my-1">
-            {tasks.filter(t => !t.isCompleted).length}
+            {tasks.filter(t => !t.isCompleted && !isSomeday(t)).length}
           </span>
           <span className="text-xs text-black dark:text-white">
             {overdueTasks.length > 0 ? `${overdueTasks.length} overdue` : 'All on schedule'}
@@ -164,6 +172,8 @@ export default function TaskBoard({
           </div>
         )}
       </CollapsibleCard>
+
+      <SomedayCard ideas={somedayIdeas} onAdd={handleAddSomeday} onPromote={handlePromoteSomeday} onDelete={handleDeleteTask} />
 
       <div className="bg-white dark:bg-[#211b34] border border-gray-200 dark:border-violet-400/15 rounded-xl p-5">
         <h3 className="text-sm font-semibold text-black dark:text-white mb-4">14-day load forecast</h3>
