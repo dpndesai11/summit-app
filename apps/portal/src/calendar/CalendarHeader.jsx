@@ -2,14 +2,28 @@ import { ChevronLeft, ChevronRight, RefreshCw } from 'lucide-react';
 
 const VIEWS = [['month', 'Month'], ['week', 'Week'], ['day', 'Day']];
 
-// The calendar's controls: the visible period as a title with previous/next,
-// the Month | Week | Day switch, a jump back to today, and refresh.
+// The category colours used across the calendar (month bars, week/day blocks, agenda).
+const LEGEND = [
+  { label: 'Event', cls: 'bg-primary' },
+  { label: 'Workout', cls: 'bg-[#d6006e]' },
+  { label: 'Meal', cls: 'bg-emerald-700' },
+  { label: 'Task', cls: 'bg-blue-600' },
+];
+
+// The calendar's controls: the visible period as a big title (with a strip in the
+// four category colours) and previous/next, the Month | Week | Day switch, a jump
+// back to today, refresh, and a legend that says what each colour means.
 export default function CalendarHeader({ view, title, onPrev, onNext, onToday, onView, onRefresh, isRefreshing }) {
   const step = view === 'month' ? 'month' : view === 'week' ? 'week' : 'day';
   return (
     <div className="space-y-3">
       <div className="flex items-center gap-1">
-        <h2 className="flex-1 min-w-0 text-xl font-bold text-black dark:text-white truncate">{title}</h2>
+        <div className="flex-1 min-w-0">
+          <h2 className="text-2xl font-display font-extrabold text-black dark:text-white truncate leading-tight">{title}</h2>
+          <div className="flex h-1 w-20 rounded-full overflow-hidden mt-1" aria-hidden="true">
+            {LEGEND.map(l => <span key={l.label} className={`flex-1 ${l.cls}`} />)}
+          </div>
+        </div>
         <button
           onClick={onPrev}
           aria-label={`Previous ${step}`}
@@ -55,6 +69,13 @@ export default function CalendarHeader({ view, title, onPrev, onNext, onToday, o
           <RefreshCw className={`w-5 h-5 ${isRefreshing ? 'animate-spin' : ''}`} />
         </button>
       </div>
+      <ul className="flex flex-wrap items-center gap-x-4 gap-y-1" aria-label="Colour key">
+        {LEGEND.map(l => (
+          <li key={l.label} className="flex items-center gap-1.5 text-xs font-medium text-black dark:text-white">
+            <span className={`w-2.5 h-2.5 rounded-full ${l.cls}`} aria-hidden="true" /> {l.label}
+          </li>
+        ))}
+      </ul>
     </div>
   );
 }
