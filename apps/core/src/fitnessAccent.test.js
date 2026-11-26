@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
-import { ACCENTS, DEFAULT_ACCENT, normalizeAccent, readAccent } from './accent';
+import { ACCENTS, DEFAULT_ACCENT, normalizeAccent, readAccent } from './fitnessAccent';
 
-describe('accent', () => {
+describe('fitness accent', () => {
   it('keeps a known accent and falls back to the default otherwise', () => {
     expect(normalizeAccent('red')).toBe('red');
     expect(normalizeAccent('purple')).toBe(DEFAULT_ACCENT);

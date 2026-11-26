@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { RefreshCw, AlertTriangle, Check, Trophy, CalendarCheck, CalendarDays, TrendingUp, Settings } from 'lucide-react';
 import { AppFrame, TabBar } from '@summit/core';
 import useWorkoutData from './useWorkoutData';
@@ -6,6 +6,7 @@ import CardioSheet from './components/CardioSheet';
 import RoutePlanner from './RoutePlanner';
 import { mondayOf } from './lib/stats';
 import SettingsTab from './tabs/SettingsTab';
+import { applyAccent, syncFitnessAccent } from './lib/accent';
 import TodayTab from './tabs/TodayTab';
 import PlanTab from './tabs/PlanTab';
 import ProgressTab from './tabs/ProgressTab';
@@ -28,6 +29,8 @@ export default function App() {
   // The day whose editor is open on the Plan tab (also opened by tapping a day in Today's week strip).
   const [openDay, setOpenDay] = useState(null);
   const w = useWorkoutData();
+  // Match the colour saved in the shared data (and share one picked here before that existed).
+  useEffect(() => { syncFitnessAccent({ seed: true }).then(a => { if (a) applyAccent(a); }); }, []);
   const { toast, isLoading, isRefreshing, refreshFromRemote, loadError, plannerOpen, closePlanner, editingRoute, saveRoute } = w;
   const title = TABS.find(t => t.id === tab).label;
 

@@ -3,6 +3,7 @@ import { AlertTriangle, CalendarCheck, Check, Dumbbell, Moon, Sun, UtensilsCross
 import { SUMMIT_APPS, useDarkMode, useTaskEngine } from '@summit/core';
 import { dbGet } from '@summit/core/db';
 import logoUrl from './assets/summit-command-center.png';
+import { syncFitnessAccent } from '@summit/core/fitnessAccent';
 import CalendarPage from './calendar/CalendarPage';
 
 const DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
@@ -62,6 +63,9 @@ export default function App() {
   const engine = useTaskEngine();
   const [summaries, setSummaries] = useState(null);
   const now = new Date();
+
+  // Match the Fitness colour picked in Fitness → Settings (on any device).
+  useEffect(() => { syncFitnessAccent(); }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -130,7 +134,7 @@ export default function App() {
               >
                 <span className="flex items-center gap-2">
                   <span className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0" style={{ backgroundColor: app.color }}>
-                    <Icon className="w-4.5 h-4.5 text-white" aria-hidden="true" />
+                    <Icon className="w-4.5 h-4.5" style={{ color: app.onColor || '#ffffff' }} aria-hidden="true" />
                   </span>
                   <span className="text-base font-display font-bold text-black dark:text-white truncate">{app.label}</span>
                 </span>

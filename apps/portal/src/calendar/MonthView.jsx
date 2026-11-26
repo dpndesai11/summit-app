@@ -8,7 +8,7 @@ const barWidth = (total) => Math.min(100, 28 + total * 12);
 
 // A conventional month grid, Monday-start. Each cell is a button: the date
 // (today a bold filled circle, the selected day in a thick ring), a wash of colour
-// by what the day holds (workout pink, your events purple, tasks blue), and a bar
+// by what the day holds (workout in the Fitness colour, your events purple, tasks blue), and a bar
 // along the bottom that is longer on busier days and split by category. From `md`
 // up the cell also lists up to two event titles. Days outside the month sit on a
 // sunken background rather than faded text. Tapping a day selects it; the agenda
@@ -37,12 +37,12 @@ export default function MonthView({ date, selectedISO, todayISO, data, onSelect 
           // Bar segments in a fixed order, sized by how many of each there are.
           const segments = [
             { cls: 'bg-primary', n: m.events.length },
-            { cls: 'bg-[#d6006e]', n: m.workouts },
+            { cls: 'bg-fitness', n: m.workouts },
             { cls: 'bg-blue-600', n: m.tasks },
             { cls: 'bg-emerald-700', n: m.meals },
           ].filter(s => s.n > 0);
           const wash = !inMonth ? 'bg-surface-sunken'
-            : m.workouts ? 'bg-pink-50 dark:bg-pink-500/10'
+            : m.workouts ? 'bg-fitness-soft'
             : m.events.length ? 'bg-primary-soft'
             : m.tasks ? 'bg-blue-50 dark:bg-blue-500/10'
             : 'bg-surface-raised';

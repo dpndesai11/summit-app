@@ -174,7 +174,7 @@ export default function DayTimeline({
             // Each kind has its own fill. The primary fills (task, purple event) flip
             // to a light tint in dark mode, so their text flips dark with them.
             const fill = isEvent ? EVENT_COLORS[block.event.color].fill
-              : isWorkout ? 'bg-[#d6006e] text-white'
+              : isWorkout ? 'bg-fitness text-on-fitness'
               : isTask ? 'bg-blue-600 text-white'
               : 'bg-emerald-700 text-white';
             const Icon = isEvent ? CalendarDays : isWorkout ? Dumbbell : isTask ? CheckSquare : (SLOT_ICONS[block.slot] || CookingPot);
@@ -220,7 +220,7 @@ export default function DayTimeline({
                 {isResizing && <div className="text-[11px] text-black dark:text-white mt-0.5">{formatDuration(drag.liveDuration)}</div>}
 
                 {expanded && !isDragging && (
-                  <div className={`mt-1 rounded-xl px-3 py-2 text-xs ${isEvent ? 'bg-primary-soft text-primary' : isWorkout ? 'bg-pink-50 dark:bg-pink-500/10 text-black dark:text-white' : isTask ? 'bg-blue-50 dark:bg-blue-500/10 text-black dark:text-white' : 'bg-emerald-50 dark:bg-emerald-500/10 text-black dark:text-white'}`}>
+                  <div className={`mt-1 rounded-xl px-3 py-2 text-xs ${isEvent ? 'bg-primary-soft text-primary' : isWorkout ? 'bg-fitness-soft text-black dark:text-white' : isTask ? 'bg-blue-50 dark:bg-blue-500/10 text-black dark:text-white' : 'bg-emerald-50 dark:bg-emerald-500/10 text-black dark:text-white'}`}>
                     {isEvent ? (
                       <div className="space-y-2">
                         {block.event.notes && <p className="whitespace-pre-line">{block.event.notes}</p>}

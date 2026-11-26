@@ -12,7 +12,8 @@ import ExerciseSheet from '../components/ExerciseSheet';
 import RunPaceChart from '../components/RunPaceChart';
 import Sparkline from '../components/Sparkline';
 import StatCard from '../components/StatCard';
-import StreakCalendar, { STREAK_WEEKS } from '../components/StreakCalendar';
+import ConsistencyMap from '../components/ConsistencyMap';
+import { CONSISTENCY_WEEKS } from '../lib/consistency';
 import WeeklyBars from '../components/WeeklyBars';
 
 const fmt = (v) => (Number.isInteger(v) ? String(v) : v.toFixed(1));
@@ -134,14 +135,8 @@ export default function ProgressTab({ w }) {
         )}
       </section>
 
-      <CollapsibleCard title="Consistency" badge={`last ${STREAK_WEEKS} weeks`}>
-        <StreakCalendar strengthLogs={strengthLogs} cardioLogs={cardioLogs} />
-        <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-3 text-sm text-black dark:text-white">
-          <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-sm bg-gray-200 dark:bg-violet-400/20 inline-block" /> None</span>
-          <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-sm bg-primary-low inline-block" /> Cardio</span>
-          <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-sm bg-primary-mid inline-block" /> Strength</span>
-          <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-sm bg-primary inline-block" /> Both</span>
-        </div>
+      <CollapsibleCard title="Consistency" badge={`last ${CONSISTENCY_WEEKS} weeks`}>
+        <ConsistencyMap strengthLogs={strengthLogs} cardioLogs={cardioLogs} />
       </CollapsibleCard>
 
       <CollapsibleCard title="Strength log" icon={Dumbbell} iconColor="text-primary" badge={strengthLogs.length > 0 ? `${strengthLogs.length}` : null}>

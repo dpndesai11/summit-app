@@ -1,3 +1,4 @@
+import './fitnessAccent.js';
 // Links between the Summit apps. `color` is each app's own accent (the dot in
 // the switcher and the tile on the home screen). They are separate deployed apps under
 // one GitHub Pages site, so these are plain links (full page load) — the
@@ -6,7 +7,8 @@
 export const SUMMIT_APPS = [
   { id: 'portal', label: 'Summit', href: '/summit-app/', color: '#7c3aed' },
   { id: 'daily', label: 'Planner', href: '/summit-app/planner/', color: '#2563eb' },
-  { id: 'fitness', label: 'Fitness', href: '/summit-app/fitness/', color: '#d6006e' },
+  // Fitness follows the colour picked in its Settings (see fitnessAccent.js).
+  { id: 'fitness', label: 'Fitness', href: '/summit-app/fitness/', color: 'var(--fitness)', onColor: 'var(--on-fitness)' },
   { id: 'eat', label: 'Eat', href: '/summit-app/eat/', color: '#047857' },
 ];
 

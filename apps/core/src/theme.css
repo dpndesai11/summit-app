@@ -92,7 +92,22 @@
   --color-warning: var(--warning);
   --color-danger: var(--danger);
   --color-on-danger: var(--on-danger);
+  --color-fitness: var(--fitness);
+  --color-on-fitness: var(--on-fitness);
+  --color-fitness-soft: var(--fitness-soft);
 }
+
+/* The Fitness colour (chosen on Fitness → Settings), used wherever Fitness shows
+   up outside the app too: switcher dot, home-screen button, calendar workouts.
+   fitnessAccent.js sets html[data-fitness]; no attribute means graphite + volt. */
+:root { --fitness: #111827; --on-fitness: #ffffff; --fitness-soft: #ecfccb; }
+.dark { --fitness: #c6f432; --on-fitness: #0d1200; --fitness-soft: #28310f; }
+html[data-fitness="red"] { --fitness: #991b1b; --on-fitness: #ffffff; --fitness-soft: #fde4e4; }
+html.dark[data-fitness="red"] { --fitness: #f25555; --on-fitness: #140202; --fitness-soft: #3a1618; }
+html[data-fitness="orange"] { --fitness: #b83d0a; --on-fitness: #ffffff; --fitness-soft: #fde8d8; }
+html.dark[data-fitness="orange"] { --fitness: #f97a1f; --on-fitness: #170800; --fitness-soft: #3a200d; }
+html[data-fitness="pink"] { --fitness: #d6006e; --on-fitness: #ffffff; --fitness-soft: #fdf2f8; }
+html.dark[data-fitness="pink"] { --fitness: #ff69b4; --on-fitness: #2d0618; --fitness-soft: #3d1030; }
 
 /* Montserrat for headings and big numbers (the wordmark's face), Figtree for
    everything else. Loaded by a <link> in each app's index.html; the system

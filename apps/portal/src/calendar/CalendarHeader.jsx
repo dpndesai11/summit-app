@@ -5,7 +5,7 @@ const VIEWS = [['month', 'Month'], ['week', 'Week'], ['day', 'Day']];
 // The category colours used across the calendar (month bars, week/day blocks, agenda).
 const LEGEND = [
   { label: 'Event', cls: 'bg-primary' },
-  { label: 'Workout', cls: 'bg-[#d6006e]' },
+  { label: 'Workout', cls: 'bg-fitness' },
   { label: 'Meal', cls: 'bg-emerald-700' },
   { label: 'Task', cls: 'bg-blue-600' },
 ];

@@ -2,7 +2,7 @@ import { CalendarDays, CalendarRange, CheckSquare, ChevronRight, Dumbbell, Plus,
 import { EVENT_COLORS, formatDuration, formatTime } from './calendar';
 
 const KIND = {
-  workout: { Icon: Dumbbell, bar: 'bg-[#d6006e]', label: 'Workout' },
+  workout: { Icon: Dumbbell, bar: 'bg-fitness', label: 'Workout' },
   meal: { Icon: UtensilsCrossed, bar: 'bg-emerald-700', label: 'Meal' },
   task: { Icon: CheckSquare, bar: 'bg-blue-600', label: 'Task on the timeline' },
 };

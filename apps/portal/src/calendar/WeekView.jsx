@@ -16,7 +16,7 @@ const WEEKDAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 // their text flips with them (that is what `text-on-primary` is for).
 const fillFor = (item) => (
   item.kind === 'event' ? EVENT_COLORS[item.event.color].fill
-    : item.kind === 'workout' ? 'bg-[#d6006e] text-white'
+    : item.kind === 'workout' ? 'bg-fitness text-on-fitness'
     : item.kind === 'task' ? 'bg-blue-600 text-white'
     : 'bg-emerald-700 text-white'
 );
