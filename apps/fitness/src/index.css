@@ -1,27 +1,98 @@
 @import "../../core/src/theme.css";
 
-/* EXPERIMENT (2026-11-19): Fitness in hot pink instead of the design system's
-   purple. Deliberately off-spec, scoped to this app only. Everything that is
-   "primary" in Fitness (tab bar, active chips, filled buttons, session cards,
-   charts, the app-switcher chip) reads these variables, so this block is the
-   whole change. To revert, delete everything below the @import.
-   Contrast: white on #d6006e is 5.1:1 (the pure #ff1493 is only 3.6:1, which
-   fails for text); in dark the fill is #ff69b4 with dark text (6.9:1).
-   Note the PR badges are the design system's magenta, so they sit close to this
-   accent now. */
+/* Fitness "iron" theme (2026-11-26). Deliberately off the design system and scoped to
+   this app only: squarer corners, condensed uppercase headings, neutral (not plum)
+   surfaces, and a colour you pick on the Settings tab (lib/accent.js sets
+   html[data-accent]). Default is graphite + volt. To revert, delete everything below
+   the @import, the Barlow Condensed <link> in index.html and the Settings tab.
+   Contrast (button text): volt 17:1 light / 15:1 dark; red, orange and pink all
+   above 4.5:1. Personal records are gold instead of magenta. */
+@theme {
+  --radius-md: 0.25rem;
+  --radius-lg: 0.25rem;
+  --radius-xl: 0.375rem;
+  --radius-2xl: 0.5rem;
+  --radius-3xl: 0.625rem;
+  --font-display: "Barlow Condensed", "Montserrat", ui-sans-serif, system-ui, sans-serif;
+  /* The shared components tint dark wells and borders with violet-400; make that steel. */
+  --color-violet-400: #94a3b8;
+}
+
 :root {
-  --primary: #d6006e;
-  --primary-hover: #b00058;
+  --surface: #eceef1;
+  --surface-sunken: #e2e5e9;
+  --border: #d5d9df;
+  --border-strong: #6b7280;
+
+  --primary: #111827;
+  --primary-hover: #000000;
   --on-primary: #ffffff;
-  --primary-soft: #ffe0ef;
-  --primary-mid: #e8409a;
-  --primary-low: #ffc2de;
+  --primary-soft: #dfe3e8;
+  --primary-mid: #4b5563;
+  --primary-low: #b6bdc8;
+  --focus-ring: #4d7c0f;
+
+  --accent-ink: #92400e;
+  --brand-magenta: #d97706;
 }
 .dark {
-  --primary: #ff69b4;
-  --primary-hover: #ff8cc6;
-  --on-primary: #2d0618;
-  --primary-soft: #3d1030;
-  --primary-mid: #c24585;
-  --primary-low: #5c1a40;
+  --surface: #0b0c0e;
+  --surface-raised: #16181c;
+  --surface-sunken: #22252b;
+  --border: #2b2f36;
+  --border-strong: #6b7280;
+
+  --primary: #c6f432;
+  --primary-hover: #d7fb62;
+  --on-primary: #0d1200;
+  --primary-soft: #26300d;
+  --primary-mid: #7f9e1c;
+  --primary-low: #3f4f12;
+  --focus-ring: #c6f432;
+
+  --accent-ink: #fbbf24;
+  --brand-magenta: #f59e0b;
 }
+
+/* The other colours. Each overrides only the accent; surfaces and shapes stay. */
+html[data-accent="red"] {
+  --primary: #991b1b; --primary-hover: #7f1d1d; --on-primary: #ffffff;
+  --primary-soft: #f8dcdc; --primary-mid: #c43c3c; --primary-low: #f0b4b4; --focus-ring: #991b1b;
+}
+html.dark[data-accent="red"] {
+  --primary: #f25555; --primary-hover: #f87777; --on-primary: #140202;
+  --primary-soft: #371214; --primary-mid: #a82a2a; --primary-low: #571a1c; --focus-ring: #f25555;
+}
+html[data-accent="orange"] {
+  --primary: #b83d0a; --primary-hover: #943108; --on-primary: #ffffff;
+  --primary-soft: #fbe3d3; --primary-mid: #e0641f; --primary-low: #f6c29f; --focus-ring: #b83d0a;
+}
+html.dark[data-accent="orange"] {
+  --primary: #f97a1f; --primary-hover: #fb9648; --on-primary: #170800;
+  --primary-soft: #3a1e0a; --primary-mid: #b85410; --primary-low: #582c0b; --focus-ring: #f97a1f;
+}
+html[data-accent="pink"] {
+  --primary: #d6006e; --primary-hover: #b00058; --on-primary: #ffffff;
+  --primary-soft: #ffe0ef; --primary-mid: #e8409a; --primary-low: #ffc2de; --focus-ring: #d6006e;
+}
+html.dark[data-accent="pink"] {
+  --primary: #ff69b4; --primary-hover: #ff8cc6; --on-primary: #2d0618;
+  --primary-soft: #3d1030; --primary-mid: #c24585; --primary-low: #5c1a40; --focus-ring: #ff69b4;
+}
+
+/* The shared shell and a few components use literal surface colours; repaint them. */
+html { background-color: #eceef1; }
+html.dark { background-color: #0b0c0e; }
+.bg-\[\#f7f7f5\] { background-color: #eceef1; }
+.dark .dark\:bg-\[\#14101f\] { background-color: #0b0c0e; }
+.dark .dark\:bg-\[\#211b34\] { background-color: #16181c; }
+.dark .dark\:bg-\[\#1c1730\] { background-color: #111316; }
+.dark .dark\:ring-offset-\[\#211b34\] { --tw-ring-offset-color: #16181c; }
+
+/* Headings: tall, condensed, uppercase. */
+h1, h2, h3, .font-display {
+  font-family: var(--font-display);
+  text-transform: uppercase;
+  letter-spacing: 0.025em;
+}
+h1 { font-size: 2.375rem; line-height: 1.05; }

@@ -1,10 +1,11 @@
 import { useState } from 'react';
-import { RefreshCw, AlertTriangle, Check, Trophy, CalendarCheck, CalendarDays, TrendingUp } from 'lucide-react';
+import { RefreshCw, AlertTriangle, Check, Trophy, CalendarCheck, CalendarDays, TrendingUp, Settings } from 'lucide-react';
 import { AppFrame, TabBar } from '@summit/core';
 import useWorkoutData from './useWorkoutData';
 import CardioSheet from './components/CardioSheet';
 import RoutePlanner from './RoutePlanner';
 import { mondayOf } from './lib/stats';
+import SettingsTab from './tabs/SettingsTab';
 import TodayTab from './tabs/TodayTab';
 import PlanTab from './tabs/PlanTab';
 import ProgressTab from './tabs/ProgressTab';
@@ -14,6 +15,7 @@ const TABS = [
   { id: 'today', label: 'Today', icon: CalendarCheck },
   { id: 'plan', label: 'Plan', icon: CalendarDays },
   { id: 'progress', label: 'Progress', icon: TrendingUp },
+  { id: 'settings', label: 'Settings', icon: Settings },
 ];
 
 // Fitness: three tabs over one shared data hook. The data it reads/writes is
@@ -79,6 +81,7 @@ export default function App() {
         {tab === 'today' && <TodayTab w={w} onOpenPlan={(day) => { w.setPlanWeek(mondayOf(w.todayISO)); setOpenDay(day); setTab('plan'); }} />}
         {tab === 'plan' && <PlanTab w={w} openDay={openDay} setOpenDay={setOpenDay} />}
         {tab === 'progress' && <ProgressTab w={w} />}
+        {tab === 'settings' && <SettingsTab />}
 
         <CardioSheet w={w} />
 
