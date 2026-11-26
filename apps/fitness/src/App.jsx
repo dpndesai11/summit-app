@@ -32,7 +32,7 @@ export default function App() {
   // Match the colour saved in the shared data (and share one picked here before that existed).
   useEffect(() => { syncFitnessAccent({ seed: true }).then(a => { if (a) applyAccent(a); }); }, []);
   const { toast, isLoading, isRefreshing, refreshFromRemote, loadError, plannerOpen, closePlanner, editingRoute, saveRoute } = w;
-  const title = TABS.find(t => t.id === tab).label;
+  const title = tab === 'today' ? 'Hi Darsh' : TABS.find(t => t.id === tab).label;
 
   const refreshButton = (
     <button
@@ -81,7 +81,7 @@ export default function App() {
           </div>
         )}
 
-        {tab === 'today' && <TodayTab w={w} onOpenPlan={(day) => { w.setPlanWeek(mondayOf(w.todayISO)); setOpenDay(day); setTab('plan'); }} />}
+        {tab === 'today' && <TodayTab w={w} onOpenPlan={(day) => { w.setPlanWeek(mondayOf(w.todayISO)); setOpenDay(day); setTab('plan'); }} onViewProgress={() => { setTab('progress'); window.scrollTo(0, 0); }} />}
         {tab === 'plan' && <PlanTab w={w} openDay={openDay} setOpenDay={setOpenDay} />}
         {tab === 'progress' && <ProgressTab w={w} />}
         {tab === 'settings' && <SettingsTab />}

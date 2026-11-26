@@ -1,19 +1,19 @@
 @import "../../core/src/theme.css";
 
-/* Fitness "iron" theme (2026-11-26). Deliberately off the design system and scoped to
-   this app only: squarer corners, condensed uppercase headings, neutral (not plum)
+/* Fitness "iron" theme (2026-11-26, softened the same day to match the reference the
+   owner picked): rounded cards, Plus Jakarta Sans in sentence case, neutral near-black
    surfaces, and a colour you pick on the Settings tab (lib/accent.js sets
-   html[data-accent]). Default is graphite + volt. To revert, delete everything below
-   the @import, the Barlow Condensed <link> in index.html and the Settings tab.
+   html[data-accent]). Default is graphite + volt. Deliberately off the design system
+   and scoped to this app. To revert, delete everything below the @import, the Plus
+   Jakarta Sans <link> in index.html and the Settings tab.
    Contrast (button text): volt 17:1 light / 15:1 dark; red, orange and pink all
    above 4.5:1. Personal records are gold instead of magenta. */
 @theme {
-  --radius-md: 0.25rem;
-  --radius-lg: 0.25rem;
-  --radius-xl: 0.375rem;
-  --radius-2xl: 0.5rem;
-  --radius-3xl: 0.625rem;
-  --font-display: "Barlow Condensed", "Montserrat", ui-sans-serif, system-ui, sans-serif;
+  --radius-xl: 0.875rem;
+  --radius-2xl: 1.25rem;
+  --radius-3xl: 1.75rem;
+  --font-display: "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-sans: "Plus Jakarta Sans", Figtree, ui-sans-serif, system-ui, sans-serif;
   /* The shared components tint dark wells and borders with violet-400; make that steel. */
   --color-violet-400: #94a3b8;
 }
@@ -89,10 +89,9 @@ html.dark { background-color: #0b0c0e; }
 .dark .dark\:bg-\[\#1c1730\] { background-color: #111316; }
 .dark .dark\:ring-offset-\[\#211b34\] { --tw-ring-offset-color: #16181c; }
 
-/* Headings: tall, condensed, uppercase. */
+/* Headings: friendly and tight, in sentence case. */
 h1, h2, h3, .font-display {
   font-family: var(--font-display);
-  text-transform: uppercase;
-  letter-spacing: 0.025em;
+  letter-spacing: -0.015em;
 }
-h1 { font-size: 2.375rem; line-height: 1.05; }
+h1 { font-size: 1.875rem; line-height: 1.15; }

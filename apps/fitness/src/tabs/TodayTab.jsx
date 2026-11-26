@@ -9,6 +9,8 @@ import SetDots from '../components/SetDots';
 import TimerPanel from '../components/TimerPanel';
 import WeekStrip from '../components/WeekStrip';
 import BlockBanner from '../components/BlockBanner';
+import { HeroCard, ProgressCard, RecentList, WeekActivity } from '../components/TodayDashboard';
+import { recentDays, todayProgress, weekStats } from '../lib/today';
 
 const card = 'bg-white dark:bg-[#211b34] rounded-2xl border border-gray-200 dark:border-violet-400/15';
 
@@ -16,7 +18,7 @@ const card = 'bg-white dark:bg-[#211b34] rounded-2xl border border-gray-200 dark
 // the quick-list logging (Add set / Lock / Unlock / Complete), recovery cards for
 // unfinished sessions, and the rest-day card. Text is plain black/white; state is
 // shown with icons, dots and the violet accent.
-export default function TodayTab({ w, onOpenPlan }) {
+export default function TodayTab({ w, onOpenPlan, onViewProgress }) {
   // Which side a per-side drill is on (0 = first side, 1 = the other), per exercise.
   // Not saved: it only guides the set you are in the middle of.
   const [sideStep, setSideStep] = useState({});
@@ -26,7 +28,7 @@ export default function TodayTab({ w, onOpenPlan }) {
     dismissedStray, setDismissedStray, resumedStray, setResumedStray, todayISO, todayName,
     plannedTemplates, inputKey, straySessions, patchSession, addSet, addTimedSet,
     removeSetFromSession, lockExercise, unlockExercise, completeWorkout, discardSession,
-    logCardioFromPlan, timer, setCardioForm, setCardioSheetOpen,
+    logCardioFromPlan, timer, setCardioForm, setCardioSheetOpen, getWorkoutDuration,
   } = w;
 
   const renderExerciseCard = (session, template, ex) => {
@@ -234,26 +236,26 @@ export default function TodayTab({ w, onOpenPlan }) {
     const setCount = sessionSetCount(session);
 
     return (
-      <div key={sKey} className={`rounded-2xl overflow-hidden ${stray ? 'ring-2 ring-warning' : ''}`}>
+      <div key={sKey}>
         <button
           onClick={() => setExpandedWorkouts(prev => ({ ...prev, [sKey]: !expanded }))}
           aria-expanded={expanded}
-          className="w-full bg-primary p-4 text-on-primary text-left"
+          className={`block w-full text-left rounded-3xl ${stray ? 'ring-2 ring-warning' : ''}`}
         >
-          <div className="flex items-center justify-between gap-3">
-            <div className="min-w-0">
-              <div className="text-sm font-bold uppercase tracking-wide">
-                {stray ? `Resumed · ${formatSwiss(session.date)}` : todayName}
-              </div>
-              <div className="text-xl font-bold">{template.name}</div>
-              <div className="text-base">
-                {template.exercises.length} exercises
-                {setCount > 0 ? ` · ${setCount} sets logged` : ''}
-                {lockedCount > 0 ? ` · ${lockedCount}/${gymCount} done` : ''}
-              </div>
-            </div>
-            <ChevronDown className={`w-6 h-6 flex-shrink-0 transition-transform ${expanded ? 'rotate-180' : ''}`} />
-          </div>
+          <HeroCard
+            eyebrow={stray ? `Resumed · ${formatSwiss(session.date)}` : `Today’s workout · ${todayName}`}
+            title={template.name}
+            detail={[
+              `${template.exercises.length} exercises`,
+              stray ? null : `${getWorkoutDuration(todayName, template.name)} min`,
+              setCount > 0 ? `${setCount} sets logged` : null,
+              lockedCount > 0 ? `${lockedCount}/${gymCount} done` : null,
+            ].filter(Boolean).join(' · ')}
+            action={<>
+              {expanded ? 'Hide exercises' : setCount > 0 ? 'Continue workout' : 'Start workout'}
+              <ChevronDown className={`w-5 h-5 transition-transform ${expanded ? 'rotate-180' : ''}`} />
+            </>}
+          />
         </button>
         <div className={`grid transition-[grid-template-rows] duration-300 ease-out ${expanded ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]'}`}>
           <div className="overflow-hidden">
@@ -277,24 +279,14 @@ export default function TodayTab({ w, onOpenPlan }) {
   const todaySessions = plannedTemplates
     .map(tpl => sessions.find(s => s.date === todayISO && s.templateName === tpl.name))
     .filter(Boolean);
+  const progress = todayProgress(plannedTemplates, sessions, strengthLogs, cardioLogs, todayISO);
   const cardioOnlyTemplates = plannedTemplates.filter(
     tpl => !tpl.exercises.some(e => e.type !== 'cardio')
   );
 
   return (
-    <div className="space-y-3">
-      <BlockBanner w={w} onEditWeek={() => onOpenPlan?.(null)} />
-      <WeekStrip plan={todayPlan} strengthLogs={strengthLogs} cardioLogs={cardioLogs} onSelectDay={onOpenPlan} />
-
-      <button
-        onClick={() => {
-          setCardioForm(prev => ({ ...prev, routeId: '' }));
-          setCardioSheetOpen(true);
-        }}
-        className="w-full min-h-[52px] rounded-2xl border border-dashed border-primary-mid text-base font-bold text-black dark:text-white flex items-center justify-center gap-2"
-      >
-        <Activity className="w-5 h-5 text-primary" /> Log cardio
-      </button>
+    <div className="space-y-4">
+      <p className="text-base font-medium text-black dark:text-white -mt-2">Ready to train today?</p>
 
       {visibleStrays.filter(s => !resumedStray[sessionKey(s)]).map(s => {
         const sKey = sessionKey(s);
@@ -343,23 +335,40 @@ export default function TodayTab({ w, onOpenPlan }) {
         const pseudo = { date: todayISO, templateName: tpl.name, exercises: {}, activeExercise: null };
         return (
           <div key={tpl.name} className="space-y-3">
-            <div className="bg-primary rounded-2xl p-4 text-on-primary">
-              <div className="text-sm font-bold uppercase tracking-wide">{todayName}</div>
-              <div className="text-xl font-bold">{tpl.name}</div>
-              <div className="text-base">{tpl.exercises.length} cardio exercises</div>
-            </div>
+            <HeroCard
+              eyebrow={`Today’s workout · ${todayName}`}
+              title={tpl.name}
+              detail={`${tpl.exercises.length === 1 ? 'Cardio' : `${tpl.exercises.length} cardio exercises`} · ${getWorkoutDuration(todayName, tpl.name)} min`}
+            />
             {tpl.exercises.map(ex => renderExerciseCard(pseudo, tpl, ex))}
           </div>
         );
       })}
 
       {plannedTemplates.length === 0 && resumedSessions.length === 0 && (
-        <div className={`${card} p-6 text-center`}>
+        <div className={`${card} !rounded-3xl p-6 text-center`}>
           <Moon className="w-7 h-7 text-primary mx-auto mb-2" />
           <div className="text-lg font-bold text-black dark:text-white">Rest day</div>
           <div className="text-base text-black dark:text-white mt-1">Nothing scheduled for {todayName}. Recovery counts too.</div>
         </div>
       )}
+
+      <button
+        onClick={() => {
+          setCardioForm(prev => ({ ...prev, routeId: '' }));
+          setCardioSheetOpen(true);
+        }}
+        className="w-full min-h-[52px] rounded-full border border-dashed border-primary-mid text-base font-bold text-black dark:text-white flex items-center justify-center gap-2"
+      >
+        <Activity className="w-5 h-5 text-primary" /> Log cardio
+      </button>
+
+      {progress.total > 0 && <ProgressCard progress={progress} />}
+
+      <WeekActivity stats={weekStats(strengthLogs, cardioLogs, todayISO)} onViewAll={onViewProgress} />
+      <WeekStrip plan={todayPlan} strengthLogs={strengthLogs} cardioLogs={cardioLogs} onSelectDay={onOpenPlan} />
+      <BlockBanner w={w} onEditWeek={() => onOpenPlan?.(null)} />
+      <RecentList days={recentDays(strengthLogs, cardioLogs)} />
     </div>
   );
 }
