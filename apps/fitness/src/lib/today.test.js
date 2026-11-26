@@ -20,6 +20,18 @@ describe('todayProgress', () => {
   });
 });
 
+describe('todayProgress after Complete', () => {
+  it('reads 100% even if fewer sets than planned were logged', () => {
+    const r = todayProgress(planned, [], [], [], today, new Set(['Upper']));
+    expect(r).toMatchObject({ done: 7, total: 7, percent: 100, exercisesDone: 3 });
+    expect(r.setsLogged).toBe(0); // the real count is not inflated
+  });
+  it('counts real sets again while the workout is reopened for editing', () => {
+    const sessions = [{ date: today, templateName: 'Upper', recalled: {}, exercises: { Bench: { sets: [{}] } } }];
+    expect(todayProgress(planned, sessions, [], [], today, new Set(['Upper'])).done).toBe(1);
+  });
+});
+
 describe('weekStats / recentDays', () => {
   const strength = [{ date: '2026-11-23' }, { date: '2026-11-23' }, { date: '2026-11-16' }];
   const cardio = [{ date: '2026-11-23', activity: 'Running', duration: 30, distance: 5.25 }, { date: '2026-11-22', activity: 'Swimming', duration: 60, distance: 0 }];

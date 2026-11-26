@@ -10,27 +10,36 @@ const plannedSets = (ex) => (ex.type === 'cardio' ? 1 : parseExerciseItem(ex).se
 
 // How far through today's planned workouts you are, counted in sets (a cardio item
 // counts as one). Sets still in an open session and sets already completed both count.
-export const todayProgress = (planned, sessions, strengthLogs, cardioLogs, todayISO) => {
+// A workout you've pressed Complete on (`completed`) is finished, whatever it planned,
+// unless it is open again for editing.
+export const todayProgress = (planned, sessions, strengthLogs, cardioLogs, todayISO, completed = new Set()) => {
   const lifts = strengthLogs.filter(l => l.date === todayISO);
   let cardioLeft = cardioLogs.filter(l => l.date === todayISO).length;
   let done = 0; let total = 0; let exercises = 0; let exercisesDone = 0;
+  let setsLogged = 0; // lifting sets really done, whatever the ring says
   planned.forEach(tpl => {
     const session = sessions.find(s => s.date === todayISO && s.templateName === tpl.name);
+    const finished = completed.has(tpl.name) && !session?.recalled;
     tpl.exercises.forEach(ex => {
       const want = plannedSets(ex);
       let got = 0;
-      if (ex.type === 'cardio') {
+      const loggedSets = () => lifts.filter(l => l.exercise === ex.name).reduce((n, l) => n + logSetCount(l), 0);
+      if (finished) {
+        got = want;
+        if (ex.type !== 'cardio') setsLogged += loggedSets();
+      } else if (ex.type === 'cardio') {
         if (cardioLeft > 0) { got = 1; cardioLeft -= 1; }
       } else {
         const open = session?.exercises?.[ex.name]?.sets?.length || 0;
-        const logged = lifts.filter(l => l.exercise === ex.name).reduce((n, l) => n + logSetCount(l), 0);
-        got = Math.min(want, Math.max(open, logged));
+        const actual = Math.max(open, loggedSets());
+        setsLogged += actual;
+        got = Math.min(want, actual);
       }
       total += want; done += got; exercises += 1;
       if (got >= want) exercisesDone += 1;
     });
   });
-  return { done, total, exercises, exercisesDone, percent: total ? Math.round((done / total) * 100) : 0 };
+  return { done, total, exercises, exercisesDone, setsLogged, percent: total ? Math.round((done / total) * 100) : 0 };
 };
 
 // This Monday-to-Sunday week: days trained, kilometres and cardio minutes.

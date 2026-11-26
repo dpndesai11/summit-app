@@ -11,6 +11,7 @@ import WeekStrip from '../components/WeekStrip';
 import BlockBanner from '../components/BlockBanner';
 import { HeroCard, ProgressCard, RecentList, WeekActivity } from '../components/TodayDashboard';
 import { recentDays, todayProgress, weekStats } from '../lib/today';
+import { completedNames, templateForSession, workoutGroups } from '../lib/completion';
 
 const card = 'bg-white dark:bg-[#211b34] rounded-2xl border border-gray-200 dark:border-violet-400/15';
 
@@ -28,7 +29,7 @@ export default function TodayTab({ w, onOpenPlan, onViewProgress }) {
     dismissedStray, setDismissedStray, resumedStray, setResumedStray, todayISO, todayName,
     plannedTemplates, inputKey, straySessions, patchSession, addSet, addTimedSet,
     removeSetFromSession, lockExercise, unlockExercise, completeWorkout, discardSession,
-    logCardioFromPlan, timer, setCardioForm, setCardioSheetOpen, getWorkoutDuration,
+    logCardioFromPlan, timer, setCardioForm, setCardioSheetOpen, getWorkoutDuration, recallWorkout,
   } = w;
 
   const renderExerciseCard = (session, template, ex) => {
@@ -226,10 +227,8 @@ export default function TodayTab({ w, onOpenPlan, onViewProgress }) {
 
   const renderWorkoutCard = (session, { stray = false } = {}) => {
     const sKey = sessionKey(session);
-    const template = templates.find(t => t.name === session.templateName) || {
-      name: session.templateName,
-      exercises: Object.keys(session.exercises).map(name => ({ name, type: 'weight' }))
-    };
+    const template = templateForSession(session, templates);
+    const editing = Boolean(session.recalled);
     const expanded = !!expandedWorkouts[sKey];
     const gymCount = template.exercises.filter(e => e.type !== 'cardio').length;
     const lockedCount = template.exercises.filter(e => session.exercises[e.name]?.locked).length;
@@ -243,7 +242,8 @@ export default function TodayTab({ w, onOpenPlan, onViewProgress }) {
           className={`block w-full text-left rounded-3xl ${stray ? 'ring-2 ring-warning' : ''}`}
         >
           <HeroCard
-            eyebrow={stray ? `Resumed · ${formatSwiss(session.date)}` : `Today’s workout · ${todayName}`}
+            eyebrow={editing ? `Editing · ${formatSwiss(session.date)}`
+              : stray ? `Resumed · ${formatSwiss(session.date)}` : `Today’s workout · ${todayName}`}
             title={template.name}
             detail={[
               `${template.exercises.length} exercises`,
@@ -252,7 +252,7 @@ export default function TodayTab({ w, onOpenPlan, onViewProgress }) {
               lockedCount > 0 ? `${lockedCount}/${gymCount} done` : null,
             ].filter(Boolean).join(' · ')}
             action={<>
-              {expanded ? 'Hide exercises' : setCount > 0 ? 'Continue workout' : 'Start workout'}
+              {expanded ? 'Hide exercises' : editing ? 'Show exercises' : setCount > 0 ? 'Continue workout' : 'Start workout'}
               <ChevronDown className={`w-5 h-5 transition-transform ${expanded ? 'rotate-180' : ''}`} />
             </>}
           />
@@ -265,8 +265,19 @@ export default function TodayTab({ w, onOpenPlan, onViewProgress }) {
                 onClick={() => completeWorkout(session)}
                 className="w-full min-h-[56px] rounded-xl text-base font-bold bg-success text-on-primary active:bg-success/90 flex items-center justify-center gap-2"
               >
-                <Check className="w-5 h-5" /> Complete workout
+                <Check className="w-5 h-5" /> {editing ? 'Save changes' : 'Complete workout'}
               </button>
+              {editing && (
+                <>
+                  <p className="text-sm text-black dark:text-white">Unlock an exercise to change its sets. Your saved log stays as it was until you save.</p>
+                  <button
+                    onClick={() => discardSession(session)}
+                    className="w-full min-h-[48px] rounded-xl bg-gray-100 dark:bg-violet-400/10 text-base font-bold text-black dark:text-white"
+                  >
+                    Cancel edit
+                  </button>
+                </>
+              )}
             </div>
           </div>
         </div>
@@ -279,7 +290,19 @@ export default function TodayTab({ w, onOpenPlan, onViewProgress }) {
   const todaySessions = plannedTemplates
     .map(tpl => sessions.find(s => s.date === todayISO && s.templateName === tpl.name))
     .filter(Boolean);
-  const progress = todayProgress(plannedTemplates, sessions, strengthLogs, cardioLogs, todayISO);
+  const completed = completedNames(strengthLogs, todayISO);
+  const progress = todayProgress(plannedTemplates, sessions, strengthLogs, cardioLogs, todayISO, completed);
+  // Completed workouts whose card has gone: named on the progress card, with a way back in.
+  const finishedNames = plannedTemplates.map(t => t.name).filter(name => completed.has(name)
+    && !sessions.some(s => s.date === todayISO && s.templateName === name));
+  const editFinished = (name) => {
+    const group = workoutGroups(strengthLogs.filter(l => l.date === todayISO), templates).filter(g => g.name === name).pop();
+    if (group) recallWorkout(group);
+  };
+  const progressCard = progress.total > 0 && (
+    <ProgressCard progress={progress} finished={finishedNames} onEdit={editFinished} />
+  );
+  const allDone = progress.total > 0 && progress.percent === 100;
   const cardioOnlyTemplates = plannedTemplates.filter(
     tpl => !tpl.exercises.some(e => e.type !== 'cardio')
   );
@@ -296,7 +319,7 @@ export default function TodayTab({ w, onOpenPlan, onViewProgress }) {
               <AlertTriangle className="w-5 h-5 text-warning mt-0.5 flex-shrink-0" />
               <div className="min-w-0 flex-1">
                 <div className="text-base font-bold text-black dark:text-white">{s.templateName} · {formatSwiss(s.date)}</div>
-                <div className="text-sm text-black dark:text-white">{sessionSetCount(s)} sets logged, never completed.</div>
+                <div className="text-sm text-black dark:text-white">{s.recalled ? 'You were editing this saved workout. Changes aren’t saved yet.' : `${sessionSetCount(s)} sets logged, never completed.`}</div>
               </div>
               <button
                 onClick={() => setDismissedStray(prev => ({ ...prev, [sKey]: true }))}
@@ -314,18 +337,20 @@ export default function TodayTab({ w, onOpenPlan, onViewProgress }) {
                 }}
                 className="flex-1 min-h-[44px] rounded-xl bg-primary text-on-primary text-base font-bold"
               >
-                Resume
+                {s.recalled ? 'Keep editing' : 'Resume'}
               </button>
               <button
                 onClick={() => discardSession(s)}
                 className="flex-1 min-h-[44px] rounded-xl bg-white dark:bg-[#211b34] border border-warning text-black dark:text-white text-base font-bold"
               >
-                Discard
+                {s.recalled ? 'Cancel edit' : 'Discard'}
               </button>
             </div>
           </div>
         );
       })}
+
+      {allDone && progressCard}
 
       {resumedSessions.map(s => renderWorkoutCard(s, { stray: true }))}
 
@@ -363,7 +388,7 @@ export default function TodayTab({ w, onOpenPlan, onViewProgress }) {
         <Activity className="w-5 h-5 text-primary" /> Log cardio
       </button>
 
-      {progress.total > 0 && <ProgressCard progress={progress} />}
+      {!allDone && progressCard}
 
       <WeekActivity stats={weekStats(strengthLogs, cardioLogs, todayISO)} onViewAll={onViewProgress} />
       <WeekStrip plan={todayPlan} strengthLogs={strengthLogs} cardioLogs={cardioLogs} onSelectDay={onOpenPlan} />

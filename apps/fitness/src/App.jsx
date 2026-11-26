@@ -83,7 +83,7 @@ export default function App() {
 
         {tab === 'today' && <TodayTab w={w} onOpenPlan={(day) => { w.setPlanWeek(mondayOf(w.todayISO)); setOpenDay(day); setTab('plan'); }} onViewProgress={() => { setTab('progress'); window.scrollTo(0, 0); }} />}
         {tab === 'plan' && <PlanTab w={w} openDay={openDay} setOpenDay={setOpenDay} />}
-        {tab === 'progress' && <ProgressTab w={w} />}
+        {tab === 'progress' && <ProgressTab w={w} onRecall={() => { setTab('today'); window.scrollTo(0, 0); }} />}
         {tab === 'settings' && <SettingsTab />}
 
         <CardioSheet w={w} />

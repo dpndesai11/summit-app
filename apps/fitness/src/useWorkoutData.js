@@ -1,4 +1,5 @@
 import { normalizeWeeks } from './lib/training';
+import { completedNames, recallBlocker, replaceLogs, sessionFromGroup, templateForSession } from './lib/completion';
 import { addToLibrary, canonicalName, canonicalizeLogs, cleanLabel, seedLibrary } from './lib/library';
 import { useState, useEffect } from 'react';
 import { STORAGE_KEYS, DEFAULT_TEMPLATES, DEFAULT_PLAN, DAYS, DEFAULT_WORKOUT_TIME, DEFAULT_WORKOUT_DURATION, normalizeTimeEntry, toISO, dayList, normalizePlan } from './lib/model';
@@ -185,10 +186,12 @@ export default function useWorkoutData() {
 
   useEffect(() => {
     if (isLoading) return;
+    // A workout completed today gets no fresh empty session, so its card goes away.
+    const completed = completedNames(strengthLogs, todayISO);
     let next = sessions.filter(s =>
-      (s.date === todayISO && plannedNames.includes(s.templateName)) || sessionHasProgress(s)
+      (s.date === todayISO && plannedNames.includes(s.templateName) && !completed.has(s.templateName)) || sessionHasProgress(s)
     );
-    plannedTemplates.forEach(tpl => {
+    plannedTemplates.filter(tpl => !completed.has(tpl.name)).forEach(tpl => {
       const firstGym = tpl.exercises.find(e => e.type !== 'cardio');
       if (!firstGym) return;
       if (!next.some(s => s.date === todayISO && s.templateName === tpl.name)) {
@@ -198,7 +201,7 @@ export default function useWorkoutData() {
     const keysOf = (arr) => arr.map(sessionKey).sort().join('|');
     if (keysOf(next) !== keysOf(sessions)) updateSessions(next);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isLoading, todayPlan, templates, sessions]);
+  }, [isLoading, todayPlan, templates, sessions, strengthLogs]);
 
   const straySessions = sessions.filter(s =>
     !(s.date === todayISO && plannedNames.includes(s.templateName)) && sessionHasProgress(s)
@@ -296,21 +299,26 @@ export default function useWorkoutData() {
   };
 
   const completeWorkout = (session) => {
-    const template = templates.find(t => t.name === session.templateName);
+    const template = templateForSession(session, templates);
+    const replaced = session.recalled?.logIds || [];
+    const workoutId = session.recalled?.workoutId || Date.now();
     const entries = Object.entries(session.exercises)
       .filter(([, ex]) => ex.sets.length > 0)
       .map(([exercise, ex]) => ({
         id: Date.now() + Math.random(),
         date: session.date,
         exercise,
+        workout: session.templateName,
+        workoutId,
         type: template?.exercises.find(e => e.name === exercise)?.type === 'bodyweight' ? 'bodyweight' : 'weight',
         setDetails: ex.sets
       }));
     if (entries.length === 0) {
-      showToast('No sets recorded — nothing to complete', true);
+      showToast(session.recalled ? 'No sets left. Cancel the edit, or delete entries in the Strength log.' : 'No sets recorded — nothing to complete', true);
       return;
     }
-    const prMessages = entries
+    // Saving an edit isn't a new personal record.
+    const prMessages = session.recalled ? [] : entries
       .map(entry => {
         const bestNow = entry.setDetails.reduce((m, s) => Math.max(m, setMetric(s, entry.type)), 0);
         const prior = allTimeBests[canonicalName(library, entry.exercise)];
@@ -321,18 +329,36 @@ export default function useWorkoutData() {
       })
       .filter(Boolean);
 
-    updateStrengthLogs([...strengthLogs, ...entries]);
+    updateStrengthLogs(replaceLogs(strengthLogs, replaced, entries));
     updateSessions(sessions.filter(s => sessionKey(s) !== sessionKey(session)));
     setResumedStray(p => ({ ...p, [sessionKey(session)]: false }));
     setExpandedWorkouts(p => ({ ...p, [sessionKey(session)]: false }));
     if (prMessages.length > 0) {
       showToast(`New PR! ${prMessages.join(', ')}`, false, true);
     } else {
-      showToast('Workout complete!');
+      showToast(session.recalled ? 'Changes saved' : 'Workout complete!');
     }
   };
 
+  // Reopen a saved workout to fix a mistake. History is untouched until it is saved.
+  // Returns false if it can't be opened.
+  const recallWorkout = (group) => {
+    if (recallBlocker(sessions, group, sessionHasProgress)) {
+      showToast(`Finish or discard your open ${group.name} sets first.`, true);
+      return false;
+    }
+    const key = sessionKey({ date: group.date, templateName: group.name });
+    if (!sessions.some(s => sessionKey(s) === key && s.recalled)) {
+      updateSessions([...sessions.filter(s => sessionKey(s) !== key), sessionFromGroup(group)]);
+    }
+    setResumedStray(p => ({ ...p, [key]: true }));
+    setDismissedStray(p => ({ ...p, [key]: false }));
+    setExpandedWorkouts(p => ({ ...p, [key]: true }));
+    return true;
+  };
+
   const discardSession = (session) => {
+    if (session.recalled) showToast('Edit cancelled. Your log is unchanged.');
     updateSessions(sessions.filter(s => sessionKey(s) !== sessionKey(session)));
     setResumedStray(p => ({ ...p, [sessionKey(session)]: false }));
   };
@@ -629,6 +655,7 @@ export default function useWorkoutData() {
     unlockExercise,
     completeWorkout,
     discardSession,
+    recallWorkout,
     updateLogSet,
     deleteLogSet,
     logCardioFromPlan,

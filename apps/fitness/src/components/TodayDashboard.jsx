@@ -1,4 +1,4 @@
-import { Activity, Check, CalendarCheck, Dumbbell, Route, Timer } from 'lucide-react';
+import { Activity, Check, CalendarCheck, Dumbbell, Pencil, Route, Timer } from 'lucide-react';
 
 const panel = 'bg-white dark:bg-[#211b34] rounded-3xl border border-gray-200 dark:border-violet-400/15';
 
@@ -47,7 +47,7 @@ const Tile = ({ icon: Icon, value, label, surface = WELL }) => (
 );
 
 // A half ring that fills with today's sets.
-export function ProgressCard({ progress }) {
+export function ProgressCard({ progress, finished = [], onEdit }) {
   const arc = 'M 14 96 A 86 86 0 0 1 186 96';
   return (
     <div className={`${panel} p-4`}>
@@ -65,9 +65,23 @@ export function ProgressCard({ progress }) {
         </div>
       </div>
       <div className="grid grid-cols-2 gap-2 mt-4">
-        <Tile icon={Check} value={`${progress.done}/${progress.total}`} label="sets" />
+        {finished.length > 0 && progress.percent === 100
+          ? <Tile icon={Check} value={progress.setsLogged} label={progress.setsLogged === 1 ? 'set logged' : 'sets logged'} />
+          : <Tile icon={Check} value={`${progress.done}/${progress.total}`} label="sets" />}
         <Tile icon={Dumbbell} value={`${progress.exercisesDone}/${progress.exercises}`} label="exercises" />
       </div>
+      {finished.map(name => (
+        <div key={name} className="flex items-center gap-3 mt-3" aria-live="polite">
+          <span className="w-8 h-8 rounded-full bg-primary text-on-primary flex items-center justify-center flex-shrink-0">
+            <Check className="w-5 h-5" aria-hidden="true" />
+          </span>
+          <span className="flex-1 min-w-0 text-base font-bold text-black dark:text-white">{name} completed</span>
+          <button onClick={() => onEdit(name)} aria-label={`Edit ${name}`}
+            className="min-h-[44px] px-4 rounded-full bg-gray-100 dark:bg-violet-400/10 text-sm font-bold text-black dark:text-white flex items-center gap-1.5">
+            <Pencil className="w-4 h-4" aria-hidden="true" /> Edit
+          </button>
+        </div>
+      ))}
     </div>
   );
 }

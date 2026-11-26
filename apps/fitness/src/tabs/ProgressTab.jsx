@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Activity, ChevronDown, ChevronRight, Dumbbell, Download, Gauge, Route, Search, Timer, Trash2, Trophy } from 'lucide-react';
+import { Activity, Pencil, ChevronDown, ChevronRight, Dumbbell, Download, Gauge, Route, Search, Timer, Trash2, Trophy } from 'lucide-react';
 import { CollapsibleCard } from '@summit/core';
 import { formatSwiss, toISO } from '../lib/model';
 import { parseExercise } from '../lib/exercises';
@@ -12,6 +12,7 @@ import ExerciseSheet from '../components/ExerciseSheet';
 import RunPaceChart from '../components/RunPaceChart';
 import Sparkline from '../components/Sparkline';
 import StatCard from '../components/StatCard';
+import { workoutGroups } from '../lib/completion';
 import ConsistencyMap from '../components/ConsistencyMap';
 import { CONSISTENCY_WEEKS } from '../lib/consistency';
 import WeeklyBars from '../components/WeeklyBars';
@@ -21,10 +22,10 @@ const card = 'bg-white dark:bg-[#211b34] rounded-2xl border border-gray-200 dark
 
 // Progress: lifetime numbers, a weekly chart, a trend line for every exercise
 // you've logged, the consistency heatmap, and the full editable log history.
-export default function ProgressTab({ w }) {
+export default function ProgressTab({ w, onRecall }) {
   const {
     strengthLogs, statsLogs, cardioLogs, expandedLogId, setExpandedLogId, updateStrengthLogs, updateCardioLogs,
-    updateLogSet, deleteLogSet, totalVolume, totalCardioMin, trainingWeeks,
+    updateLogSet, deleteLogSet, totalVolume, totalCardioMin, trainingWeeks, templates, recallWorkout,
   } = w;
   const [query, setQuery] = useState('');
   const [showAll, setShowAll] = useState(false);
@@ -147,8 +148,19 @@ export default function ProgressTab({ w }) {
             {groupByDate(strengthLogs).map(([date, logs]) => (
               <div key={date}>
                 <div className="text-sm font-bold text-black dark:text-white mb-1.5">{formatSwiss(date)}</div>
-                <div className="space-y-1.5">
-                  {logs.map(l => {
+                {workoutGroups(logs, templates).map(group => (
+                <div key={group.key} className="space-y-1.5 mb-3 last:mb-0">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-base font-bold text-black dark:text-white min-w-0 truncate">{group.name}</span>
+                    <button
+                      onClick={() => { if (recallWorkout(group)) onRecall(); }}
+                      aria-label={`Edit ${group.name} from ${formatSwiss(date)}`}
+                      className="min-h-[44px] px-4 rounded-full bg-primary text-on-primary text-sm font-bold flex items-center gap-1.5 flex-shrink-0"
+                    >
+                      <Pencil className="w-4 h-4" aria-hidden="true" /> Edit workout
+                    </button>
+                  </div>
+                  {group.logs.map(l => {
                     const sets = expandLogSets(l);
                     const expanded = expandedLogId === l.id;
                     const type = logType(l);
@@ -198,6 +210,7 @@ export default function ProgressTab({ w }) {
                     );
                   })}
                 </div>
+                ))}
               </div>
             ))}
           </div>
