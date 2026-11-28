@@ -1,15 +1,14 @@
-import { CalendarDays, CalendarRange, CheckSquare, ChevronRight, Dumbbell, Plus, UtensilsCrossed } from 'lucide-react';
+import { CalendarDays, CalendarRange, CheckSquare, ChevronRight, Dumbbell, Plus } from 'lucide-react';
 import { EVENT_COLORS, formatDuration, formatTime } from './calendar';
 
 const KIND = {
   workout: { Icon: Dumbbell, bar: 'bg-fitness', label: 'Workout' },
-  meal: { Icon: UtensilsCrossed, bar: 'bg-emerald-700', label: 'Meal' },
   task: { Icon: CheckSquare, bar: 'bg-blue-600', label: 'Task on the timeline' },
 };
 
 // The selected day as a plain list, the way a phone calendar's agenda reads:
 // all-day items first, then everything in start order, each a big tap target.
-// Events open the editor, tasks open their detail, and workouts/meals open the
+// Events open the editor, tasks open their detail, and workouts open the
 // Day view (where they can be dragged to a new time). `children` is whatever
 // belongs underneath — the day's tasks and the collapsed management cards.
 export default function AgendaPanel({ title, subtitle, items, onAddEvent, onOpenDay, onEditEvent, onOpenTask, children }) {

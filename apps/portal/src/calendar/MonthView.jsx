@@ -31,15 +31,12 @@ export default function MonthView({ date, selectedISO, todayISO, data, onSelect 
           const inMonth = d.getMonth() === month;
           const isToday = iso === todayISO;
           const isSelected = iso === selectedISO;
-          const total = m.events.length + m.workouts + m.meals + m.tasks;
-          // Meals are planned every day, so they count in the bar but never decide whether there is one.
-          const notable = m.events.length + m.workouts + m.tasks;
+          const total = m.events.length + m.workouts + m.tasks;
           // Bar segments in a fixed order, sized by how many of each there are.
           const segments = [
             { cls: 'bg-primary', n: m.events.length },
             { cls: 'bg-fitness', n: m.workouts },
             { cls: 'bg-blue-600', n: m.tasks },
-            { cls: 'bg-emerald-700', n: m.meals },
           ].filter(s => s.n > 0);
           const wash = !inMonth ? 'bg-surface-sunken'
             : m.workouts ? 'bg-fitness-soft'
@@ -64,7 +61,7 @@ export default function MonthView({ date, selectedISO, todayISO, data, onSelect 
                 {d.getDate()}
               </span>
 
-              {/* Desktop: event titles, then the recurring workout/meal/task markers. */}
+              {/* Desktop: event titles, then the busyness bar. */}
               <span className="hidden md:flex flex-col gap-0.5 min-w-0">
                 {m.events.slice(0, MAX_CHIPS).map(e => (
                   <span key={e.id} className={`block truncate rounded px-1 py-0.5 text-[11px] font-medium ${EVENT_COLORS[e.color].fill}`}>
@@ -77,11 +74,11 @@ export default function MonthView({ date, selectedISO, todayISO, data, onSelect 
               </span>
 
               {/* The busyness bar: longer on busier days, split by category. */}
-              {notable > 0 && (
+              {total > 0 && (
                 <span
                   aria-hidden="true"
                   className="mt-auto h-1.5 rounded-full overflow-hidden flex"
-                  style={{ width: `${barWidth(notable)}%` }}
+                  style={{ width: `${barWidth(total)}%` }}
                 >
                   {segments.map(s => <span key={s.cls} className={s.cls} style={{ flexGrow: s.n }} />)}
                 </span>

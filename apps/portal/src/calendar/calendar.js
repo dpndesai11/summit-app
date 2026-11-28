@@ -2,10 +2,9 @@ import { toISODate, startOfWeek, addDays } from '@summit/core/taskUtils';
 
 // Pure calendar maths for the Planner — date grids, the user's own events
 // (one-off and repeating), and merging everything that happens on a date
-// (events, workouts, meals, scheduled tasks) into one list. No React, no I/O.
+// (events, workouts, scheduled tasks) into one list. No React, no I/O.
 
 export const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
-export const SLOTS = ['breakfast', 'snack1', 'lunch', 'snack2', 'dinner'];
 
 // --- Time helpers --------------------------------------------------------------
 export const timeToMinutes = (hhmm) => {
@@ -37,11 +36,9 @@ export const formatDuration = (mins) => {
   return m === 0 ? `${h}h` : `${h}h ${m}m`;
 };
 
-// --- Stored-shape normalizers (workouts / meals / recurring blocks) -------------
+// --- Stored-shape normalizers (workouts / recurring blocks) -------------
 export const DEFAULT_WORKOUT_TIME = '07:00';
 export const DEFAULT_WORKOUT_DURATION = 60;
-export const SLOT_DEFAULT_TIMES = { breakfast: '08:00', snack1: '11:00', lunch: '13:00', snack2: '16:00', dinner: '19:00' };
-export const SLOT_DEFAULT_DURATIONS = { breakfast: 20, snack1: 10, lunch: 30, snack2: 10, dinner: 45 };
 // A newly-scheduled task lands here until dragged elsewhere.
 export const DEFAULT_TASK_TIME = '09:00';
 export const DEFAULT_TASK_DURATION = 30;
@@ -59,12 +56,6 @@ export const dayList = (v) => {
   if (typeof v === 'string' && v && v !== 'Rest Day' && v !== 'None') return [v];
   return [];
 };
-export const slotList = (v) => {
-  if (Array.isArray(v)) return v.filter(n => typeof n === 'string' && n.trim());
-  if (typeof v === 'string' && v.trim()) return [v];
-  return [];
-};
-
 // Recurring blocks: per-day {time, duration}. The first version stored one
 // time and an array of day names; read that as the per-day shape too.
 export const normalizeBlockDays = (b) => {
@@ -186,11 +177,11 @@ export const workoutPlanFor = (data, iso) => {
 };
 
 // --- Everything on one date ----------------------------------------------------
-// Timed blocks for workouts (recurring by weekday), meals (one per slot) and
+// Timed blocks for workouts (recurring by weekday) and
 // tasks placed on the timeline (keyed by real date). `data` carries the
 // stored state; this is the old Home.buildBlocksForDay, made pure.
 export const buildBlocksForDay = (data, dayName, iso) => {
-  const { templates = [], workoutTimes = {}, recipes = [], mealPlan = {}, mealTimes = {}, taskTimes = {}, tasks = [] } = data;
+  const { templates = [], workoutTimes = {}, taskTimes = {}, tasks = [] } = data;
   const workoutBlocks = dayList(workoutPlanFor(data, iso)[dayName])
     .map(name => templates.find(t => t.name === name))
     .filter(Boolean)
@@ -198,16 +189,6 @@ export const buildBlocksForDay = (data, dayName, iso) => {
       const entry = normalizeTimeEntry(workoutTimes[dayName]?.[tpl.name], DEFAULT_WORKOUT_TIME, DEFAULT_WORKOUT_DURATION);
       return { kind: 'workout', key: `w::${tpl.name}`, title: tpl.name, time: entry.time, duration: entry.duration, exercises: tpl.exercises || [] };
     });
-
-  // One block per SLOT, not per recipe: a slot has a single time/duration, so
-  // several recipes in it (a meal plus a side) are one block listing them all.
-  const mealBlocks = SLOTS.flatMap(slot => {
-    const names = slotList(mealPlan[dayName]?.[slot]);
-    if (names.length === 0) return [];
-    const entry = normalizeTimeEntry(mealTimes[dayName]?.[slot], SLOT_DEFAULT_TIMES[slot], SLOT_DEFAULT_DURATIONS[slot]);
-    const slotRecipes = names.map(name => recipes.find(r => r.name === name)).filter(Boolean);
-    return [{ kind: 'meal', key: `m::${slot}`, title: names.join(' + '), slot, time: entry.time, duration: entry.duration, recipes: slotRecipes }];
-  });
 
   // Tasks only appear once explicitly added to the timeline ("Add to timeline").
   const dayTaskTimes = taskTimes[iso] || {};
@@ -218,11 +199,11 @@ export const buildBlocksForDay = (data, dayName, iso) => {
     return { kind: 'task', key: `t::${taskId}`, title: task.name, taskId, time: entry.time, duration: entry.duration, task };
   }).filter(Boolean);
 
-  return [...workoutBlocks, ...mealBlocks, ...taskBlocks].sort((a, b) => timeToMinutes(a.time) - timeToMinutes(b.time));
+  return [...workoutBlocks, ...taskBlocks].sort((a, b) => timeToMinutes(a.time) - timeToMinutes(b.time));
 };
 
 // The merged list for a day's agenda: the user's events (all-day first) and
-// then the timed workout/meal/task blocks, all in start order.
+// then the timed workout/task blocks, all in start order.
 export const dayItems = (data, iso) => {
   const events = eventsOnDate(data.events, iso).map(e => ({
     kind: 'event', key: `e::${e.id}`, title: e.title, time: e.time, allDay: e.time === null, duration: e.duration, event: e,
@@ -235,14 +216,13 @@ export const dayItems = (data, iso) => {
 };
 
 // What a month cell needs: the day's events plus counts of the recurring
-// workouts/meals and the open tasks due or targeted on that date.
+// workouts and the open tasks due or targeted on that date.
 export const dayMarkers = (data, iso) => {
-  const { templates = [], mealPlan = {}, tasks = [] } = data;
+  const { templates = [], tasks = [] } = data;
   const dayName = weekdayName(iso);
   return {
     events: eventsOnDate(data.events, iso),
     workouts: dayList(workoutPlanFor(data, iso)[dayName]).filter(n => templates.some(t => t.name === n)).length,
-    meals: SLOTS.filter(s => slotList(mealPlan[dayName]?.[s]).length > 0).length,
     tasks: tasks.filter(t => !t.isCompleted && (t.dueDate === iso || t.targetDate === iso)).length,
   };
 };

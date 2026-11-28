@@ -1,7 +1,7 @@
 @import "../../core/src/theme.css";
 
 /* Each Summit app has its own accent, so you always know where you are:
-   Planner is cobalt blue (Fitness is hot pink, Eat is emerald, the Summit home
+   Planner is cobalt blue (Fitness picks its colour in its Settings tab, the Summit home
    screen keeps the brand purple). Everything "primary" in this app reads these
    variables. White on #2563eb is 5.2:1; dark mode flips to a light blue with dark text. */
 :root {

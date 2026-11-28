@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { AlertTriangle, CalendarCheck, Check, Dumbbell, Moon, Sun, UtensilsCrossed } from 'lucide-react';
+import { AlertTriangle, CalendarCheck, Check, Dumbbell, Moon, Sun } from 'lucide-react';
 import { SUMMIT_APPS, useDarkMode, useTaskEngine } from '@summit/core';
 import { dbGet } from '@summit/core/db';
 import logoUrl from './assets/summit-command-center.png';
@@ -18,10 +18,9 @@ const asList = (v) => (Array.isArray(v) ? v : v ? [v] : []);
 // Each is null when the data can't be read, so a button just shows its name.
 async function loadSummaries(now, plansFor) {
   const day = DAYS[now.getDay()];
-  const [workoutPlan, weekPlans, mealPlan] = await Promise.all([
+  const [workoutPlan, weekPlans] = await Promise.all([
     dbGet('summit_weekly_workout_plan'),
     dbGet('summit_week_plans'),
-    dbGet('summit_weekly_meal_plan'),
   ]);
 
   // A week can carry its own workout plan (Fitness), else the default plan applies.
@@ -32,12 +31,7 @@ async function loadSummaries(now, plansFor) {
     fitness = workouts.length === 0 ? 'Rest day' : workouts.join(' + ');
   }
 
-  let eat = null;
-  if (mealPlan) {
-    const dinner = asList(mealPlan[day]?.dinner);
-    eat = dinner.length === 0 ? 'No dinner planned' : `Dinner: ${dinner.join(', ')}`;
-  }
-  return { fitness, eat };
+  return { fitness };
 }
 
 // Monday of the week containing `now`, as an ISO date (the key of a week plan).
@@ -47,8 +41,8 @@ const mondayISO = (now) => {
   return toISO(d);
 };
 
-const ICONS = { daily: CalendarCheck, fitness: Dumbbell, eat: UtensilsCrossed };
-const BLURBS = { daily: 'Tasks and projects', fitness: 'Workouts', eat: 'Meals' };
+const ICONS = { daily: CalendarCheck, fitness: Dumbbell };
+const BLURBS = { daily: 'Tasks and projects', fitness: 'Workouts' };
 
 function greeting(hour) {
   if (hour < 12) return 'Good morning';
@@ -56,7 +50,7 @@ function greeting(hour) {
   return 'Good evening';
 }
 
-// The Summit home screen: a compact band, three small buttons into the apps (each
+// The Summit home screen: a compact band, two small buttons into the apps (each
 // in its own colour, with a one-line look at today), and the calendar.
 export default function App() {
   const [darkMode, setDarkMode] = useDarkMode();
@@ -80,7 +74,6 @@ export default function App() {
   const lines = {
     daily: engine.isLoading ? null : due === 0 ? 'Nothing due' : `${due} due`,
     fitness: summaries?.fitness,
-    eat: summaries?.eat,
   };
 
   const { toast, isLoading, showToast, ...taskProps } = engine;
@@ -122,7 +115,7 @@ export default function App() {
           </div>
         </div>
 
-        <nav aria-label="Summit apps" className="grid grid-cols-3 gap-2 mb-4">
+        <nav aria-label="Summit apps" className="grid grid-cols-2 gap-2 mb-4">
           {SUMMIT_APPS.filter(a => a.id !== 'portal').map(app => {
             const Icon = ICONS[app.id];
             const line = lines[app.id];

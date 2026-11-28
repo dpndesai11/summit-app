@@ -17,8 +17,7 @@ const WEEKDAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 const fillFor = (item) => (
   item.kind === 'event' ? EVENT_COLORS[item.event.color].fill
     : item.kind === 'workout' ? 'bg-fitness text-on-fitness'
-    : item.kind === 'task' ? 'bg-blue-600 text-white'
-    : 'bg-emerald-700 text-white'
+    : 'bg-blue-600 text-white'
 );
 
 // Seven day columns over an hour grid (6am–10pm), the way Google Calendar's
@@ -26,7 +25,7 @@ const fillFor = (item) => (
 // recurring blocks (work hours...) are a faint backdrop behind everything, and
 // overlapping items share their column side by side. Blocks are tap-only —
 // tapping anything opens that day (where blocks can be dragged); dragging a
-// workout or meal here would silently move every such weekday.
+// workout here would silently move every such weekday.
 //
 // On a phone each column is at least 88px wide and the grid scrolls sideways,
 // opening scrolled to today; from `md` up all seven columns fit.

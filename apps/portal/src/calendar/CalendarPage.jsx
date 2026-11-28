@@ -20,7 +20,7 @@ import RecurringBlocksCard from './RecurringBlocksCard';
 // Summit home screen — the calendar. Month (a grid with the selected day's agenda
 // beside/below it), Week (seven columns over an hour grid) and Day (the
 // draggable hour timeline). It shows the user's own events (one-off and
-// repeating), the recurring workout/meal plan from Fitness and Eat, tasks that
+// repeating), the recurring workout plan from Fitness, tasks that
 // are due or placed on the timeline, and recurring blocks like work hours.
 //
 // Loading/saving lives in useCalendarData.js, the date/event maths in
@@ -50,12 +50,12 @@ export default function CalendarPage({
 }) {
   const cal = useCalendarData();
   const {
-    templates, workoutPlan, weekPlans, workoutTimes, recipes, mealPlan, mealTimes, taskTimes, recurringBlocks, events,
+    templates, workoutPlan, weekPlans, workoutTimes, taskTimes, recurringBlocks, events,
     toast, isLoading, isRefreshing, showToast, refresh, saveRecurringBlocks,
   } = cal;
   const [view, setView] = useState('month'); // 'month' | 'week' | 'day'
   // The selected day drives every view: the highlighted cell in Month, the
-  // visible week in Week, the day shown in Day. Workouts and meals are a
+  // visible week in Week, the day shown in Day. Workouts are a
   // recurring weekly plan keyed by weekday; tasks and events use real dates.
   const [selectedDate, setSelectedDate] = useState(() => new Date());
   const [eventSheet, setEventSheet] = useState(null); // { event, defaults } while the editor is open
@@ -89,7 +89,7 @@ export default function CalendarPage({
   const isViewingToday = selectedISO === todayISO;
 
   // Everything the pure calendar functions need, as one object.
-  const calData = { templates, workoutPlan, weekPlans, workoutTimes, recipes, mealPlan, mealTimes, taskTimes, tasks, events };
+  const calData = { templates, workoutPlan, weekPlans, workoutTimes, taskTimes, tasks, events };
   const items = dayItems(calData, selectedISO);
   const timedItems = items.filter(i => !i.allDay);
   const allDayItems = items.filter(i => i.allDay);
@@ -98,7 +98,7 @@ export default function CalendarPage({
     .filter(x => x.entry);
 
   // Checks every 30s (while this tab is open) for anything — an event, workout,
-  // meal or scheduled task — starting within the next 5 minutes, and fires a
+  // or scheduled task — starting within the next 5 minutes, and fires a
   // browser notification once per item per day. Always checks the *actual*
   // current day, whatever day is being viewed.
   useEffect(() => {
@@ -125,7 +125,7 @@ export default function CalendarPage({
     const interval = setInterval(check, 30000);
     return () => clearInterval(interval);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [notifPermission, isLoading, workoutPlan, weekPlans, workoutTimes, mealPlan, mealTimes, templates, recipes, taskTimes, tasks, events]);
+  }, [notifPermission, isLoading, workoutPlan, weekPlans, workoutTimes, templates, taskTimes, tasks, events]);
 
   // --- Navigation ---------------------------------------------------------------
   const step = (dir) => setSelectedDate(d => (view === 'month' ? addMonths(d, dir) : addDays(d, dir * (view === 'week' ? 7 : 1))));
@@ -156,17 +156,15 @@ export default function CalendarPage({
   };
 
   // --- Dragging blocks in the Day view -------------------------------------------
-  // Workouts and meals are a recurring weekly plan, so moving one changes it for
+  // Workouts are a recurring weekly plan, so moving one changes it for
   // every such weekday; tasks are per date; an event's change applies to its series.
   const moveBlock = (block, time) => {
     if (block.kind === 'workout') cal.commitWorkoutEntry(selectedDayName, block.title, { time });
-    else if (block.kind === 'meal') cal.commitMealEntry(selectedDayName, block.slot, { time });
     else if (block.kind === 'task') cal.commitTaskEntry(selectedISO, block.taskId, { time });
     else cal.updateEvent(block.event.id, { time });
   };
   const resizeBlock = (block, duration) => {
     if (block.kind === 'workout') cal.commitWorkoutEntry(selectedDayName, block.title, { duration });
-    else if (block.kind === 'meal') cal.commitMealEntry(selectedDayName, block.slot, { duration });
     else if (block.kind === 'task') cal.commitTaskEntry(selectedISO, block.taskId, { duration });
     else cal.updateEvent(block.event.id, { duration });
   };
@@ -252,7 +250,7 @@ export default function CalendarPage({
         <div className="bg-primary-soft border border-primary-low rounded-2xl p-3 flex items-start gap-2.5">
           <Bell className="w-4 h-4 text-primary mt-0.5 flex-shrink-0" />
           <div className="flex-1 min-w-0">
-            <p className="text-xs font-medium text-primary">Get reminded when an event, workout or meal starts</p>
+            <p className="text-xs font-medium text-primary">Get reminded when an event or workout starts</p>
             <p className="text-[11px] text-primary mt-0.5">
               Only fires while this tab is open (foreground or background) — not a real push notification when the app is fully closed.
             </p>

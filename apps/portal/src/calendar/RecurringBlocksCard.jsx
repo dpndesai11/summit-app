@@ -8,7 +8,7 @@ import {
 const DEFAULT_RECURRING_BLOCK = { name: '', color: 'slate', days: {} };
 
 // Recurring background blocks — repeating commitments that aren't tasks,
-// workouts, meals or events (work hours, uni hours, commute) — drawn as a
+// workouts or events (work hours, uni hours, commute) — drawn as a
 // lighter band behind the Week and Day views on the days you pick. Each picked
 // day carries its own time/duration (Mon–Thu 8–16, a Friday that ends at 15).
 // The builder's state lives here; the blocks themselves are saved by the parent.
@@ -76,7 +76,7 @@ export default function RecurringBlocksCard({ recurringBlocks, saveRecurringBloc
       }
     >
       <p className="text-xs text-black dark:text-white mb-3">
-        Repeating commitments that aren't tasks, workouts, or meals — work hours, uni hours, commute — shown as a lighter band on the days you pick. Life happens, so each day gets its own time — edit them all here.
+        Repeating commitments that aren't tasks or workouts — work hours, uni hours, commute — shown as a lighter band on the days you pick. Life happens, so each day gets its own time — edit them all here.
       </p>
 
       {blockBuilderOpen && (

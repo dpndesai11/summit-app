@@ -9,7 +9,6 @@ export const SUMMIT_APPS = [
   { id: 'daily', label: 'Planner', href: '/summit-app/planner/', color: '#2563eb' },
   // Fitness follows the colour picked in its Settings (see fitnessAccent.js).
   { id: 'fitness', label: 'Fitness', href: '/summit-app/fitness/', color: 'var(--fitness)', onColor: 'var(--on-fitness)' },
-  { id: 'eat', label: 'Eat', href: '/summit-app/eat/', color: '#047857' },
 ];
 
 export default function AppSwitcher({ current, className = '' }) {

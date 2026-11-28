@@ -1,10 +1,8 @@
 import { useRef, useState } from 'react';
-import { Apple, CalendarDays, CheckSquare, ChevronDown, Coffee, CookingPot, Cookie, Dumbbell, Pencil, Sandwich } from 'lucide-react';
+import { CalendarDays, CheckSquare, ChevronDown, Dumbbell, Pencil } from 'lucide-react';
 import {
   BLOCK_COLOR_PRESETS, EVENT_COLORS, formatDuration, formatHour, formatTime, minutesToTime, timeToMinutes,
 } from './calendar';
-
-const SLOT_ICONS = { breakfast: Coffee, snack1: Apple, lunch: Sandwich, snack2: Cookie, dinner: CookingPot };
 
 const TIMELINE_START_MIN = 6 * 60;
 const TIMELINE_END_MIN = 22 * 60;
@@ -17,13 +15,13 @@ const MIN_DURATION = 10;
 const MIN_BLOCK_HEIGHT = 32;
 const snapMinutes = (mins) => Math.round(mins / SNAP_MINUTES) * SNAP_MINUTES;
 
-// One day as an hour grid (6am–10pm). Workouts, meals, scheduled tasks and the
+// One day as an hour grid (6am–10pm). Workouts, scheduled tasks and the
 // user's events are blocks you can tap to expand, drag to a new time, or resize
 // by their bottom edge; recurring blocks (work hours...) sit behind as bands;
 // all-day events sit in a strip above. Tapping an empty stretch of the grid asks
 // the parent to create an event at that time (snapped to 15 minutes).
 //
-// Dragging a workout or meal changes its time for *every* such weekday (they're
+// Dragging a workout changes its time for *every* such weekday (they're
 // a recurring weekly plan) — that is the existing behaviour, kept here.
 export default function DayTimeline({
   items, allDayItems, recurring, isToday, nowMinutes,
@@ -175,9 +173,8 @@ export default function DayTimeline({
             // to a light tint in dark mode, so their text flips dark with them.
             const fill = isEvent ? EVENT_COLORS[block.event.color].fill
               : isWorkout ? 'bg-fitness text-on-fitness'
-              : isTask ? 'bg-blue-600 text-white'
-              : 'bg-emerald-700 text-white';
-            const Icon = isEvent ? CalendarDays : isWorkout ? Dumbbell : isTask ? CheckSquare : (SLOT_ICONS[block.slot] || CookingPot);
+              : 'bg-blue-600 text-white';
+            const Icon = isEvent ? CalendarDays : isWorkout ? Dumbbell : CheckSquare;
             const expanded = expandedBlock === block.key;
             const showDurationLabel = height >= 44;
             return (
@@ -220,7 +217,7 @@ export default function DayTimeline({
                 {isResizing && <div className="text-[11px] text-black dark:text-white mt-0.5">{formatDuration(drag.liveDuration)}</div>}
 
                 {expanded && !isDragging && (
-                  <div className={`mt-1 rounded-xl px-3 py-2 text-xs ${isEvent ? 'bg-primary-soft text-primary' : isWorkout ? 'bg-fitness-soft text-black dark:text-white' : isTask ? 'bg-blue-50 dark:bg-blue-500/10 text-black dark:text-white' : 'bg-emerald-50 dark:bg-emerald-500/10 text-black dark:text-white'}`}>
+                  <div className={`mt-1 rounded-xl px-3 py-2 text-xs ${isEvent ? 'bg-primary-soft text-primary' : isWorkout ? 'bg-fitness-soft text-black dark:text-white' : 'bg-blue-50 dark:bg-blue-500/10 text-black dark:text-white'}`}>
                     {isEvent ? (
                       <div className="space-y-2">
                         {block.event.notes && <p className="whitespace-pre-line">{block.event.notes}</p>}
@@ -256,21 +253,7 @@ export default function DayTimeline({
                           </button>
                         </div>
                       </div>
-                    ) : block.recipes && block.recipes.length > 0 ? (
-                      <div className="space-y-2">
-                        {block.recipes.map(recipe => (
-                          <div key={recipe.id}>
-                            {block.recipes.length > 1 && <div className="font-semibold mb-1">{recipe.name}</div>}
-                            <div className="flex flex-wrap gap-1">
-                              {recipe.ingredients.map((ing, i) => (
-                                <span key={i} className="bg-white/70 dark:bg-violet-400/10 rounded-full px-2 py-0.5">{ing.name}{ing.quantity ? ` · ${ing.quantity}g` : ''}</span>
-                              ))}
-                            </div>
-                            {recipe.notes && <p className="opacity-80 whitespace-pre-line mt-1">{recipe.notes}</p>}
-                          </div>
-                        ))}
-                      </div>
-                    ) : <span className="opacity-70">Recipe not found.</span>}
+                    ) : null}
                   </div>
                 )}
               </div>
@@ -280,7 +263,7 @@ export default function DayTimeline({
       </div>
 
       {items.length === 0 && allDayItems.length === 0 && (
-        <p className="text-xs text-black dark:text-white text-center">Nothing scheduled — tap the grid to add an event, or set times for workouts and meals in the Fitness and Eat apps.</p>
+        <p className="text-xs text-black dark:text-white text-center">Nothing scheduled — tap the grid to add an event, or set times for workouts in the Fitness app.</p>
       )}
     </div>
   );

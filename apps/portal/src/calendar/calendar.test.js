@@ -95,20 +95,15 @@ const data = {
   templates: [{ name: 'Gym 1', exercises: [{ name: 'Squat' }] }, { name: 'Run - 5KM', exercises: [] }],
   workoutPlan: { Saturday: ['Gym 1'], Sunday: ['Run - 5KM', 'Missing template'] },
   workoutTimes: { Saturday: { 'Gym 1': { time: '09:00', duration: 75 } } },
-  recipes: [{ id: 1, name: 'Oats', ingredients: [] }],
-  mealPlan: { Saturday: { breakfast: ['Oats'], dinner: ['Curry', 'Rice'] } },
-  mealTimes: {},
   taskTimes: { '2026-10-03': { 7: { time: '08:00', duration: 20 } } },
   tasks: [{ id: 7, name: 'Pay invoice', dueDate: '2026-10-03', isCompleted: false }, { id: 8, name: 'Done thing', dueDate: '2026-10-03', isCompleted: true }],
   events: [ev({ id: 1, title: 'Dentist', time: '14:00' }), ev({ id: 2, title: 'Birthday', time: null })],
 };
 
 describe('buildBlocksForDay / dayItems / dayMarkers', () => {
-  it('a weekday-keyed workout, a per-slot meal and a dated task all land on the real date, in time order', () => {
+  it('a weekday-keyed workout and a dated task both land on the real date, in time order', () => {
     const blocks = buildBlocksForDay(data, 'Saturday', '2026-10-03');
-    // at a tie (08:00) the original order holds: workouts, then meals, then tasks
-    expect(blocks.map(b => `${b.kind}:${b.time}`)).toEqual(['meal:08:00', 'task:08:00', 'workout:09:00', 'meal:19:00']);
-    expect(blocks.find(b => b.kind === 'meal' && b.slot === 'dinner').title).toBe('Curry + Rice');
+    expect(blocks.map(b => `${b.kind}:${b.time}`)).toEqual(['task:08:00', 'workout:09:00']);
   });
 
   it('a workout in the plan whose template is gone is skipped, not shown', () => {
@@ -127,10 +122,10 @@ describe('buildBlocksForDay / dayItems / dayMarkers', () => {
     expect(items.some(i => i.kind === 'event' && i.title === 'Dentist')).toBe(true);
   });
 
-  it('dayMarkers counts events, workouts, meal slots and only open tasks', () => {
-    expect(dayMarkers(data, '2026-10-03')).toMatchObject({ workouts: 1, meals: 2, tasks: 1 });
+  it('dayMarkers counts events, workouts and only open tasks', () => {
+    expect(dayMarkers(data, '2026-10-03')).toMatchObject({ workouts: 1, tasks: 1 });
     expect(dayMarkers(data, '2026-10-03').events).toHaveLength(2);
-    expect(dayMarkers(data, '2026-10-04')).toMatchObject({ workouts: 1, meals: 0, tasks: 0 }); // 'Missing template' not counted
+    expect(dayMarkers(data, '2026-10-04')).toMatchObject({ workouts: 1, tasks: 0 }); // 'Missing template' not counted
   });
 
   it('parseISO is local midnight', () => {

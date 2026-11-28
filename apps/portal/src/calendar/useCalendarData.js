@@ -2,11 +2,11 @@ import { useEffect, useState } from 'react';
 import { dbGet, dbSet, dbRefresh } from '@summit/core/db';
 import {
   DEFAULT_TASK_DURATION, DEFAULT_TASK_TIME, DEFAULT_WORKOUT_DURATION, DEFAULT_WORKOUT_TIME,
-  SLOT_DEFAULT_DURATIONS, SLOT_DEFAULT_TIMES, normalizeEvent, normalizeTimeEntry,
+  normalizeEvent, normalizeTimeEntry,
 } from './calendar';
 
 // Everything the calendar reads and writes, in one place (same hook pattern as
-// Fitness/Eat/Habits). Workout and meal data belongs to Fitness and Eat and is
+// Fitness). Workout data belongs to Fitness and is
 // only *times* editable here (drag-to-reschedule), exactly as before; tasks come
 // from the Planner's own state as props, so they are not loaded here. `events`
 // is new: the user's own one-off and repeating calendar events.
@@ -15,9 +15,6 @@ const STORAGE_KEYS = {
   weeklyWorkoutPlan: 'summit_weekly_workout_plan',
   weekPlans: 'summit_week_plans',
   workoutTimes: 'summit_workout_times',
-  recipes: 'summit_recipes',
-  weeklyMealPlan: 'summit_weekly_meal_plan',
-  mealTimes: 'summit_meal_times',
   taskTimes: 'summit_task_times',
   recurringBlocks: 'summit_recurring_blocks',
   events: 'summit_events',
@@ -28,9 +25,6 @@ export default function useCalendarData() {
   const [workoutPlan, setWorkoutPlan] = useState({});
   const [weekPlans, setWeekPlans] = useState({});
   const [workoutTimes, setWorkoutTimes] = useState({});
-  const [recipes, setRecipes] = useState([]);
-  const [mealPlan, setMealPlan] = useState({});
-  const [mealTimes, setMealTimes] = useState({});
   // {[isoDate]: {[taskId]: {time, duration}}} — which tasks sit on the timeline
   // and when; keyed by real date since tasks are one-off.
   const [taskTimes, setTaskTimes] = useState({});
@@ -57,13 +51,10 @@ export default function useCalendarData() {
         return fallback;
       }
     };
-    const [wt, wwp, wtm, rc, wmp, mt, tt, rb, ev, wkp] = await Promise.all([
+    const [wt, wwp, wtm, tt, rb, ev, wkp] = await Promise.all([
       loadData(STORAGE_KEYS.workoutTemplates, []),
       loadData(STORAGE_KEYS.weeklyWorkoutPlan, {}),
       loadData(STORAGE_KEYS.workoutTimes, {}),
-      loadData(STORAGE_KEYS.recipes, []),
-      loadData(STORAGE_KEYS.weeklyMealPlan, {}),
-      loadData(STORAGE_KEYS.mealTimes, {}),
       loadData(STORAGE_KEYS.taskTimes, {}),
       loadData(STORAGE_KEYS.recurringBlocks, []),
       loadData(STORAGE_KEYS.events, []),
@@ -73,9 +64,6 @@ export default function useCalendarData() {
     setWorkoutPlan(wwp && typeof wwp === 'object' ? wwp : {});
     setWeekPlans(wkp && typeof wkp === 'object' && !Array.isArray(wkp) ? wkp : {});
     setWorkoutTimes(wtm && typeof wtm === 'object' ? wtm : {});
-    setRecipes(Array.isArray(rc) ? rc : []);
-    setMealPlan(wmp && typeof wmp === 'object' ? wmp : {});
-    setMealTimes(mt && typeof mt === 'object' ? mt : {});
     setTaskTimes(tt && typeof tt === 'object' ? tt : {});
     setRecurringBlocks(Array.isArray(rb) ? rb : []);
     // An entry without a date can never be shown; drop it rather than carry it.
@@ -102,19 +90,13 @@ export default function useCalendarData() {
     }
   };
 
-  // --- Drag-to-reschedule / resize writes. Workouts and meals are keyed by
+  // --- Drag-to-reschedule / resize writes. Workouts are keyed by
   // weekday (a recurring weekly plan), tasks by the real date. ------------------
   const commitWorkoutEntry = (dayName, templateName, patch) => {
     const entry = normalizeTimeEntry(workoutTimes[dayName]?.[templateName], DEFAULT_WORKOUT_TIME, DEFAULT_WORKOUT_DURATION);
     const next = { ...workoutTimes, [dayName]: { ...workoutTimes[dayName], [templateName]: { ...entry, ...patch } } };
     setWorkoutTimes(next);
     dbSetSafe(STORAGE_KEYS.workoutTimes, next);
-  };
-  const commitMealEntry = (dayName, slot, patch) => {
-    const entry = normalizeTimeEntry(mealTimes[dayName]?.[slot], SLOT_DEFAULT_TIMES[slot], SLOT_DEFAULT_DURATIONS[slot]);
-    const next = { ...mealTimes, [dayName]: { ...mealTimes[dayName], [slot]: { ...entry, ...patch } } };
-    setMealTimes(next);
-    dbSetSafe(STORAGE_KEYS.mealTimes, next);
   };
   const commitTaskEntry = (iso, taskId, patch) => {
     const entry = normalizeTimeEntry(taskTimes[iso]?.[taskId], DEFAULT_TASK_TIME, DEFAULT_TASK_DURATION);
@@ -159,9 +141,9 @@ export default function useCalendarData() {
   };
 
   return {
-    templates, workoutPlan, weekPlans, workoutTimes, recipes, mealPlan, mealTimes, taskTimes, recurringBlocks, events,
+    templates, workoutPlan, weekPlans, workoutTimes, taskTimes, recurringBlocks, events,
     toast, isLoading, isRefreshing, showToast, refresh,
-    commitWorkoutEntry, commitMealEntry, commitTaskEntry, removeTaskFromTimeline, isTaskScheduled,
+    commitWorkoutEntry, commitTaskEntry, removeTaskFromTimeline, isTaskScheduled,
     saveRecurringBlocks, addEvent, updateEvent, deleteEvent,
   };
 }

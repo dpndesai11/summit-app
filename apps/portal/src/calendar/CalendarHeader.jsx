@@ -6,12 +6,11 @@ const VIEWS = [['month', 'Month'], ['week', 'Week'], ['day', 'Day']];
 const LEGEND = [
   { label: 'Event', cls: 'bg-primary' },
   { label: 'Workout', cls: 'bg-fitness' },
-  { label: 'Meal', cls: 'bg-emerald-700' },
   { label: 'Task', cls: 'bg-blue-600' },
 ];
 
 // The calendar's controls: the visible period as a big title (with a strip in the
-// four category colours) and previous/next, the Month | Week | Day switch, a jump
+// category colours) and previous/next, the Month | Week | Day switch, a jump
 // back to today, refresh, and a legend that says what each colour means.
 export default function CalendarHeader({ view, title, onPrev, onNext, onToday, onView, onRefresh, isRefreshing }) {
   const step = view === 'month' ? 'month' : view === 'week' ? 'week' : 'day';
